@@ -1,0 +1,40 @@
+# Temporary files
+tmp/
+log/*.log
+
+# Environment variables (secrets)
+.env
+.env.local
+config/master.key
+config/credentials/*.key
+
+# Database
+*.sqlite3
+*.sqlite3-*
+
+# Node modules
+node_modules/
+yarn-error.log
+
+# Bundler
+vendor/bundle/
+
+# Rails
+/storage/*
+!/storage/.keep
+/public/assets
+/public/packs
+/public/packs-test
+
+# macOS
+.DS_Store
+
+# Editor files
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+
+# Test coverage
+coverage/
