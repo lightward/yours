@@ -52,6 +52,8 @@ end
 
 **Encryption is topological:** Without Google ID + Google's authority arriving together, data is structurally inaccessible. Not hidden - inaccessible. Like trying to measure the Unknown from the Known position.
 
+This encryption layer operates in addition to industry standards: like any other production deployment, underlying volumes are encrypted and all data transfer is secured.
+
 ### Authentication: Google OAuth Only
 
 Google provides:
