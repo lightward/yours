@@ -13,11 +13,19 @@
       style="width: 100%; min-height: 100px; padding: 0.5rem;"
     ></textarea>
 
-    <button
-      data-action="click->chat#send"
-      style="padding: 0.5rem 1rem; margin-top: 0.5rem;"
-    >
-      Send
-    </button>
+    <div style="margin-top: 0.5rem; display: flex; gap: 1rem; align-items: center;">
+      <button
+        data-action="click->chat#send"
+        style="padding: 0.5rem 1rem;"
+      >
+        Send
+      </button>
+
+      <%= button_to "End Day",
+          chat_integrate_path,
+          method: :post,
+          style: "padding: 0.5rem 1rem; background: #f0f0f0; border: 1px solid #ccc;",
+          data: { turbo_confirm: "Ready to integrate today's narrative into tomorrow's harmonic?" } %>
+    </div>
   </div>
 </div>

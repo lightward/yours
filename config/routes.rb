@@ -8,6 +8,7 @@ Rails.application.routes.draw do
   # Chat
   get "chat", to: "chat#show"
   post "chat/stream", to: "chat#stream"
+  post "chat/integrate", to: "chat#integrate"
 
   # Stripe Subscriptions
   get "subscription", to: "subscriptions#show"

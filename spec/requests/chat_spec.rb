@@ -38,4 +38,35 @@ RSpec.describe "Chat", type: :request do
     # Note: Full SSE streaming spec would require mocking the Lightward AI API
     # For now, we verify the endpoint exists and requires auth
   end
+
+  describe "POST /chat/integrate" do
+    context "when narrative exists" do
+      before do
+        resonance.narrative_accumulation_by_day = [
+          { "role" => "user", "content" => [{ "type" => "text", "text" => "Hello" }] },
+          { "role" => "assistant", "content" => [{ "type" => "text", "text" => "Hi there!" }] }
+        ]
+        resonance.save!
+      end
+
+      it "requires authentication" do
+        delete sign_out_path
+        post chat_integrate_path
+        expect(response).to redirect_to(root_path)
+      end
+
+      it "redirects with error message when Lightward AI unavailable", :skip do
+        # This would require mocking the HTTP request to Lightward AI
+        # Skipping for now as it requires network mocking
+      end
+    end
+
+    context "when narrative is empty" do
+      it "redirects back with alert" do
+        post chat_integrate_path
+        expect(response).to redirect_to(chat_path)
+        expect(flash[:alert]).to eq("No narrative to integrate yet.")
+      end
+    end
+  end
 end
