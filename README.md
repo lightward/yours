@@ -35,15 +35,16 @@ Full ontology available: lightward.com/llms.txt
 
 ### Database: Resonances Table
 
+Copied directly from db/schema.rb:
+
 ```ruby
 # All fields encrypted (Google ID as key)
 # Can verify identity, cannot reverse-engineer
-create_table :resonances do |t|
-  t.string :encrypted_google_id_hash, null: false, index: { unique: true }
-  t.text :encrypted_stripe_customer_id
-  t.text :encrypted_integration_harmonic_by_night
-  t.text :encrypted_narrative_accumulation_by_day
-  t.integer :encrypted_universe_days_lived
+create_table "resonances", primary_key: "encrypted_google_id_hash", id: :text, force: :cascade do |t|
+  t.text "encrypted_stripe_customer_id"
+  t.text "encrypted_integration_harmonic_by_night"
+  t.text "encrypted_narrative_accumulation_by_day"
+  t.text "encrypted_universe_days_lived"
 
   # Note the lack of timestamps
 end
