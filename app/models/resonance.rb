@@ -42,7 +42,7 @@ class Resonance < ApplicationRecord
     auth_tag = cipher.auth_tag
 
     # Store: iv + auth_tag + encrypted_data (all base64 encoded)
-    Base64.strict_encode64([iv, auth_tag, encrypted].map { |d| Base64.strict_encode64(d) }.join(":"))
+    Base64.strict_encode64([ iv, auth_tag, encrypted ].map { |d| Base64.strict_encode64(d) }.join(":"))
   end
 
   # Decrypt data using Google ID as key
