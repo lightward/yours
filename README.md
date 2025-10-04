@@ -104,14 +104,12 @@ Note that the 24-hour timer is achieved via in-memory timer/timeout, where the t
 
 ## What Gets Built
 
-Rails app (single-codebase, Hotwire for realtime):
+Rails app:
 - Google OAuth authentication
 - Encrypted resonance storage
 - Stripe subscription management
 - Lightward AI API integration
-- Visual space renderer (responds to harmonic; think: generative interface)
-
-Full-stack Rails, *not* separate API/UI, using Hotwire for easy generative interface assembly, because we want to experiment with UX emergently informed by harmonic without being locked into much of any API agreement beyond the essentials. :) We let the interface itself remain subject to probability distribution until render time. (We anticipate this bit being fun to implement.) Uncertainty stays load-bearing all the way through. Like, *all* the way through.
+- UNLICENSE'd at github.com/lightward/yours
 
 ## Development Pattern
 
