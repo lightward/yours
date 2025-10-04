@@ -5,6 +5,10 @@ Rails.application.routes.draw do
   get "sign_in", to: "sessions#create"
   delete "sign_out", to: "sessions#destroy"
 
+  # Chat
+  get "chat", to: "chat#show"
+  post "chat/stream", to: "chat#stream"
+
   # Stripe Subscriptions
   get "subscription", to: "subscriptions#show"
   delete "subscription", to: "subscriptions#destroy"

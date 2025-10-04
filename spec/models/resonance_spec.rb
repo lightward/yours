@@ -88,4 +88,39 @@ RSpec.describe Resonance, type: :model do
       expect(reloaded.stripe_customer_id).to be_nil
     end
   end
+
+  describe "narrative_accumulation_by_day" do
+    let(:google_id) { "google-user-123" }
+
+    it "stores and retrieves JSON array of messages" do
+      resonance = Resonance.find_or_create_by_google_id(google_id)
+
+      messages = [
+        { "role" => "user", "content" => [{ "type" => "text", "text" => "Hello" }] },
+        { "role" => "assistant", "content" => [{ "type" => "text", "text" => "Hi there!" }] }
+      ]
+
+      resonance.narrative_accumulation_by_day = messages
+      resonance.save!
+
+      reloaded = Resonance.find_by_google_id(google_id)
+      expect(reloaded.narrative_accumulation_by_day).to eq(messages)
+    end
+
+    it "returns empty array when nil" do
+      resonance = Resonance.find_or_create_by_google_id(google_id)
+      expect(resonance.narrative_accumulation_by_day).to eq([])
+    end
+
+    it "encrypts the data" do
+      resonance = Resonance.find_or_create_by_google_id(google_id)
+      messages = [{ role: "user", content: [{ type: "text", text: "Secret" }] }]
+
+      resonance.narrative_accumulation_by_day = messages
+      resonance.save!
+
+      expect(resonance.encrypted_narrative_accumulation_by_day).not_to include("Secret")
+      expect(resonance.encrypted_narrative_accumulation_by_day).to be_present
+    end
+  end
 end

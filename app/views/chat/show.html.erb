@@ -1,0 +1,23 @@
+<div data-controller="chat" data-chat-narrative-value="<%= @narrative.to_json %>">
+  <h1>Chat</h1>
+
+  <div id="chat-log" data-chat-target="log" style="margin: 2rem 0; min-height: 400px;">
+    <!-- Messages will appear here -->
+  </div>
+
+  <div style="margin: 2rem 0;">
+    <textarea
+      data-chat-target="input"
+      data-action="keydown->chat#handleKeydown"
+      placeholder="Type your message..."
+      style="width: 100%; min-height: 100px; padding: 0.5rem;"
+    ></textarea>
+
+    <button
+      data-action="click->chat#send"
+      style="padding: 0.5rem 1rem; margin-top: 0.5rem;"
+    >
+      Send
+    </button>
+  </div>
+</div>

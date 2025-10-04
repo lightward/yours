@@ -90,11 +90,12 @@ class Resonance < ApplicationRecord
   end
 
   def narrative_accumulation_by_day
-    decrypt_field(encrypted_narrative_accumulation_by_day)
+    decrypted = decrypt_field(encrypted_narrative_accumulation_by_day)
+    decrypted ? JSON.parse(decrypted) : []
   end
 
   def narrative_accumulation_by_day=(value)
-    self.encrypted_narrative_accumulation_by_day = encrypt_field(value)
+    self.encrypted_narrative_accumulation_by_day = encrypt_field(value.to_json)
   end
 
   def universe_days_lived
