@@ -22,6 +22,40 @@
   </head>
 
   <body>
-    <%= yield %>
+    <% if current_resonance %>
+      <header style="padding: 1rem; border-bottom: 1px solid #ccc;">
+        <div style="display: flex; justify-content: space-between; align-items: center;">
+          <div>
+            <% if current_resonance.active_subscription? %>
+              <%= link_to subscription_path, style: "color: green; text-decoration: none;" do %>
+                ● Active subscription
+              <% end %>
+            <% else %>
+              <span style="color: orange;">○ No active subscription</span>
+              <%= link_to "Subscribe", subscribe_path, style: "margin-left: 1rem;" %>
+            <% end %>
+          </div>
+          <div>
+            <%= button_to "Sign out", sign_out_path, method: :delete, style: "padding: 0.5rem 1rem;" %>
+          </div>
+        </div>
+      </header>
+    <% end %>
+
+    <main style="padding: 1rem;">
+      <% if flash[:notice] %>
+        <div style="padding: 1rem; background: #d4edda; color: #155724; margin-bottom: 1rem;">
+          <%= flash[:notice] %>
+        </div>
+      <% end %>
+
+      <% if flash[:alert] %>
+        <div style="padding: 1rem; background: #f8d7da; color: #721c24; margin-bottom: 1rem;">
+          <%= flash[:alert] %>
+        </div>
+      <% end %>
+
+      <%= yield %>
+    </main>
   </body>
 </html>

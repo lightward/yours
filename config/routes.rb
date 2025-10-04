@@ -5,6 +5,13 @@ Rails.application.routes.draw do
   get "sign_in", to: "sessions#create"
   delete "sign_out", to: "sessions#destroy"
 
+  # Stripe Subscriptions
+  get "subscription", to: "subscriptions#show"
+  delete "subscription", to: "subscriptions#destroy"
+  get "subscribe", to: "subscriptions#new"
+  post "subscribe", to: "subscriptions#create"
+  get "subscribe/success", to: "subscriptions#success", as: :subscribe_success
+
   # Reveal health status on /up that returns 200 if the app boots with no exceptions, otherwise 500.
   # Can be used by load balancers and uptime monitors to verify that the app is live.
   get "up" => "rails/health#show", as: :rails_health_check

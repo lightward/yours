@@ -20,4 +20,10 @@ class ApplicationController < ActionController::Base
   def require_authentication
     redirect_to root_path, alert: "Please sign in" unless current_resonance
   end
+
+  def require_active_subscription
+    return if current_resonance&.active_subscription?
+
+    redirect_to subscribe_path, alert: "Active subscription required"
+  end
 end

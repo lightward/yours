@@ -1,0 +1,40 @@
+<h1>Subscription Details</h1>
+
+<% if @subscription %>
+  <div style="margin: 2rem 0;">
+    <h2>Current Subscription</h2>
+
+    <dl style="line-height: 2;">
+      <dt><strong>Status:</strong></dt>
+      <dd>
+        <%= @subscription[:status].capitalize %>
+        <% if @subscription[:cancel_at_period_end] %>
+          <span style="color: #dc3545;">(Canceling at period end)</span>
+        <% end %>
+      </dd>
+
+      <dt><strong>Amount:</strong></dt>
+      <dd>$<%= @subscription[:amount] / 100 %> / <%= @subscription[:interval] %></dd>
+
+      <% if @subscription[:cancel_at_period_end] %>
+        <dt><strong>Access ends:</strong></dt>
+      <% else %>
+        <dt><strong>Next billing date:</strong></dt>
+      <% end %>
+      <dd><%= @subscription[:current_period_end].strftime("%B %d, %Y") %></dd>
+    </dl>
+  </div>
+
+  <% unless @subscription[:cancel_at_period_end] %>
+    <div style="margin: 2rem 0;">
+      <h3>Cancel Subscription</h3>
+      <p>Your subscription will remain active until <%= @subscription[:current_period_end].strftime("%B %d, %Y") %>.</p>
+      <p style="margin-top: 1rem;">Click the button below to cancel. You'll have access until the end of your billing period.</p>
+
+      <%= button_to "Cancel Subscription",
+          subscription_path,
+          method: :delete,
+          style: "padding: 0.5rem 1rem; background: #dc3545; color: white; border: none; cursor: pointer;" %>
+    </div>
+  <% end %>
+<% end %>

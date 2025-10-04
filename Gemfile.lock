@@ -347,6 +347,7 @@ GEM
       net-ssh (>= 2.8.0)
       ostruct
     stringio (3.1.7)
+    stripe (16.0.0)
     thor (1.4.0)
     thruster (0.1.15)
     thruster (0.1.15-aarch64-linux)
@@ -401,6 +402,7 @@ DEPENDENCIES
   solid_cable
   solid_cache
   solid_queue
+  stripe
   thruster
   tzinfo-data
   web-console

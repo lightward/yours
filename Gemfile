@@ -17,6 +17,9 @@ gem "jbuilder"
 # Google Sign In
 gem "google_sign_in"
 
+# Stripe payments
+gem "stripe"
+
 # Windows does not include zoneinfo files, so bundle the tzinfo-data gem
 gem "tzinfo-data", platforms: %i[ windows jruby ]
 

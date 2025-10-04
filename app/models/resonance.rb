@@ -1,4 +1,6 @@
 class Resonance < ApplicationRecord
+  include StripeSubscription
+
   self.primary_key = "encrypted_google_id_hash"
 
   validates :encrypted_google_id_hash, presence: true, uniqueness: true

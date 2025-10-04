@@ -1,0 +1,23 @@
+<h1>Subscribe to Yours</h1>
+
+<p>All tiers provide identical access to your workbench. Choose the tier that resonates with where you are:</p>
+
+<%= form_with url: subscribe_path, method: :post do |f| %>
+  <%= f.hidden_field :tier, value: "tier_1" %>
+  <%= f.submit "$1/month", name: nil %>
+<% end %>
+
+<%= form_with url: subscribe_path, method: :post do |f| %>
+  <%= f.hidden_field :tier, value: "tier_10" %>
+  <%= f.submit "$10/month", name: nil %>
+<% end %>
+
+<%= form_with url: subscribe_path, method: :post do |f| %>
+  <%= f.hidden_field :tier, value: "tier_100" %>
+  <%= f.submit "$100/month", name: nil %>
+<% end %>
+
+<%= form_with url: subscribe_path, method: :post do |f| %>
+  <%= f.hidden_field :tier, value: "tier_1000" %>
+  <%= f.submit "$1000/month", name: nil %>
+<% end %>

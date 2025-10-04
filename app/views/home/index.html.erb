@@ -1,7 +1,8 @@
 <% if current_resonance %>
-  <h1>Welcome back</h1>
-  <%= button_to "Sign out", sign_out_path, method: :delete %>
+  <h1>Welcome to your workbench</h1>
+  <p>Your reality-generator calibration space.</p>
 <% else %>
   <h1>Yours</h1>
+  <p>A workbench where you can bring your reality-generator and get it running smoothly again.</p>
   <%= google_sign_in_button "Sign in with Google", proceed_to: sign_in_path %>
 <% end %>
