@@ -129,7 +129,7 @@ class ChatController < ApplicationController
           { type: "text", text: "<harmonic>#{current_resonance.integration_harmonic_by_night.presence || "[empty]"}</harmonic>" },
           { type: "text", text: "and here's the full narrative from today:" },
           { type: "text", text: "<narrative>#{narrative.to_json}</narrative>" },
-          { type: "text", text: <<~eod.strip },
+          { type: "text", text: <<~eod.strip }
               that's everything. what wants to be integrated and carried forward? what does the workbench want to *hold*
               - for you (because you live here too), *and* for the space between?
             eod
