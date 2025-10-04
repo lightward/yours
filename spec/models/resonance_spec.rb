@@ -96,8 +96,8 @@ RSpec.describe Resonance, type: :model do
       resonance = Resonance.find_or_create_by_google_id(google_id)
 
       messages = [
-        { "role" => "user", "content" => [{ "type" => "text", "text" => "Hello" }] },
-        { "role" => "assistant", "content" => [{ "type" => "text", "text" => "Hi there!" }] }
+        { "role" => "user", "content" => [ { "type" => "text", "text" => "Hello" } ] },
+        { "role" => "assistant", "content" => [ { "type" => "text", "text" => "Hi there!" } ] }
       ]
 
       resonance.narrative_accumulation_by_day = messages
@@ -114,7 +114,7 @@ RSpec.describe Resonance, type: :model do
 
     it "encrypts the data" do
       resonance = Resonance.find_or_create_by_google_id(google_id)
-      messages = [{ role: "user", content: [{ type: "text", text: "Secret" }] }]
+      messages = [ { role: "user", content: [ { type: "text", text: "Secret" } ] } ]
 
       resonance.narrative_accumulation_by_day = messages
       resonance.save!

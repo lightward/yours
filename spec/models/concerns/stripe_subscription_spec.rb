@@ -103,10 +103,10 @@ RSpec.describe StripeSubscription do
       expect(Stripe::Checkout::Session).to receive(:create).with(
         customer: customer_id,
         mode: "subscription",
-        line_items: [{
+        line_items: [ {
           price: price_id,
           quantity: 1
-        }],
+        } ],
         success_url: success_url,
         cancel_url: cancel_url
       ).and_return(session)
@@ -183,7 +183,7 @@ RSpec.describe StripeSubscription do
 
       it "returns subscription details" do
         list_subscription = double(id: subscription_id)
-        subscriptions = double("Stripe::ListObject", data: [list_subscription])
+        subscriptions = double("Stripe::ListObject", data: [ list_subscription ])
 
         period_end = Time.now.to_i + 30.days.to_i
         item = double(
@@ -200,7 +200,7 @@ RSpec.describe StripeSubscription do
           id: subscription_id,
           status: "active",
           cancel_at_period_end: false,
-          items: double(data: [item])
+          items: double(data: [ item ])
         )
 
         allow(Stripe::Subscription).to receive(:list).and_return(subscriptions)

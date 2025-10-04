@@ -87,10 +87,10 @@ module StripeSubscription
     session = Stripe::Checkout::Session.create(
       customer: customer_id,
       mode: "subscription",
-      line_items: [{
+      line_items: [ {
         price: price_id,
         quantity: 1
-      }],
+      } ],
       success_url: success_url,
       cancel_url: cancel_url
     )

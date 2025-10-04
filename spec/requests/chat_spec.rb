@@ -25,7 +25,7 @@ RSpec.describe "Chat", type: :request do
     let(:message) do
       {
         role: "user",
-        content: [{ type: "text", text: "Hello" }]
+        content: [ { type: "text", text: "Hello" } ]
       }
     end
 
@@ -43,8 +43,8 @@ RSpec.describe "Chat", type: :request do
     context "when narrative exists" do
       before do
         resonance.narrative_accumulation_by_day = [
-          { "role" => "user", "content" => [{ "type" => "text", "text" => "Hello" }] },
-          { "role" => "assistant", "content" => [{ "type" => "text", "text" => "Hi there!" }] }
+          { "role" => "user", "content" => [ { "type" => "text", "text" => "Hello" } ] },
+          { "role" => "assistant", "content" => [ { "type" => "text", "text" => "Hi there!" } ] }
         ]
         resonance.save!
       end
