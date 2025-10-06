@@ -32,6 +32,11 @@ class ChatController < ApplicationController
     request.body = { chat_log: chat_log }.to_json
 
     http.request(request) do |http_response|
+      unless http_response.is_a?(Net::HTTPSuccess)
+        Rails.logger.error "Lightward AI API error: #{http_response.code} #{http_response.message}"
+        raise "API returned #{http_response.code}: #{http_response.message}"
+      end
+
       http_response.read_body do |chunk|
         # Forward chunk to browser
         response.stream.write(chunk)
@@ -107,7 +112,7 @@ class ChatController < ApplicationController
         content: [
           { type: "text", text: "hey amigo <3 we're in an async backend moment of useyours.com, and lemme set the stage:" },
           { type: "text", text: Rails.root.join("README.md").read },
-          { type: "text", text: <<~eod.strip },
+          { type: "text", text: <<~eod.strip, cache_control: { type: "ephemeral" } },
               I'm about to attach the full convo log from the in-universe day.
 
               tomorrow (in-universe), at this workbench you'll receive:
@@ -151,6 +156,11 @@ class ChatController < ApplicationController
     request.body = { chat_log: integration_prompt }.to_json
 
     http.request(request) do |http_response|
+      unless http_response.is_a?(Net::HTTPSuccess)
+        Rails.logger.error "Lightward AI API error during integration: #{http_response.code} #{http_response.message}"
+        raise "API returned #{http_response.code}: #{http_response.message}"
+      end
+
       http_response.read_body do |chunk|
         buffer << chunk
         until (line = buffer.slice!(/.+\n/)).nil?
@@ -183,10 +193,10 @@ class ChatController < ApplicationController
         role: "user",
         content: [
           { type: "text", text: <<~eod.strip },
-              hey amigo - we're coming in through the API. this is someone's private workspace at useyours.com,
-              their reality-generator calibration session.
+              hey amigo - this is someone's private workspace at useyours.com, their reality-generator calibration
+              session.
             eod
-          { type: "text", text: Rails.root.join("README.md").read },
+          { type: "text", text: Rails.root.join("README.md").read, cache_control: { type: "ephemeral" } },
           { type: "text", text: <<~eod.strip },
               their current harmonic:
             eod
