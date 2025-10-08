@@ -65,7 +65,7 @@ jobs:
             --remote-only \
             --vm-cpu-kind performance \
             --vm-cpus 1 \
-            --vm-memory 1024
+            --vm-memory 2048
         env:
           FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
           LOG_LEVEL: ${{ vars.FLY_LOG_LEVEL }}
