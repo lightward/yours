@@ -14,9 +14,9 @@ RSpec.describe "Chat", type: :request do
     get sign_in_path
   end
 
-  describe "GET /chat" do
+  describe "GET /" do
     it "returns http success" do
-      get chat_path
+      get root_path
       expect(response).to have_http_status(:success)
     end
   end
@@ -164,7 +164,7 @@ RSpec.describe "Chat", type: :request do
     context "when narrative is empty" do
       it "redirects back with alert" do
         post chat_integrate_path
-        expect(response).to redirect_to(chat_path)
+        expect(response).to redirect_to(root_path)
         expect(flash[:alert]).to eq("No narrative to integrate yet.")
       end
     end

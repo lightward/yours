@@ -9,16 +9,18 @@ class SessionsController < ApplicationController
 
       resonance = Resonance.find_or_create_by_google_id(google_id)
       session[:google_id] = google_id  # Store for encryption/decryption
+      session[:obfuscated_user_email] = obfuscate_email(identity.email_address)  # Store obfuscated email for display
       redirect_to root_path
     elsif error = flash[:google_sign_in]&.[]("error")  # String key, not symbol
-      redirect_to root_path, alert: "Authentication failed: #{error}"
+      redirect_to home_path, alert: "Authentication failed: #{error}"
     else
-      redirect_to root_path, alert: "Authentication failed: no token in flash"
+      redirect_to home_path, alert: "Authentication failed: no token in flash"
     end
   end
 
   def destroy
     session[:google_id] = nil
-    redirect_to root_path
+    session[:obfuscated_user_email] = nil
+    redirect_to home_path
   end
 end

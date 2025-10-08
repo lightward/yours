@@ -1,4 +1,4 @@
-<h1>Subscription Details</h1>
+<h1>Account</h1>
 
 <% if @subscription %>
   <div style="margin: 2rem 0;">
@@ -9,7 +9,7 @@
       <dd>
         <%= @subscription[:status].capitalize %>
         <% if @subscription[:cancel_at_period_end] %>
-          <span style="color: #dc3545;">(Canceling at period end)</span>
+          <span style="color: var(--error);">(Canceling at period end)</span>
         <% end %>
       </dd>
 
@@ -32,9 +32,22 @@
       <p style="margin-top: 1rem;">Click the button below to cancel. You'll have access until the end of your billing period.</p>
 
       <%= button_to "Cancel Subscription",
-          subscription_path,
+          account_subscription_path,
           method: :delete,
-          style: "padding: 0.5rem 1rem; background: #dc3545; color: white; border: none; cursor: pointer;" %>
+          class: "danger" %>
     </div>
   <% end %>
 <% end %>
+
+<div style="margin: 3rem 0; padding-top: 2rem; border-top: 1px solid var(--border);">
+  <h2>Reset Resonance</h2>
+  <p>This will clear your harmonic and narrative, while preserving your universe age counter.</p>
+  <p style="margin-top: 1rem; color: var(--warning);">This action cannot be undone.</p>
+
+  <%= button_to "Reset Resonance",
+      account_reset_path,
+      method: :post,
+      class: "secondary",
+      style: "margin-top: 1rem;",
+      data: { turbo_confirm: "Are you sure? This will reset your harmonic and narrative (but preserve your universe age)." } %>
+</div>

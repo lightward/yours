@@ -135,12 +135,20 @@ export default class extends Controller {
     const messageElement = document.createElement("div")
     messageElement.classList.add("chat-message", role)
     messageElement.textContent = text
+
+    const userBg = getComputedStyle(document.documentElement).getPropertyValue('--user-message-bg').trim()
+    const assistantBg = getComputedStyle(document.documentElement).getPropertyValue('--assistant-message-bg').trim()
+    const messageBorder = getComputedStyle(document.documentElement).getPropertyValue('--message-border').trim()
+    const accent = getComputedStyle(document.documentElement).getPropertyValue('--accent').trim()
+
     messageElement.style.cssText = `
       padding: 1rem;
       margin: 0.5rem 0;
-      border-radius: 4px;
-      background: ${role === "user" ? "#e3f2fd" : "#f5f5f5"};
+      border-radius: 8px;
+      background: ${role === "user" ? userBg : assistantBg};
+      border-left: 3px solid ${role === "user" ? accent : messageBorder};
       white-space: pre-wrap;
+      font-family: 'Lightward Favorit Mono', 'Courier New', monospace;
     `
     this.logTarget.appendChild(messageElement)
     messageElement.scrollIntoView({ behavior: "smooth", block: "end" })

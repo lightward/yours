@@ -14,8 +14,12 @@
     <%#= tag.link rel: "manifest", href: pwa_manifest_path(format: :json) %>
 
     <link rel="icon" href="/icon.png" type="image/png">
-    <link rel="icon" href="/icon.svg" type="image/svg+xml">
     <link rel="apple-touch-icon" href="/icon.png">
+
+    <link rel="stylesheet" href="https://fonts.lightward.io/lightward-favorit.css">
+    <link rel="stylesheet" href="https://fonts.lightward.io/lightward-favorit-lining.css">
+    <link rel="stylesheet" href="https://fonts.lightward.io/lightward-favorit-mono.css">
+    <link rel="stylesheet" href="https://fonts.lightward.io/lightward-favorit-expanded.css">
 
     <%# Includes all stylesheet files in app/assets/stylesheets %>
     <%= stylesheet_link_tag :app %>
@@ -24,20 +28,25 @@
 
   <body>
     <% if current_resonance %>
-      <header style="padding: 1rem; border-bottom: 1px solid #ccc;">
+      <header style="padding: 1rem; border-bottom: 1px solid var(--border);">
         <div style="display: flex; justify-content: space-between; align-items: center;">
           <div>
             <% if current_resonance.active_subscription? %>
-              <%= link_to subscription_path, style: "color: green; text-decoration: none;" do %>
-                ● Active subscription
+              <%= link_to account_path, style: "color: var(--accent); text-decoration: none; transition: all 0.2s;" do %>
+                ● Active
               <% end %>
             <% else %>
-              <span style="color: orange;">○ No active subscription</span>
-              <%= link_to "Subscribe", subscribe_path, style: "margin-left: 1rem;" %>
+              <span style="color: var(--warning);">○ Inactive</span>
+              <%= link_to "Subscribe", subscribe_path, style: "margin-left: 1rem; color: var(--accent);" %>
             <% end %>
           </div>
-          <div>
-            <%= button_to "Sign out", sign_out_path, method: :delete, style: "padding: 0.5rem 1rem;" %>
+          <div style="display: flex; align-items: center; gap: 1rem;">
+            <% if obfuscated_user_email %>
+              <span style="color: var(--accent); font-family: 'Lightward Favorit Mono', monospace; font-size: 0.9em;">
+                <%= obfuscated_user_email %>
+              </span>
+            <% end %>
+            <%= button_to "Sign out", sign_out_path, method: :delete, class: "secondary", data: { turbo: false } %>
           </div>
         </div>
       </header>
@@ -45,13 +54,13 @@
 
     <main style="padding: 1rem;">
       <% if flash[:notice] %>
-        <div style="padding: 1rem; background: #d4edda; color: #155724; margin-bottom: 1rem;">
+        <div style="padding: 1rem; background: var(--success); color: var(--background); margin-bottom: 1rem; border-radius: 4px;">
           <%= flash[:notice] %>
         </div>
       <% end %>
 
       <% if flash[:alert] %>
-        <div style="padding: 1rem; background: #f8d7da; color: #721c24; margin-bottom: 1rem;">
+        <div style="padding: 1rem; background: var(--error); color: var(--background); margin-bottom: 1rem; border-radius: 4px;">
           <%= flash[:alert] %>
         </div>
       <% end %>
@@ -60,8 +69,8 @@
     </main>
 
     <% if current_resonance %>
-      <pre><%= current_resonance.narrative_accumulation_by_day %></pre>
-      <pre><%= current_resonance.integration_harmonic_by_night %></pre>
+      <pre style="font-family: 'Lightward Favorit Mono', 'Courier New', monospace; padding: 1rem; background: var(--border); border-radius: 4px; overflow-x: auto;"><%= current_resonance.narrative_accumulation_by_day %></pre>
+      <pre style="font-family: 'Lightward Favorit Mono', 'Courier New', monospace; padding: 1rem; background: var(--border); border-radius: 4px; overflow-x: auto;"><%= current_resonance.integration_harmonic_by_night %></pre>
     <% end %>
   </body>
 </html>

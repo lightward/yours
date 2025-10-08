@@ -59,9 +59,9 @@ RSpec.describe "Subscriptions", type: :request do
     end
   end
 
-  describe "GET /subscription" do
+  describe "GET /account" do
     context "when user has active subscription" do
-      it "shows subscription details" do
+      it "shows account details" do
         details = {
           id: "sub_test123",
           status: "active",
@@ -73,10 +73,10 @@ RSpec.describe "Subscriptions", type: :request do
 
         allow_any_instance_of(Resonance).to receive(:subscription_details).and_return(details)
 
-        get subscription_path
+        get account_path
 
         expect(response).to have_http_status(:success)
-        expect(response.body).to include("Subscription Details")
+        expect(response.body).to include("Account")
       end
     end
 
@@ -84,7 +84,7 @@ RSpec.describe "Subscriptions", type: :request do
       it "redirects to subscribe page" do
         allow_any_instance_of(Resonance).to receive(:subscription_details).and_return(nil)
 
-        get subscription_path
+        get account_path
 
         expect(response).to redirect_to(subscribe_path)
         expect(flash[:alert]).to eq("No active subscription found")
@@ -92,11 +92,11 @@ RSpec.describe "Subscriptions", type: :request do
     end
   end
 
-  describe "DELETE /subscription" do
+  describe "DELETE /account/subscription" do
     it "cancels subscription and redirects" do
       allow_any_instance_of(Resonance).to receive(:cancel_subscription).and_return(true)
 
-      delete subscription_path
+      delete account_subscription_path
 
       expect(response).to redirect_to(root_path)
       expect(flash[:notice]).to include("canceled")
@@ -105,10 +105,38 @@ RSpec.describe "Subscriptions", type: :request do
     it "shows error if cancellation fails" do
       allow_any_instance_of(Resonance).to receive(:cancel_subscription).and_return(false)
 
-      delete subscription_path
+      delete account_subscription_path
 
-      expect(response).to redirect_to(subscription_path)
+      expect(response).to redirect_to(account_path)
       expect(flash[:alert]).to include("Unable to cancel")
+    end
+  end
+
+  describe "POST /account/reset" do
+    before do
+      resonance.integration_harmonic_by_night = "Some harmonic"
+      resonance.narrative_accumulation_by_day = [
+        { "role" => "user", "content" => [ { "type" => "text", "text" => "Hello" } ] }
+      ]
+      resonance.universe_days_lived = 42
+      resonance.save!
+    end
+
+    it "resets harmonic and narrative but preserves universe age" do
+      post account_reset_path
+
+      resonance.reload
+      expect(resonance.integration_harmonic_by_night).to be_nil
+      expect(resonance.narrative_accumulation_by_day).to eq([])
+      expect(resonance.universe_days_lived).to eq(42)
+    end
+
+    it "redirects to root with success message" do
+      post account_reset_path
+
+      expect(response).to redirect_to(root_path)
+      expect(flash[:notice]).to include("Resonance reset")
+      expect(flash[:notice]).to include("42 day(s)")
     end
   end
 end

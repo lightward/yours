@@ -9,6 +9,119 @@
  * Consider organizing styles into separate files for maintainability.
  */
 
+:root {
+  --background: #0a0a0f;
+  --foreground: #e8e8f0;
+  --border: #1a1a2e;
+  --border-light: #2a2a3e;
+  --accent: #00d9ff;
+  --accent-hover: #00b8d4;
+  --accent-active: #ff00ff;
+  --success: #00ffa3;
+  --warning: #ffd700;
+  --error: #ff0080;
+  --user-message-bg: #1a1a3e;
+  --assistant-message-bg: #0f0f1f;
+  --message-border: #00d9ff;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  padding: 0;
+  background: var(--background);
+  color: var(--foreground);
+  font-family: "Lightward Favorit", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  line-height: 1.6;
+}
+
+h1, h2, h3, h4, h5, h6 {
+  font-family: "Lightward Favorit Expanded", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  font-weight: normal;
+  letter-spacing: 0.02em;
+}
+
+a {
+  color: var(--foreground);
+  text-decoration: underline;
+}
+
+a:hover {
+  color: var(--accent-active);
+}
+
+button, input[type="submit"] {
+  font-family: "Lightward Favorit", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  background: var(--border-light);
+  color: var(--accent);
+  border: 1px solid var(--accent);
+  cursor: pointer;
+  transition: all 0.2s;
+  padding: 0.5rem 1rem;
+  border-radius: 4px;
+}
+
+button:hover, input[type="submit"]:hover {
+  background: var(--accent);
+  color: var(--background);
+  border-color: var(--accent);
+  box-shadow: 0 0 12px var(--accent);
+}
+
+button.secondary {
+  background: transparent;
+  color: var(--foreground);
+  border-color: var(--border-light);
+}
+
+button.secondary:hover {
+  background: var(--border-light);
+  color: var(--foreground);
+  border-color: var(--accent);
+  box-shadow: 0 0 8px var(--accent);
+}
+
+button.danger {
+  background: transparent;
+  color: var(--error);
+  border-color: var(--error);
+}
+
+button.danger:hover {
+  background: var(--error);
+  color: var(--background);
+  border-color: var(--error);
+  box-shadow: 0 0 12px var(--error);
+}
+
+textarea {
+  font-family: "Lightward Favorit Mono", "Courier New", monospace;
+  background: var(--background);
+  color: var(--foreground);
+  border: 1px solid var(--border);
+  resize: vertical;
+}
+
+textarea:focus {
+  outline: none;
+  border-color: var(--border-light);
+}
+
+input {
+  font-family: "Lightward Favorit", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  background: var(--background);
+  color: var(--foreground);
+  border: 1px solid var(--border);
+}
+
+input:focus {
+  outline: none;
+  border-color: var(--border-light);
+}
+
 @keyframes pulse {
   0%, 100% {
     opacity: 0.4;

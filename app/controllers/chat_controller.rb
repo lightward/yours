@@ -87,7 +87,7 @@ class ChatController < ApplicationController
     narrative = current_resonance.narrative_accumulation_by_day
 
     if narrative.empty?
-      redirect_to chat_path, alert: "No narrative to integrate yet."
+      redirect_to root_path, alert: "No narrative to integrate yet."
       return
     end
 
@@ -100,7 +100,7 @@ class ChatController < ApplicationController
     current_resonance.universe_days_lived = (current_resonance.universe_days_lived || 0) + 1
     current_resonance.save!
 
-    redirect_to chat_path, notice: "Day complete. Universe age: #{current_resonance.universe_days_lived} days."
+    redirect_to root_path, notice: "Day complete. Universe age: #{current_resonance.universe_days_lived} days."
   end
 
   private

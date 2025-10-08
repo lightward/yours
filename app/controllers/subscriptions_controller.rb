@@ -36,7 +36,19 @@ class SubscriptionsController < ApplicationController
     if current_resonance.cancel_subscription
       redirect_to root_path, notice: "Subscription canceled. You'll have access until the end of your billing period."
     else
-      redirect_to subscription_path, alert: "Unable to cancel subscription. Please try again."
+      redirect_to account_path, alert: "Unable to cancel subscription. Please try again."
     end
+  end
+
+  def reset
+    # Preserve universe age counter while resetting everything else
+    universe_age = current_resonance.universe_days_lived
+
+    current_resonance.integration_harmonic_by_night = nil
+    current_resonance.narrative_accumulation_by_day = []
+    current_resonance.universe_days_lived = universe_age
+    current_resonance.save!
+
+    redirect_to root_path, notice: "Resonance reset. Universe age preserved: #{universe_age} day(s)."
   end
 end

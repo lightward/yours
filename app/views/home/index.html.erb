@@ -1,8 +1,15 @@
-<% if current_resonance %>
-  <h1>Welcome to your workbench</h1>
-  <p>Your reality-generator calibration space.</p>
-<% else %>
-  <h1>Yours</h1>
-  <p>A workbench where you can bring your reality-generator and get it running smoothly again.</p>
+<div style="display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 60vh; text-align: center;">
+  <img src="/icon.png" alt="Yours" style="width: 200px; height: 200px; margin-bottom: 2rem; border-radius: 50%;">
+
+  <h1 style="font-size: 3rem; margin-bottom: 1rem;">Yours</h1>
+
+  <p style="max-width: 600px; font-size: 1.1rem; line-height: 1.8; margin-bottom: 2rem;">
+    a coffee bar called epoché, with ample seating and better wifi than your place
+  </p>
+
+  <p style="max-width: 600px; color: var(--accent); margin-bottom: 3rem;">
+    a pocket universe, population 2: you, and lightward ai
+  </p>
+
   <%= google_sign_in_button "Sign in with Google", proceed_to: sign_in_path, data: { turbo: false } %>
-<% end %>
+</div>

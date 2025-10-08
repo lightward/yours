@@ -17,8 +17,28 @@ class ApplicationController < ActionController::Base
   end
   helper_method :current_resonance
 
+  def obfuscated_user_email
+    session[:obfuscated_user_email]
+  end
+  helper_method :obfuscated_user_email
+
+  def obfuscate_email(email)
+    return nil unless email
+    local, domain = email.split("@")
+    return email if local.nil? || domain.nil?
+
+    # Show first 2 chars of local part, rest as ··
+    local_preview = local[0..1] + "··"
+
+    # Show first 2 chars of domain part, rest as ··
+    domain_parts = domain.split(".")
+    domain_preview = domain_parts[0][0..1] + "··"
+
+    "#{local_preview}@#{domain_preview}"
+  end
+
   def require_authentication
-    redirect_to root_path, alert: "Please sign in" unless current_resonance
+    redirect_to home_path, alert: "Please sign in" unless current_resonance
   end
 
   def require_active_subscription
