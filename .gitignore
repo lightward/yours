@@ -29,3 +29,5 @@
 !/tmp/storage/.keep
 
 /public/assets
+
+.DS_Store
