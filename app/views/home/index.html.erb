@@ -4,5 +4,5 @@
 <% else %>
   <h1>Yours</h1>
   <p>A workbench where you can bring your reality-generator and get it running smoothly again.</p>
-  <%= google_sign_in_button "Sign in with Google", proceed_to: sign_in_path %>
+  <%= google_sign_in_button "Sign in with Google", proceed_to: sign_in_path, data: { turbo: false } %>
 <% end %>
