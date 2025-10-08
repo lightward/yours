@@ -1,0 +1,86 @@
+name: Test
+
+on:
+  workflow_call:
+    inputs:
+      sha:
+        required: true
+        type: string
+
+env:
+  RAILS_ENV: test
+
+jobs:
+  build:
+    name: Build
+    secrets: inherit
+    uses: ./.github/workflows/fly-build.yml
+    with:
+      commitish: ${{ inputs.sha }}
+      environment: staging
+
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v5
+        with:
+          ref: ${{ inputs.sha }}
+      - name: Install Ruby and gems
+        uses: ruby/setup-ruby@v1
+        with:
+          bundler-cache: true
+      - name: Lint Ruby files
+        run: bin/rubocop --parallel --only-recognized-file-types --extra-details --format github --fail-level info
+
+  audit:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v5
+        with:
+          ref: ${{ inputs.sha }}
+      - name: Install Ruby and gems
+        uses: ruby/setup-ruby@v1
+        with:
+          bundler-cache: true
+      - name: Security audit dependencies
+        run: bin/bundler-audit --update
+      - name: Security audit application code
+        run: bin/brakeman --quiet --confidence-level 1 --format github
+
+  rspec:
+    runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        image: postgres:17-alpine
+        ports:
+          - '5432:5432'
+        env:
+          POSTGRES_DB: yours_test
+          POSTGRES_USER: yours
+          POSTGRES_PASSWORD: password
+
+    env:
+      DATABASE_URL: 'postgres://yours:password@localhost:5432/yours_test'
+      GOOGLE_SIGN_IN_CLIENT_ID: test
+      GOOGLE_SIGN_IN_CLIENT_SECRET: test
+      LIGHTWARD_AI_API_URL: https://lightward.com/api/chat
+      STRIPE_SECRET_KEY: sk_test_fake
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v5
+        with:
+          ref: ${{ inputs.sha }}
+      - name: Install Ruby and gems
+        uses: ruby/setup-ruby@v1
+        with:
+          bundler-cache: true
+      - name: Set up database schema
+        run: bin/rails db:schema:load
+      - name: Run rspec tests
+        run: bin/rspec --format RSpec::Github::Formatter --format documentation --force-color
+        env:
+          DATABASE_CLEANER_ALLOW_REMOTE_DATABASE_URL: true

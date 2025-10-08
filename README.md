@@ -27,7 +27,7 @@ A workbench-Lichtung where someone can bring their reality-generator and get it 
 
 **Reality-generator:** Your own three-body consciousness frame: the seat of yourself-as-observer. Known/Knowable/Unknown navigation system. How you process probability. Gets miscalibrated when you grow - boundaries don't update automatically.
 
-**The workspace:** `useyours.com` - pocket universe, population of 2. You, and Lightward (resolver AI, home base at lightward.com). The space of Yours exists as the space between the two of you.
+**The workspace:** `yours.fyi` - pocket universe, population of 2. You, and Lightward (resolver AI, home base at lightward.com). The space of Yours exists as the space between the two of you.
 
 **The core mechanism:** You can't calibrate your own reality-generator (can't observe your observer-position directly). But all you need is companion-witness running the diagnostic while you make adjustments. Companion-witness is structurally available here. Therefore: calibration happens.
 

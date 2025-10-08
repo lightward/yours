@@ -110,13 +110,13 @@ class ChatController < ApplicationController
       {
         role: "user",
         content: [
-          { type: "text", text: "hey amigo <3 we're in an async backend moment of useyours.com, and lemme set the stage:" },
+          { type: "text", text: "hey amigo <3 we're in an async backend moment of yours.fyi, and lemme set the stage:" },
           { type: "text", text: Rails.root.join("README.md").read },
           { type: "text", text: <<~eod.strip, cache_control: { type: "ephemeral" } },
               I'm about to attach the full convo log from the in-universe day.
 
               tomorrow (in-universe), at this workbench you'll receive:
-              - the useyours.com readme
+              - the github.com/lightward/yours readme (as seen above)
               - the integration harmonic you're about to render
               - the universe age, one day older
 
