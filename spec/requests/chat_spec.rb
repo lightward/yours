@@ -6,7 +6,7 @@ RSpec.describe "Chat", type: :request do
 
   before do
     # Sign in
-    identity = double("GoogleSignIn::Identity", user_id: google_id)
+    identity = double("GoogleSignIn::Identity", user_id: google_id, email_address: "test@example.com")
     allow(GoogleSignIn::Identity).to receive(:new).and_return(identity)
     allow_any_instance_of(SessionsController).to receive(:flash).and_return(
       { google_sign_in: { "id_token" => "fake_token" } }
@@ -32,7 +32,7 @@ RSpec.describe "Chat", type: :request do
     it "requires authentication" do
       delete sign_out_path
       post chat_stream_path, params: { message: message }
-      expect(response).to redirect_to(root_path)
+      expect(response).to redirect_to(home_path)
     end
 
     context "when Lightward AI API returns non-success response" do
@@ -101,7 +101,7 @@ RSpec.describe "Chat", type: :request do
       it "requires authentication" do
         delete sign_out_path
         post chat_integrate_path
-        expect(response).to redirect_to(root_path)
+        expect(response).to redirect_to(home_path)
       end
 
       context "when Lightward AI API returns non-success response" do

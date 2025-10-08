@@ -6,7 +6,7 @@ RSpec.describe "Subscriptions", type: :request do
 
   before do
     # Sign in
-    identity = double("GoogleSignIn::Identity", user_id: google_id)
+    identity = double("GoogleSignIn::Identity", user_id: google_id, email_address: "test@example.com")
     allow(GoogleSignIn::Identity).to receive(:new).and_return(identity)
     allow_any_instance_of(SessionsController).to receive(:flash).and_return(
       { google_sign_in: { "id_token" => "fake_token" } }
