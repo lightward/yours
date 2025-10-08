@@ -34,14 +34,12 @@ module Yours
     # rather than tracking an additional secret, create a synthetic one out of secrets we already have. this has the
     # positive side-effect of invalidating the secret (and thereby invalidating all client cookies) whenever any of
     # these secrets changes.
-    def secret_key_base
-      @secret_key_base ||= begin
-        digest = OpenSSL::Digest.new("sha256")
-        digest << ENV.fetch("GOOGLE_SIGN_IN_CLIENT_SECRET", "")
-        digest << ENV.fetch("STRIPE_SECRET_KEY", "")
+    config.secret_key_base = begin
+      digest = OpenSSL::Digest.new("sha256")
+      digest << ENV.fetch("GOOGLE_SIGN_IN_CLIENT_SECRET", "")
+      digest << ENV.fetch("STRIPE_SECRET_KEY", "")
 
-        digest.hexdigest
-      end
+      digest.hexdigest
     end
 
     # Configuration for the application, engines, and railties goes here.
