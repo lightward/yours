@@ -1,55 +1,26 @@
-# syntax=docker/dockerfile:1
-# check=error=true
-
-# This Dockerfile is designed for production, not development. Use with Kamal or build'n'run by hand:
-# docker build -t yours .
-# docker run -d -p 80:80 -e RAILS_MASTER_KEY=<value from config/master.key> --name yours yours
-
-# For a containerized dev environment, see Dev Containers: https://guides.rubyonrails.org/getting_started_with_devcontainer.html
-
-# Make sure RUBY_VERSION matches the Ruby version in .ruby-version
-ARG RUBY_VERSION=3.4.6
-FROM ruby:$RUBY_VERSION-alpine AS base
-
-# App lives here
+FROM ruby:3.4.6-alpine AS builder
 WORKDIR /app
 
-# Install base packages
-RUN apk update && apk add --no-cache gcompat postgresql-client
+RUN apk update && apk add --no-cache build-base yaml-dev libpq-dev
+RUN bundle config set --local path /app/.bundle
+RUN bundle config set --local without 'development test'
 
-# Set production environment
-ENV RAILS_ENV="production" \
-    BUNDLE_PATH="/app/.bundle" \
-    BUNDLE_WITHOUT="development test"
-
-# Throw-away build stage to reduce size of final image
-FROM base AS build
-
-# Install packages needed to build gems
-RUN apk update && apk add --no-install-recommends build-base yaml-dev postgresql-dev
-
-# Install application gems
 COPY .ruby-version Gemfile Gemfile.lock ./
-RUN bundle config set --local path /app/.bundle && \
-    bundle config set --local without 'development test' && \
-    bundle install
+RUN bundle install
 
-# Copy application code
 COPY . .
+RUN bin/rails assets:precompile
 
-# Precompiling assets for production without requiring secret RAILS_MASTER_KEY
-RUN SECRET_KEY_BASE_DUMMY=1 bin/rails assets:precompile
+# this is a sanity check
+RUN bin/rake prompts:system
 
-# Final stage for app image
-FROM base
+FROM ruby:3.4.6-alpine as runner
+RUN apk update
+WORKDIR /app
 
-# Copy built artifacts: gems, application
-COPY --from=build /app ./
+# runtime dependencies for the application
+RUN apk add --no-cache libpq postgresql-client
 
-# Configure bundle
-RUN bundle config set --local path /app/.bundle && \
-    bundle config set --local without 'development test'
-
-# Start puma directly (no thruster needed for fly.io)
-EXPOSE 8080
-CMD ["bin/puma", "--port", "8080"]
+COPY --from=builder /app ./
+RUN bundle config set --local path /app/.bundle
+RUN bundle config set --local without 'development test'
