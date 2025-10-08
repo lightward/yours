@@ -58,5 +58,10 @@
 
       <%= yield %>
     </main>
+
+    <% if current_resonance %>
+      <pre><%= current_resonance.narrative_accumulation_by_day %></pre>
+      <pre><%= current_resonance.integration_harmonic_by_night %></pre>
+    <% end %>
   </body>
 </html>
