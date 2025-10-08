@@ -1,0 +1,58 @@
+console_command = "/bin/sh"
+
+# closest to AWS us-east-1, where crunchy databases live
+primary_region = "iad"
+
+# puma listens for this, and will shut down gracefully when it receives it
+kill_signal = "SIGTERM"
+
+# give streaming requests a chance to finish up
+kill_timeout = 30
+
+[build]
+  dockerfile = "Dockerfile"
+  ignorefile = ".dockerignore"
+
+[deploy]
+  # deployment is done (and configured) via github workflow
+
+[env]
+  PORT                = "8080"
+  RAILS_ENV           = "production"
+  RAILS_LOG_TO_STDOUT = "true"
+
+[processes]
+  web = "bin/puma --port 8080"
+
+[[services]]
+  auto_start_machines  = true
+  auto_stop_machines   = true
+  internal_port        = 8080
+  min_machines_running = 1
+  processes            = ["web"]
+  protocol             = "tcp"
+
+  [services.concurrency]
+    hard_limit = 100
+    soft_limit = 90
+    type       = "requests"
+
+  [[services.ports]]
+    force_https = true
+    handlers    = ["http"]
+    port        = 80
+
+  [[services.ports]]
+    handlers = ["tls", "http"]
+    port     = 443
+
+[checks]
+  [checks.responds_to_http]
+    grace_period = "5s"
+    interval     = "10s"
+    method       = "get"
+    path         = "/up"
+    port         = 8080
+    processes    = ["web"]
+    timeout      = "1s"
+    type         = "http"

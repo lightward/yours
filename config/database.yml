@@ -19,6 +19,10 @@ default: &default
   # https://guides.rubyonrails.org/configuring.html#database-pooling
   pool: <%= ENV.fetch("RAILS_MAX_THREADS") { 5 } %>
 
+  # for compatibility with pgbouncer's transaction pooling
+  prepared_statements: false
+  advisory_locks: false
+
 
 development:
   <<: *default
@@ -79,20 +83,6 @@ test:
 # for a full overview on how database connection configuration can be specified.
 #
 production:
-  primary: &primary_production
-    <<: *default
-    database: yours_production
-    username: yours
-    password: <%= ENV["YOURS_DATABASE_PASSWORD"] %>
-  cache:
-    <<: *primary_production
-    database: yours_production_cache
-    migrations_paths: db/cache_migrate
-  queue:
-    <<: *primary_production
-    database: yours_production_queue
-    migrations_paths: db/queue_migrate
-  cable:
-    <<: *primary_production
-    database: yours_production_cable
-    migrations_paths: db/cable_migrate
+  <<: *default
+  timeout: 5000
+  url: <%= ENV['DATABASE_URL'] %>
