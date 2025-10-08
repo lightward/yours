@@ -1,6 +1,10 @@
 require "rails_helper"
 
 RSpec.describe "Sessions", type: :request do
+  before do
+    host! "test.host"
+  end
+
   describe "POST /sign_in" do
     let(:google_id) { "google-user-123" }
     let(:id_token) { "fake.jwt.token" }

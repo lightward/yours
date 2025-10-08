@@ -5,6 +5,8 @@ RSpec.describe "Subscriptions", type: :request do
   let(:resonance) { Resonance.find_or_create_by_google_id(google_id) }
 
   before do
+    host! "test.host"
+
     # Sign in
     identity = double("GoogleSignIn::Identity", user_id: google_id, email_address: "test@example.com")
     allow(GoogleSignIn::Identity).to receive(:new).and_return(identity)
