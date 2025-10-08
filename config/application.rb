@@ -28,8 +28,20 @@ module Yours
     # Common ones are `templates`, `generators`, or `middleware`, for example.
     config.autoload_lib(ignore: %w[assets tasks])
 
-    if (host = ENV.fetch("HOST", nil))
-      config.hosts << host
+    # allow requests from any hostname; verify_host! will redirect to canonical
+    config.hosts.clear
+
+    # rather than tracking an additional secret, create a synthetic one out of secrets we already have. this has the
+    # positive side-effect of invalidating the secret (and thereby invalidating all client cookies) whenever any of
+    # these secrets changes.
+    def secret_key_base
+      @secret_key_base ||= begin
+        digest = OpenSSL::Digest.new("sha256")
+        digest << ENV.fetch("GOOGLE_SIGN_IN_CLIENT_SECRET", "")
+        digest << ENV.fetch("STRIPE_SECRET_KEY", "")
+
+        digest.hexdigest
+      end
     end
 
     # Configuration for the application, engines, and railties goes here.

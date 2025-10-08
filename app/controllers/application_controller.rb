@@ -2,7 +2,24 @@ class ApplicationController < ActionController::Base
   # Only allow modern browsers supporting webp images, web push, badges, import maps, CSS nesting, and CSS :has.
   allow_browser versions: :modern
 
+  before_action :verify_host!
+
+  def default_url_options
+    { host: ENV.fetch("HOST") }
+  end
+
   private
+
+  def verify_host!
+    return if request.host == ENV.fetch("HOST")
+
+    # redirect to the correct host, preserving the full path and query string
+    redirect_to(
+      "https://#{ENV.fetch("HOST")}#{request.fullpath}",
+      status: :moved_permanently,
+      allow_other_host: true,
+    )
+  end
 
   def current_resonance
     return nil unless session[:google_id]
