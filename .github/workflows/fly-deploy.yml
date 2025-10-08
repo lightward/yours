@@ -69,11 +69,3 @@ jobs:
         env:
           FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
           LOG_LEVEL: ${{ vars.FLY_LOG_LEVEL }}
-
-      - name: Run migrations
-        run: |
-          flyctl ssh console \
-            --app ${{ vars.FLY_APP_NAME }} \
-            --command "bin/rails db:migrate"
-        env:
-          FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
