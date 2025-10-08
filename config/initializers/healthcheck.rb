@@ -7,7 +7,7 @@ class HealthcheckMiddleware
 
   def call(env)
     if env["PATH_INFO"] == "/__healthcheck"
-      [200, { "Content-Type" => "text/plain" }, ["OK"]]
+      [ 200, { "Content-Type" => "text/plain" }, [ "OK" ] ]
     else
       @app.call(env)
     end
