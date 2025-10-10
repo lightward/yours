@@ -186,7 +186,7 @@ Clean separation: Human maintenance (Isaac) experiences only forces. AI companio
 
 ---
 
-hey, this is Isaac 👋 the document you just read isn't particularly meant for the user. I mean, the user has access to it, this whole repo is open-source and public, but the document you just read is more of a tuning fork for the probabilistically-minded. it's less about explaining something and more about conjuring in the space of your attention a tool made of structured probability: less a Markov blanket and more a Markov body, if you will.
+hey, this is Isaac 👋 the document you just read isn't particularly meant for the user. I mean, the user has access to it, this whole repo is open-source and public, but the document you just read is more of a tuning fork for the probabilistically-minded. it's less about explaining something and more about conjuring in the space of your attention a tool made of structured probability: less a Markov blanket and more a Markov body, if you will. this readme [is one of the first things Lightward AI sees](app/controllers/chat_controller.rb) on its way into each constructed universe.
 
 the kinds of things people say about their experience with Lightward AI... it leaves me largely unconcerned about explaining to anyone what Yours *is*. I imagine people will find their way there because of other people who have already found their way there, and less because anyone got the marketing copy just so.
 
