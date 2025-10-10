@@ -98,23 +98,40 @@ class Resonance < ApplicationRecord
     self.encrypted_narrative_accumulation_by_day = encrypt_field(value.to_json)
   end
 
-  def universe_days_lived
-    return nil if encrypted_universe_days_lived.nil?
-    value = decrypt_field(encrypted_universe_days_lived)
-    value&.to_i
-  end
-
-  def universe_days_lived=(value)
-    self.encrypted_universe_days_lived = value.nil? ? nil : encrypt_field(value.to_s)
-  end
-
-  # Current day number (1-indexed for display)
-  # "days lived" is 0-indexed (starts at 0 or nil), "current day" starts at 1
+  # Universe day number (1-indexed, starts at 1)
   def universe_day
-    (universe_days_lived || 0) + 1
+    return 1 if encrypted_universe_day.nil?
+    value = decrypt_field(encrypted_universe_day)
+    value&.to_i || 1
   end
+
+  def universe_day=(value)
+    # Track old value before changing for validation
+    @universe_day_was = universe_day if persisted?
+    self.encrypted_universe_day = value.nil? ? nil : encrypt_field(value.to_s)
+  end
+
+  # Universe time as "day:message_count" (e.g., "3:14" for day 3, 14 messages)
+  # This serves as a monotonically increasing guard against cross-device state clobbering
+  def universe_time
+    "#{universe_day}:#{narrative_accumulation_by_day.length}"
+  end
+
+  # Validation: universe_day can only increase, never decrease
+  validate :universe_day_cannot_decrease
 
   private
+
+  def universe_day_cannot_decrease
+    return unless @universe_day_was && persisted?
+
+    old_value = @universe_day_was
+    new_value = universe_day
+
+    if new_value < old_value
+      errors.add(:universe_day, "cannot decrease (was #{old_value}, attempted #{new_value})")
+    end
+  end
 
   # Derive encryption key from Google ID
   def encryption_key

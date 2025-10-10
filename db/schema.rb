@@ -18,6 +18,6 @@ ActiveRecord::Schema[8.0].define(version: 2025_10_03_235135) do
     t.text "encrypted_stripe_customer_id"
     t.text "encrypted_integration_harmonic_by_night"
     t.text "encrypted_narrative_accumulation_by_day"
-    t.text "encrypted_universe_days_lived"
+    t.text "encrypted_universe_day"
   end
 end

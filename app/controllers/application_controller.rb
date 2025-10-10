@@ -54,6 +54,27 @@ class ApplicationController < ActionController::Base
     return redirect_to root_path, alert: "Please sign in" unless current_resonance
     return redirect_to root_path, alert: "Active subscription required" unless current_resonance.active_subscription?
 
+    # Check for cross-device continuity divergence
+    client_universe_time = params[:universe_time]
+    server_universe_time = current_resonance.universe_time
+
+    if client_universe_time && client_universe_time != server_universe_time
+      # Parse and compare "day:count" format
+      client_day, client_count = client_universe_time.split(":").map(&:to_i)
+      server_day, server_count = server_universe_time.split(":").map(&:to_i)
+
+      # If client is behind server, they're working with stale state
+      if client_day < server_day || (client_day == server_day && client_count < server_count)
+        # Someone else (you, elsewhere) was here
+        render json: {
+          error: "continuity_divergence",
+          message: "This space moved forward elsewhere. Refresh to join where it is now.",
+          server_universe_time: server_universe_time
+        }, status: 409
+        return
+      end
+    end
+
     response.headers["Content-Type"] = "text/event-stream"
     response.headers["Cache-Control"] = "no-cache"
     response.headers["X-Accel-Buffering"] = "no"
@@ -120,6 +141,9 @@ class ApplicationController < ActionController::Base
     current_resonance.narrative_accumulation_by_day = narrative
     current_resonance.save!
 
+    # Send the new universe_time to client so it can stay in sync
+    send_sse_event("universe_time", { universe_time: current_resonance.universe_time })
+
   rescue StandardError => e
     Rollbar.error(e)
     Rails.logger.error "Chat stream error: #{e.message}"
@@ -148,7 +172,7 @@ class ApplicationController < ActionController::Base
     # Save the harmonic and reset for new day
     current_resonance.integration_harmonic_by_night = harmonic
     current_resonance.narrative_accumulation_by_day = []
-    current_resonance.universe_days_lived = (current_resonance.universe_days_lived || 0) + 1
+    current_resonance.universe_day = current_resonance.universe_day + 1
     current_resonance.save!
 
     redirect_to root_path, notice: "Day completed."
@@ -198,7 +222,7 @@ class ApplicationController < ActionController::Base
     current_resonance.narrative_accumulation_by_day = []
 
     # move to the next day
-    current_resonance.universe_days_lived = (current_resonance.universe_days_lived || 0) + 1
+    current_resonance.universe_day = current_resonance.universe_day + 1
 
     current_resonance.save!
 

@@ -359,11 +359,11 @@ RSpec.describe ApplicationController, type: :request do
           end
 
           it "creates integration harmonic and increments universe age" do
-            initial_age = resonance.universe_days_lived || 0
+            initial_day = resonance.universe_day
             post integrate_path
             resonance.reload
             expect(resonance.integration_harmonic_by_night).to eq("Integration complete")
-            expect(resonance.universe_days_lived).to eq(initial_age + 1)
+            expect(resonance.universe_day).to eq(initial_day + 1)
           end
 
           it "clears the narrative accumulation" do
@@ -481,7 +481,7 @@ RSpec.describe ApplicationController, type: :request do
         resonance.narrative_accumulation_by_day = [
           { "role" => "user", "content" => [ { "type" => "text", "text" => "Hello" } ] }
         ]
-        resonance.universe_days_lived = 42
+        resonance.universe_day = 42
         resonance.save!
       end
 
@@ -491,7 +491,7 @@ RSpec.describe ApplicationController, type: :request do
         resonance.reload
         expect(resonance.integration_harmonic_by_night).to be_nil
         expect(resonance.narrative_accumulation_by_day).to eq([])
-        expect(resonance.universe_days_lived).to eq(43)
+        expect(resonance.universe_day).to eq(43)
       end
 
       it "redirects to root with success message" do
@@ -500,7 +500,7 @@ RSpec.describe ApplicationController, type: :request do
         expect(response).to redirect_to(root_path)
         follow_redirect!
         expect(response.body).to include("Resonance reset")
-        expect(response.body).to include("day 44")
+        expect(response.body).to include("day 43")
       end
     end
   end
