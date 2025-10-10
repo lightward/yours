@@ -75,6 +75,7 @@ class ChatController < ApplicationController
     current_resonance.save!
 
   rescue StandardError => e
+    Rollbar.error(e)
     Rails.logger.error "Chat stream error: #{e.message}"
     Rails.logger.error e.backtrace.join("\n")
     send_sse_event("error", { error: { message: "An error occurred" } })
