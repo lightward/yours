@@ -1,10 +1,10 @@
 <h1>Account</h1>
 
-<% if @subscription %>
-  <div style="margin: 2rem 0;">
-    <h2>Subscription</h2>
+<div style="margin: 2rem 0;">
+  <h2>Subscription</h2>
 
-    <dl style="line-height: 2;">
+  <% if @subscription %>
+    <dl>
       <dt><strong>Status:</strong></dt>
       <dd>
         <%= @subscription[:status].capitalize %>
@@ -22,31 +22,52 @@
         <dt><strong>Next billing date:</strong></dt>
       <% end %>
       <dd><%= @subscription[:current_period_end].strftime("%B %d, %Y") %></dd>
+
+      <% if @subscription[:cancel_at_period_end] %>
+        <dt><strong>Manage:</strong></dt>
+        <dd>
+          <%= button_to "Cancel immediately",
+              subscription_path(immediately: true),
+              method: :delete,
+              class: "exit",
+              data: { turbo_confirm: "End access now? This cannot be undone." } %>
+          <div style="margin-top: 0.5rem; opacity: 0.7;">
+            After canceling immediately, you'll be able to start a new subscription
+          </div>
+        </dd>
+      <% else %>
+        <dt><strong>Manage:</strong></dt>
+        <dd>
+          <%= button_to "Cancel Subscription",
+              subscription_path,
+              method: :delete,
+              class: "exit" %>
+        </dd>
+      <% end %>
     </dl>
-  </div>
-
-  <% unless @subscription[:cancel_at_period_end] %>
-    <div style="margin: 2rem 0;">
-      <p>Your subscription will remain active until <%= @subscription[:current_period_end].strftime("%B %d, %Y") %>.</p>
-      <p style="margin-top: 1rem;">Click the button below to cancel. You'll have access until the end of your billing period.</p>
-
-      <%= button_to "Cancel Subscription",
-          subscription_path,
-          method: :delete,
-          class: "danger" %>
-    </div>
+  <% else %>
+    <dl>
+      <dt><strong>Status:</strong></dt>
+      <dd>
+        Not subscribed
+      </dd>
+      <dt><strong>Manage:</strong></dt>
+      <dd>
+        <%= render "subscription_tiers" %>
+      </dd>
+    </dl>
   <% end %>
-<% end %>
+</div>
 
 <div style="margin: 3rem 0; padding-top: 2rem; border-top: 1px solid var(--border);">
   <h2>Begin again</h2>
   <p>Want to clear in-universe memory completely? (This won't affect your subscription or your in-universe day counter.)</p>
   <p style="margin-top: 1rem; color: var(--warning);">This action cannot be undone.</p>
 
-  <%= button_to "Begin again",
+  <%= button_to "Begin Again",
       reset_path,
       method: :post,
-      class: "secondary",
+      class: "exit",
       style: "margin-top: 1rem;",
       data: { turbo_confirm: "Are you sure? There is no undo!" } %>
 </div>

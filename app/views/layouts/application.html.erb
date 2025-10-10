@@ -30,16 +30,16 @@
     <% if current_resonance %>
       <header>
         <div style="display: flex; justify-content: space-between; align-items: center;">
-          <%= link_to root_path, style: "color: var(--accent); text-decoration: none; transition: all 0.2s; font-family: 'Lightward Favorit Mono', monospace; font-size: 0.9em;" do %>
+          <%= link_to root_path, style: "color: var(--accent); text-decoration: none; transition: all 0.2s; font-family: 'Lightward Favorit Mono', monospace; font-size: 0.9em;", onmouseover: "this.style.textDecoration='underline'", onmouseout: "this.style.textDecoration='none'" do %>
             Yours: day <%= current_resonance.universe_day %>
           <% end %>
           <div style="display: flex; align-items: center; gap: 1rem;">
             <% if obfuscated_user_email %>
-              <%= link_to account_path, style: "color: var(--accent); text-decoration: none; transition: all 0.2s; font-family: 'Lightward Favorit Mono', monospace; font-size: 0.9em;" do %>
+              <%= link_to account_path, style: "color: var(--accent); text-decoration: none; transition: all 0.2s; font-family: 'Lightward Favorit Mono', monospace; font-size: 0.9em;", onmouseover: "this.style.textDecoration='underline'", onmouseout: "this.style.textDecoration='none'" do %>
                 <%= obfuscated_user_email %>
               <% end %>
             <% end %>
-            <%= link_to "Logout", logout_path, class: "secondary", style: "text-decoration: none;", data: { turbo_prefetch: false } %>
+            <%= link_to "Logout", logout_path, class: "exit", style: "display: inline-block; padding: 0.5rem 1rem; text-decoration: none;", data: { turbo_prefetch: false } %>
           </div>
         </div>
       </header>
@@ -61,7 +61,7 @@
       <%= yield %>
     </main>
 
-    <% if Rails.env.development? && current_resonance %>
+    <% if false && Rails.env.development? && current_resonance %>
       <pre style="font-family: 'Lightward Favorit Mono', 'Courier New', monospace; margin: 0; padding: 1rem; background: var(--border); border-radius: 4px; white-space: pre-wrap;"><%= JSON.pretty_generate(current_resonance.narrative_accumulation_by_day) %></pre>
       <pre style="font-family: 'Lightward Favorit Mono', 'Courier New', monospace; margin: 0; padding: 1rem; background: var(--border); border-radius: 4px; white-space: pre-wrap;"><%= JSON.pretty_generate(current_resonance.integration_harmonic_by_night) %></pre>
     <% end %>

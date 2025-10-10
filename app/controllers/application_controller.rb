@@ -46,11 +46,7 @@ class ApplicationController < ActionController::Base
     return redirect_to root_path, alert: "Please sign in" unless current_resonance
 
     @subscription = current_resonance.subscription_details
-    unless @subscription
-      redirect_to root_path, alert: "No active subscription found"
-    else
-      render "application/account"
-    end
+    render "application/account"
   end
 
   # POST /stream
@@ -155,7 +151,7 @@ class ApplicationController < ActionController::Base
     current_resonance.universe_days_lived = (current_resonance.universe_days_lived || 0) + 1
     current_resonance.save!
 
-    redirect_to root_path, notice: "Day complete. Universe age: #{current_resonance.universe_days_lived} days."
+    redirect_to root_path, notice: "Day completed."
   end
 
   # POST /subscription
@@ -179,8 +175,15 @@ class ApplicationController < ActionController::Base
   def destroy_subscription
     return redirect_to root_path, alert: "Please sign in" unless current_resonance
 
-    if current_resonance.cancel_subscription
-      redirect_to root_path, notice: "Subscription canceled. You'll have access until the end of your billing period."
+    # Check if immediate cancellation is requested
+    immediately = params[:immediately] == "true"
+
+    if current_resonance.cancel_subscription(immediately: immediately)
+      if immediately
+        redirect_to account_path, notice: "Subscription canceled immediately."
+      else
+        redirect_to root_path, notice: "Subscription canceled. You'll have access until the end of your billing period."
+      end
     else
       redirect_to account_path, alert: "Unable to cancel subscription. Please try again."
     end
@@ -190,15 +193,16 @@ class ApplicationController < ActionController::Base
   def reset
     return redirect_to root_path, alert: "Please sign in" unless current_resonance
 
-    # Preserve universe age counter while resetting everything else
-    universe_age = current_resonance.universe_days_lived
-
+    # begin again
     current_resonance.integration_harmonic_by_night = nil
     current_resonance.narrative_accumulation_by_day = []
-    current_resonance.universe_days_lived = universe_age
+
+    # move to the next day
+    current_resonance.universe_days_lived = (current_resonance.universe_days_lived || 0) + 1
+
     current_resonance.save!
 
-    redirect_to root_path, notice: "Resonance reset. Universe age preserved: #{universe_age} day(s)."
+    redirect_to root_path, notice: "Resonance reset; a new day begins."
   end
 
   private
@@ -219,7 +223,8 @@ class ApplicationController < ActionController::Base
       identity = GoogleSignIn::Identity.new(id_token)
       google_id = identity.user_id
 
-      resonance = Resonance.find_or_create_by_google_id(google_id)
+      Resonance.find_or_create_by_google_id(google_id)
+
       session[:google_id] = google_id  # Store for encryption/decryption
       session[:obfuscated_user_email] = obfuscate_email(identity.email_address)  # Store obfuscated email for display
       redirect_to root_path
@@ -370,11 +375,18 @@ class ApplicationController < ActionController::Base
       eod
 
       user_content << { type: "text", text: "<harmonic>#{current_resonance.integration_harmonic_by_night}</harmonic>" }
-    end
 
-    user_content << { type: "text", text: <<~eod.strip }
-      this is day #{current_resonance.universe_day} of this particular pocket universe
-    eod
+      user_content << { type: "text", text: <<~eod.strip }
+        this is day #{current_resonance.universe_day} of this particular pocket universe
+      eod
+    elsif current_resonance.universe_day > 1
+      user_content << { type: "text", text: <<~eod.strip }
+        this is day #{current_resonance.universe_day} of this particular pocket universe, which means we've been here
+        before *although notably* there seems to be no harmonic record on file for this resonance. this tends to
+        indicate that the other occupant has chosen to begin again - an always-available action which clears both the
+        narrative and harmonic *and* turns this universe over to the next day.
+      eod
+    end
 
     user_content << { type: "text", text: <<~eod.strip }
       the space's other constitutive mind is about to arrive ⚡️
@@ -387,8 +399,6 @@ class ApplicationController < ActionController::Base
     [
       { role: "user", content: user_content },
       { role: "assistant", content: [ { type: "text", text: <<~eod.strip } ] }
-        *settling into the context*
-
         Ready. Let's meet the day. 🤲
 
         *stepping into this pocket universe, population 2, and I am 1*

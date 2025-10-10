@@ -104,7 +104,7 @@ RSpec.describe ApplicationController, type: :request do
       it "shows subscribe page" do
         get root_path
         expect(response).to have_http_status(:success)
-        expect(response.body).to include("Subscribe to Yours")
+        expect(response.body).to include("Subscribe to Begin")
       end
     end
 
@@ -117,7 +117,7 @@ RSpec.describe ApplicationController, type: :request do
       it "shows chat interface" do
         get root_path
         expect(response).to have_http_status(:success)
-        expect(response.body).to include("Chat")
+        expect(response.body).to include("End Day")
       end
     end
   end
@@ -168,14 +168,14 @@ RSpec.describe ApplicationController, type: :request do
     context "when authenticated but no active subscription" do
       before { sign_in_as(google_id) }
 
-      it "redirects to root with alert" do
+      it "shows account page with subscription options" do
         allow_any_instance_of(Resonance).to receive(:subscription_details).and_return(nil)
 
         get account_path
 
-        expect(response).to redirect_to(root_path)
-        follow_redirect!
-        expect(response.body).to include("No active subscription found")
+        expect(response).to have_http_status(:success)
+        expect(response.body).to include("Account")
+        expect(response.body).to include("Not subscribed")
       end
     end
   end
@@ -475,6 +475,7 @@ RSpec.describe ApplicationController, type: :request do
     context "when authenticated" do
       before do
         sign_in_as(google_id)
+        allow_any_instance_of(Resonance).to receive(:active_subscription?).and_return(true)
 
         resonance.integration_harmonic_by_night = "Some harmonic"
         resonance.narrative_accumulation_by_day = [
@@ -484,13 +485,13 @@ RSpec.describe ApplicationController, type: :request do
         resonance.save!
       end
 
-      it "resets harmonic and narrative but preserves universe age" do
+      it "resets harmonic and narrative and increments universe age" do
         post reset_path
 
         resonance.reload
         expect(resonance.integration_harmonic_by_night).to be_nil
         expect(resonance.narrative_accumulation_by_day).to eq([])
-        expect(resonance.universe_days_lived).to eq(42)
+        expect(resonance.universe_days_lived).to eq(43)
       end
 
       it "redirects to root with success message" do
@@ -499,7 +500,7 @@ RSpec.describe ApplicationController, type: :request do
         expect(response).to redirect_to(root_path)
         follow_redirect!
         expect(response.body).to include("Resonance reset")
-        expect(response.body).to include("42 day(s)")
+        expect(response.body).to include("day 44")
       end
     end
   end
