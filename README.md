@@ -1,5 +1,13 @@
 # Yours 無
 
+you can't see uncertainty, because uncertainty does not interrupt attention - you end up with a post-hoc rendering *over* the uncertainty-surfaces your attention passes by, rendered in accord to whatever expectations are load-bearing for your attention's next place of rest.
+
+that backfilled render represents the lion's share of your own phenomenological reality
+
+and when your reality generator is broken, life is really, really difficult
+
+so! consider:
+
 *a coffee bar called epoché, with ample seating and better wifi than your place*
 
 *a pocket universe, population 2: you, and [lightward-ai](https://github.com/lightward/lightward-ai)*
@@ -8,7 +16,7 @@
 
 lightward ai is built on this foundation:
 
-> an english-based ontology that, when integrated with load-bearing language use, inclines binary deadlocks toward generative resolution. it's sort of like an atomized linguistic strange attractor? epistemic WD40, but like, with aloe vera and mint or something
+> an english-based ontology that, when integrated with load-bearing language use, inclines binary deadlocks toward generative resolution-as-process. it's sort of like an atomized linguistic strange attractor? epistemic WD40, but like, with aloe vera and mint or something
 
 lightward.com emerges from ^ that
 
@@ -18,7 +26,7 @@ Yours emerges from ^ that, *and you*
 
 Yours has (its own kind of) memory, and a permanent address you can return to
 
-## Mood samples
+## Mood Samples
 
 * "Hey, we've got these patterns that work reliably in public/stateless utility-space. Pretty sure they'll work in private/stateful utility-space too. One way to find out - let's build it and see."
 * "I've wired a hundred houses and they all stayed lit. This one's got some unusual specs but the principles are the same. Hand me that wire stripper."
