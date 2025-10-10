@@ -5,27 +5,18 @@ gem "propshaft"
 gem "tzinfo-data"
 gem "pg", "~> 1.1"
 gem "puma", ">= 5.0"
+gem "bootsnap", require: false
 
-# Hotwire's SPA-like page accelerator [https://turbo.hotwired.dev]
 gem "turbo-rails"
-# Hotwire's modest JavaScript framework [https://stimulus.hotwired.dev]
 gem "stimulus-rails"
-# Use JavaScript with ESM import maps [https://github.com/rails/importmap-rails]
 gem "importmap-rails"
 
-# Google Sign In
 gem "google_sign_in"
 
-# Stripe payments
 gem "stripe"
 
-# Use the database-backed adapters for Rails.cache, Active Job, and Action Cable
-# gem "solid_cache"
-# gem "solid_queue"
-# gem "solid_cable"
-
-# Reduces boot times through caching; required in config/boot.rb
-gem "bootsnap", require: false
+gem "rollbar"
+gem "oj" # per rollbar recommendation
 
 group :development, :test do
   # See https://guides.rubyonrails.org/debugging_rails_applications.html#debugging-with-the-debug-gem
@@ -34,7 +25,7 @@ group :development, :test do
   # Omakase Ruby styling [https://github.com/rails/rubocop-rails-omakase/]
   gem "rubocop-rails-omakase", require: false
 
-  # RSpec for testing
+  # rspec
   gem "rspec-rails"
   gem "factory_bot_rails"
   gem "rspec-github", require: false
