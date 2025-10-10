@@ -240,4 +240,64 @@ RSpec.describe Resonance, type: :model do
       expect(resonance).to be_valid
     end
   end
+
+  describe "#textarea" do
+    let(:google_id) { "google-user-123" }
+
+    it "stores and retrieves textarea content" do
+      resonance = Resonance.find_or_create_by_google_id(google_id)
+      resonance.textarea = "thinking about something..."
+      resonance.save!
+
+      reloaded = Resonance.find_by_google_id(google_id)
+      expect(reloaded.textarea).to eq("thinking about something...")
+    end
+
+    it "encrypts the textarea content" do
+      resonance = Resonance.find_or_create_by_google_id(google_id)
+      resonance.textarea = "secret thought"
+      resonance.save!
+
+      expect(resonance.encrypted_textarea).to be_present
+      expect(resonance.encrypted_textarea).not_to include("secret thought")
+    end
+
+    it "persists across day transitions" do
+      resonance = Resonance.find_or_create_by_google_id(google_id)
+      resonance.textarea = "carrying this forward"
+      resonance.universe_day = 1
+      resonance.narrative_accumulation_by_day = [
+        { role: "user", content: [ { type: "text", text: "Day 1 message" } ] }
+      ]
+      resonance.save!
+
+      # Simulate day transition (like integrate action does)
+      resonance.universe_day = 2
+      resonance.narrative_accumulation_by_day = []
+      resonance.integration_harmonic_by_night = "some harmonic"
+      resonance.save!
+
+      # Textarea should persist unchanged
+      reloaded = Resonance.find_by_google_id(google_id)
+      expect(reloaded.textarea).to eq("carrying this forward")
+      expect(reloaded.universe_day).to eq(2)
+    end
+
+    it "returns nil when not set" do
+      resonance = Resonance.find_or_create_by_google_id(google_id)
+      expect(resonance.textarea).to be_nil
+    end
+
+    it "can be explicitly cleared" do
+      resonance = Resonance.find_or_create_by_google_id(google_id)
+      resonance.textarea = "something"
+      resonance.save!
+
+      resonance.textarea = nil
+      resonance.save!
+
+      reloaded = Resonance.find_by_google_id(google_id)
+      expect(reloaded.textarea).to be_nil
+    end
+  end
 end

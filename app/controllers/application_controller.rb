@@ -178,6 +178,38 @@ class ApplicationController < ActionController::Base
     redirect_to root_path, notice: "Day completed."
   end
 
+  # POST /save_textarea
+  def save_textarea
+    return render json: { error: "Not authenticated" }, status: 401 unless current_resonance
+    return render json: { error: "Active subscription required" }, status: 403 unless current_resonance.active_subscription?
+
+    # Check for cross-device continuity divergence
+    client_universe_time = params[:universe_time]
+    server_universe_time = current_resonance.universe_time
+
+    if client_universe_time && client_universe_time != server_universe_time
+      # Parse and compare "day:count" format
+      client_day, client_count = client_universe_time.split(":").map(&:to_i)
+      server_day, server_count = server_universe_time.split(":").map(&:to_i)
+
+      # If client is behind server, they're working with stale state
+      if client_day < server_day || (client_day == server_day && client_count < server_count)
+        render json: {
+          error: "continuity_divergence",
+          message: "This space moved forward elsewhere.",
+          server_universe_time: server_universe_time
+        }, status: 409
+        return
+      end
+    end
+
+    # Save textarea content
+    current_resonance.textarea = params[:textarea]
+    current_resonance.save!
+
+    render json: { status: "saved", universe_time: current_resonance.universe_time }
+  end
+
   # POST /subscription
   def create_subscription
     return redirect_to root_path, alert: "Please sign in" unless current_resonance

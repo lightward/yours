@@ -4,12 +4,14 @@ export default class extends Controller {
   static targets = ["log", "input"]
   static values = {
     narrative: Array,
-    universeTime: String
+    universeTime: String,
+    savedTextarea: String
   }
 
   connect() {
     this.loadExistingMessages()
     this.loadSavedInput()
+    this.saveDebounceTimeout = null
   }
 
   loadExistingMessages() {
@@ -40,8 +42,13 @@ export default class extends Controller {
     textarea.style.height = "auto"
     textarea.style.height = textarea.scrollHeight + "px"
 
-    // Save input to localStorage
+    // Save input to localStorage immediately
     this.saveInputToStorage(textarea.value)
+
+    // Debounced save to server (unless this is a programmatic event from loadSavedInput)
+    if (!event.skipServerSave) {
+      this.debouncedSaveToServer(textarea.value)
+    }
   }
 
   saveInputToStorage(value) {
@@ -49,19 +56,73 @@ export default class extends Controller {
     localStorage.setItem(storageKey, value)
   }
 
+  debouncedSaveToServer(value) {
+    // Clear existing timeout
+    if (this.saveDebounceTimeout) {
+      clearTimeout(this.saveDebounceTimeout)
+    }
+
+    // Set new timeout to save after 1.5 seconds of inactivity
+    this.saveDebounceTimeout = setTimeout(() => {
+      this.saveToServer(value)
+    }, 1500)
+  }
+
+  async saveToServer(value) {
+    try {
+      const response = await fetch("/textarea", {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+          "X-CSRF-Token": document.querySelector('meta[name="csrf-token"]').content
+        },
+        body: JSON.stringify({
+          textarea: value,
+          universe_time: this.universeTimeValue
+        })
+      })
+
+      if (response.status === 409) {
+        // Continuity divergence - this space moved forward elsewhere
+        const data = await response.json()
+        console.warn("Textarea save blocked: continuity divergence", data)
+        // Could show a subtle notice here if desired
+      } else if (!response.ok) {
+        console.error("Failed to save textarea:", response.status)
+      }
+    } catch (error) {
+      console.error("Error saving textarea:", error)
+      // Fail silently - localStorage still has it
+    }
+  }
+
   loadSavedInput() {
+    // Prefer server-saved value over localStorage
+    const serverSaved = this.savedTextareaValue
     const storageKey = `yours-input-${this.universeTimeValue || 'current'}`
-    const savedInput = localStorage.getItem(storageKey)
+    const localSaved = localStorage.getItem(storageKey)
+
+    // Use whichever is longer (assumes the longer one is more recent)
+    // In practice, server value is canonical for cross-device sync
+    const savedInput = (serverSaved && serverSaved.length >= (localSaved || "").length)
+      ? serverSaved
+      : localSaved
+
     if (savedInput) {
       this.inputTarget.value = savedInput
-      // Trigger input event to auto-expand
-      this.inputTarget.dispatchEvent(new Event('input'))
+      // Trigger input event to auto-expand (but don't re-trigger server save)
+      const event = new Event('input')
+      event.skipServerSave = true
+      this.inputTarget.dispatchEvent(event)
     }
   }
 
   clearSavedInput() {
     const storageKey = `yours-input-${this.universeTimeValue || 'current'}`
     localStorage.removeItem(storageKey)
+
+    // Also clear on server
+    this.saveToServer("")
   }
 
   send() {

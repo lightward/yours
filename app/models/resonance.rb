@@ -111,6 +111,15 @@ class Resonance < ApplicationRecord
     self.encrypted_universe_day = value.nil? ? nil : encrypt_field(value.to_s)
   end
 
+  # Textarea contents
+  def textarea
+    decrypt_field(encrypted_textarea)
+  end
+
+  def textarea=(value)
+    self.encrypted_textarea = encrypt_field(value)
+  end
+
   # Universe time as "day:message_count" (e.g., "3:14" for day 3, 14 messages)
   # This serves as a monotonically increasing guard against cross-device state clobbering
   def universe_time
