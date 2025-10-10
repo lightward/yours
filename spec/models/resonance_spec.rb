@@ -89,6 +89,27 @@ RSpec.describe Resonance, type: :model do
     end
   end
 
+  describe "#universe_day" do
+    let(:google_id) { "google-user-123" }
+
+    it "returns 1 for new resonance (nil days lived)" do
+      resonance = Resonance.find_or_create_by_google_id(google_id)
+      expect(resonance.universe_day).to eq(1)
+    end
+
+    it "returns 1 for resonance with 0 days lived" do
+      resonance = Resonance.find_or_create_by_google_id(google_id)
+      resonance.universe_days_lived = 0
+      expect(resonance.universe_day).to eq(1)
+    end
+
+    it "returns days_lived + 1 for existing resonance" do
+      resonance = Resonance.find_or_create_by_google_id(google_id)
+      resonance.universe_days_lived = 42
+      expect(resonance.universe_day).to eq(43)
+    end
+  end
+
   describe "narrative_accumulation_by_day" do
     let(:google_id) { "google-user-123" }
 

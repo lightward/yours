@@ -1,23 +1,15 @@
 Rails.application.routes.draw do
-  # Google Sign In
-  get "sign_in", to: "sessions#create"
-  delete "sign_out", to: "sessions#destroy"
+  # Root handles everything: landing, auth callback, subscribe, and chat
+  root "application#index"
 
-  # Home (for unauthenticated users)
-  get "home", to: "home#index"
+  # User-facing routes
+  get "logout", to: "application#logout"
+  get "account", to: "application#account"
 
-  # Chat (now at root)
-  root "chat#show"
-  post "chat/stream", to: "chat#stream"
-  post "chat/integrate", to: "chat#integrate"
-
-  # Account (formerly subscriptions)
-  get "account", to: "subscriptions#show"
-  delete "account/subscription", to: "subscriptions#destroy"
-  post "account/reset", to: "subscriptions#reset"
-
-  # Subscribe flow
-  get "subscribe", to: "subscriptions#new"
-  post "subscribe", to: "subscriptions#create"
-  get "subscribe/success", to: "subscriptions#success", as: :subscribe_success
+  # Service routes
+  post "stream", to: "application#stream"
+  post "integrate", to: "application#integrate"
+  post "subscription", to: "application#create_subscription"
+  delete "subscription", to: "application#destroy_subscription"
+  post "reset", to: "application#reset"
 end

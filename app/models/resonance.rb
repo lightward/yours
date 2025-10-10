@@ -108,6 +108,12 @@ class Resonance < ApplicationRecord
     self.encrypted_universe_days_lived = value.nil? ? nil : encrypt_field(value.to_s)
   end
 
+  # Current day number (1-indexed for display)
+  # "days lived" is 0-indexed (starts at 0 or nil), "current day" starts at 1
+  def universe_day
+    (universe_days_lived || 0) + 1
+  end
+
   private
 
   # Derive encryption key from Google ID

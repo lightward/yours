@@ -54,7 +54,7 @@ module StripeSubscription
     nil
   end
 
-  def cancel_subscription
+  def cancel_subscription(immediately: false)
     return false unless stripe_customer_id.present?
 
     subscriptions = Stripe::Subscription.list(
@@ -63,10 +63,16 @@ module StripeSubscription
       limit: 10
     )
 
-    # Cancel all active Yours subscriptions at period end
+    # Cancel all active Yours subscriptions
     subscriptions.data.each do |sub|
       if sub.items.data.any? { |item| STRIPE_PRICE_IDS.values.include?(item.price.id) }
-        Stripe::Subscription.update(sub.id, cancel_at_period_end: true)
+        if immediately
+          # Cancel the subscription immediately
+          Stripe::Subscription.cancel(sub.id)
+        else
+          # Cancel at period end
+          Stripe::Subscription.update(sub.id, cancel_at_period_end: true)
+        end
       end
     end
 

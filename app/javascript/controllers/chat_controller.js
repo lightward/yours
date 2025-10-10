@@ -29,11 +29,16 @@ export default class extends Controller {
     const text = this.inputTarget.value.trim()
     if (!text) return
 
+    // Clear any visible flash messages
+    const flashMessages = document.querySelectorAll('[data-turbo-temporary]')
+    flashMessages.forEach(flash => flash.remove())
+
     // Add user message to UI
     this.addMessage("user", text)
 
-    // Clear input
+    // Clear and disable input
     this.inputTarget.value = ""
+    this.inputTarget.disabled = true
 
     // Create message object in Lightward AI format
     const message = {
@@ -46,12 +51,12 @@ export default class extends Controller {
   }
 
   async streamResponse(message) {
-    // Add pulsing assistant message placeholder
+    // Add pulsing assistant message placeholder with pink border
     const assistantElement = this.addPulsingMessage("assistant")
     let accumulatedText = ""
 
     try {
-      const response = await fetch("/chat/stream", {
+      const response = await fetch("/stream", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -95,10 +100,17 @@ export default class extends Controller {
       console.error("Stream error:", error)
       assistantElement.textContent = `⚠️ Error: ${error.message}`
       assistantElement.classList.remove("pulsing", "loading")
+      assistantElement.style.borderLeftColor = getComputedStyle(document.documentElement).getPropertyValue('--message-border').trim()
+    } finally {
+      // Re-enable input when done
+      this.inputTarget.disabled = false
+      this.inputTarget.focus()
     }
   }
 
   handleSSEEvent(event, data, element) {
+    const messageBorder = getComputedStyle(document.documentElement).getPropertyValue('--message-border').trim()
+
     switch (event) {
       case "message_start":
         element.classList.remove("pulsing")
@@ -116,17 +128,20 @@ export default class extends Controller {
       case "message_stop":
         element.classList.remove("pulsing", "loading")
         element.style.animation = ""
+        element.style.borderLeftColor = messageBorder
         break
 
       case "end":
         element.classList.remove("pulsing", "loading")
         element.style.animation = ""
+        element.style.borderLeftColor = messageBorder
         break
 
       case "error":
         element.textContent = `⚠️ ${data.error.message}`
         element.classList.remove("pulsing", "loading")
         element.style.animation = ""
+        element.style.borderLeftColor = messageBorder
         break
     }
   }
@@ -143,7 +158,6 @@ export default class extends Controller {
 
     messageElement.style.cssText = `
       padding: 1rem;
-      margin: 0.5rem 0;
       border-radius: 8px;
       background: ${role === "user" ? userBg : assistantBg};
       border-left: 3px solid ${role === "user" ? accent : messageBorder};
@@ -158,9 +172,11 @@ export default class extends Controller {
   addPulsingMessage(role) {
     const messageElement = this.addMessage(role, "")
     messageElement.classList.add("pulsing")
+    const accentActive = getComputedStyle(document.documentElement).getPropertyValue('--accent-active').trim()
     messageElement.style.cssText += `
-      min-height: 2rem;
+      min-height: 3rem;
       animation: pulse 1.5s ease-in-out infinite;
+      border-left-color: ${accentActive};
     `
     return messageElement
   }
