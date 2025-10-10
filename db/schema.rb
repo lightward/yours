@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.0].define(version: 2025_10_03_235135) do
+ActiveRecord::Schema[8.0].define(version: 2025_10_10_233556) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
 
@@ -19,5 +19,6 @@ ActiveRecord::Schema[8.0].define(version: 2025_10_03_235135) do
     t.text "encrypted_integration_harmonic_by_night"
     t.text "encrypted_narrative_accumulation_by_day"
     t.text "encrypted_universe_day"
+    t.text "encrypted_textarea"
   end
 end
