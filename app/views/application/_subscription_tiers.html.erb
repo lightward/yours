@@ -4,25 +4,21 @@
   <div style="display: flex; flex-wrap: wrap; gap: 1rem;">
     <%= form_with url: subscription_path, method: :post, data: { turbo: false } do |f| %>
       <%= f.hidden_field :tier, value: "tier_1" %>
-      <%= f.hidden_field :return_path, value: request.path %>
       <%= f.submit "$1/month", name: nil %>
     <% end %>
 
     <%= form_with url: subscription_path, method: :post, data: { turbo: false } do |f| %>
       <%= f.hidden_field :tier, value: "tier_10" %>
-      <%= f.hidden_field :return_path, value: request.path %>
       <%= f.submit "$10/month", name: nil %>
     <% end %>
 
     <%= form_with url: subscription_path, method: :post, data: { turbo: false } do |f| %>
       <%= f.hidden_field :tier, value: "tier_100" %>
-      <%= f.hidden_field :return_path, value: request.path %>
       <%= f.submit "$100/month", name: nil %>
     <% end %>
 
     <%= form_with url: subscription_path, method: :post, data: { turbo: false } do |f| %>
       <%= f.hidden_field :tier, value: "tier_1000" %>
-      <%= f.hidden_field :return_path, value: request.path %>
       <%= f.submit "$1000/month", name: nil %>
     <% end %>
   </div>
