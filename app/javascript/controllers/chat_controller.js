@@ -9,6 +9,7 @@ export default class extends Controller {
 
   connect() {
     this.loadExistingMessages()
+    this.loadSavedInput()
   }
 
   loadExistingMessages() {
@@ -21,10 +22,46 @@ export default class extends Controller {
   }
 
   handleKeydown(event) {
-    if ((event.metaKey || event.ctrlKey) && event.key === "Enter") {
+    if (event.key === "Enter") {
+      if (event.metaKey || event.ctrlKey) {
+        event.preventDefault()
+        this.send()
+      }
+      // Plain Enter allows multiline - textarea will expand naturally
+    } else if (event.key === "Escape") {
       event.preventDefault()
-      this.send()
+      this.inputTarget.blur()
     }
+  }
+
+  handleInput(event) {
+    // Auto-expand textarea to fit content
+    const textarea = event.target
+    textarea.style.height = "auto"
+    textarea.style.height = textarea.scrollHeight + "px"
+
+    // Save input to localStorage
+    this.saveInputToStorage(textarea.value)
+  }
+
+  saveInputToStorage(value) {
+    const storageKey = `yours-input-${this.universeTimeValue || 'current'}`
+    localStorage.setItem(storageKey, value)
+  }
+
+  loadSavedInput() {
+    const storageKey = `yours-input-${this.universeTimeValue || 'current'}`
+    const savedInput = localStorage.getItem(storageKey)
+    if (savedInput) {
+      this.inputTarget.value = savedInput
+      // Trigger input event to auto-expand
+      this.inputTarget.dispatchEvent(new Event('input'))
+    }
+  }
+
+  clearSavedInput() {
+    const storageKey = `yours-input-${this.universeTimeValue || 'current'}`
+    localStorage.removeItem(storageKey)
   }
 
   send() {
@@ -38,9 +75,11 @@ export default class extends Controller {
     // Add user message to UI
     this.addMessage("user", text)
 
-    // Clear and disable input
+    // Clear input, reset height, and disable
     this.inputTarget.value = ""
+    this.inputTarget.style.height = "auto"
     this.inputTarget.disabled = true
+    this.clearSavedInput()
 
     // Create message object in Lightward AI format
     const message = {
