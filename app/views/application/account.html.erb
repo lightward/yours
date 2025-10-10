@@ -2,7 +2,7 @@
 
 <% if @subscription %>
   <div style="margin: 2rem 0;">
-    <h2>Current Subscription</h2>
+    <h2>Subscription</h2>
 
     <dl style="line-height: 2;">
       <dt><strong>Status:</strong></dt>
@@ -27,12 +27,11 @@
 
   <% unless @subscription[:cancel_at_period_end] %>
     <div style="margin: 2rem 0;">
-      <h3>Cancel Subscription</h3>
       <p>Your subscription will remain active until <%= @subscription[:current_period_end].strftime("%B %d, %Y") %>.</p>
       <p style="margin-top: 1rem;">Click the button below to cancel. You'll have access until the end of your billing period.</p>
 
       <%= button_to "Cancel Subscription",
-          account_subscription_path,
+          subscription_path,
           method: :delete,
           class: "danger" %>
     </div>
@@ -40,14 +39,14 @@
 <% end %>
 
 <div style="margin: 3rem 0; padding-top: 2rem; border-top: 1px solid var(--border);">
-  <h2>Reset Resonance</h2>
-  <p>This will clear your harmonic and narrative, while preserving your universe age counter.</p>
+  <h2>Begin again</h2>
+  <p>Want to clear in-universe memory completely? (This won't affect your subscription or your in-universe day counter.)</p>
   <p style="margin-top: 1rem; color: var(--warning);">This action cannot be undone.</p>
 
-  <%= button_to "Reset Resonance",
-      account_reset_path,
+  <%= button_to "Begin again",
+      reset_path,
       method: :post,
       class: "secondary",
       style: "margin-top: 1rem;",
-      data: { turbo_confirm: "Are you sure? This will reset your harmonic and narrative (but preserve your universe age)." } %>
+      data: { turbo_confirm: "Are you sure? There is no undo!" } %>
 </div>

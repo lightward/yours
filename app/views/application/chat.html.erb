@@ -1,0 +1,26 @@
+<div data-controller="chat" data-chat-narrative-value="<%= @narrative.to_json %>">
+  <div id="chat-log" data-chat-target="log">
+    <!-- Messages will appear here -->
+  </div>
+
+  <textarea
+    data-chat-target="input"
+    data-action="keydown->chat#handleKeydown"
+    placeholder="Type your message..."
+    style="width: 100%; min-height: 100px; padding: 0.5rem;"
+  ></textarea>
+
+  <div style="margin-top: 0.5rem; display: flex; gap: 1rem; align-items: center;">
+    <button
+      data-action="click->chat#send"
+    >
+      Send
+    </button>
+
+    <%= button_to "End Day",
+        integrate_path,
+        method: :post,
+        class: "secondary",
+        data: { turbo_confirm: "Are you sure? This will end the day and start a new one." } %>
+  </div>
+</div>

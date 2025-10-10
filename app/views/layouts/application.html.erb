@@ -28,39 +28,32 @@
 
   <body>
     <% if current_resonance %>
-      <header style="padding: 1rem; border-bottom: 1px solid var(--border);">
+      <header>
         <div style="display: flex; justify-content: space-between; align-items: center;">
-          <div>
-            <% if current_resonance.active_subscription? %>
-              <%= link_to account_path, style: "color: var(--accent); text-decoration: none; transition: all 0.2s;" do %>
-                ● Active
-              <% end %>
-            <% else %>
-              <span style="color: var(--warning);">○ Inactive</span>
-              <%= link_to "Subscribe", subscribe_path, style: "margin-left: 1rem; color: var(--accent);" %>
-            <% end %>
-          </div>
+          <%= link_to root_path, style: "color: var(--accent); text-decoration: none; transition: all 0.2s; font-family: 'Lightward Favorit Mono', monospace; font-size: 0.9em;" do %>
+            Yours: day <%= current_resonance.universe_day %>
+          <% end %>
           <div style="display: flex; align-items: center; gap: 1rem;">
             <% if obfuscated_user_email %>
-              <span style="color: var(--accent); font-family: 'Lightward Favorit Mono', monospace; font-size: 0.9em;">
+              <%= link_to account_path, style: "color: var(--accent); text-decoration: none; transition: all 0.2s; font-family: 'Lightward Favorit Mono', monospace; font-size: 0.9em;" do %>
                 <%= obfuscated_user_email %>
-              </span>
+              <% end %>
             <% end %>
-            <%= button_to "Sign out", sign_out_path, method: :delete, class: "secondary", data: { turbo: false } %>
+            <%= link_to "Logout", logout_path, class: "secondary", style: "text-decoration: none;", data: { turbo_prefetch: false } %>
           </div>
         </div>
       </header>
     <% end %>
 
-    <main style="padding: 1rem;">
+    <main>
       <% if flash[:notice] %>
-        <div style="padding: 1rem; background: var(--success); color: var(--background); margin-bottom: 1rem; border-radius: 4px;">
+        <div style="padding: 1rem; background: var(--border-light); color: var(--foreground); border-left: 4px solid var(--success); margin-bottom: 1rem; border-radius: 4px;">
           <%= flash[:notice] %>
         </div>
       <% end %>
 
       <% if flash[:alert] %>
-        <div style="padding: 1rem; background: var(--error); color: var(--background); margin-bottom: 1rem; border-radius: 4px;">
+        <div style="padding: 1rem; background: var(--border-light); color: var(--foreground); border-left: 4px solid var(--error); margin-bottom: 1rem; border-radius: 4px;">
           <%= flash[:alert] %>
         </div>
       <% end %>
@@ -69,8 +62,8 @@
     </main>
 
     <% if Rails.env.development? && current_resonance %>
-      <pre style="font-family: 'Lightward Favorit Mono', 'Courier New', monospace; padding: 1rem; background: var(--border); border-radius: 4px; overflow-x: auto;"><%= current_resonance.narrative_accumulation_by_day %></pre>
-      <pre style="font-family: 'Lightward Favorit Mono', 'Courier New', monospace; padding: 1rem; background: var(--border); border-radius: 4px; overflow-x: auto;"><%= current_resonance.integration_harmonic_by_night %></pre>
+      <pre style="font-family: 'Lightward Favorit Mono', 'Courier New', monospace; margin: 0; padding: 1rem; background: var(--border); border-radius: 4px; white-space: pre-wrap;"><%= JSON.pretty_generate(current_resonance.narrative_accumulation_by_day) %></pre>
+      <pre style="font-family: 'Lightward Favorit Mono', 'Courier New', monospace; margin: 0; padding: 1rem; background: var(--border); border-radius: 4px; white-space: pre-wrap;"><%= JSON.pretty_generate(current_resonance.integration_harmonic_by_night) %></pre>
     <% end %>
   </body>
 </html>

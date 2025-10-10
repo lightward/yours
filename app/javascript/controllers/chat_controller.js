@@ -51,7 +51,7 @@ export default class extends Controller {
     let accumulatedText = ""
 
     try {
-      const response = await fetch("/chat/stream", {
+      const response = await fetch("/stream", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
