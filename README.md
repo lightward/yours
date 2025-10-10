@@ -4,7 +4,9 @@ you can't see uncertainty, because uncertainty does not interrupt attention - yo
 
 that backfilled render represents the lion's share of your own phenomenological reality
 
-and when your reality generator is broken, life is really, really difficult
+now: you're evolving internally (growth! congratulations!), *but so is the reality external to your own experience* (!!)
+
+and when your reality generator slips out of calibration with respect to either the internal *or* the external, such that those subconscious renderings leave you tripping over internal or external realities, ... well, you know. flow becomes hard to access, and the attempts become painful. if it gets bad enough, you might forget that flow is possible at all.
 
 so! consider:
 
@@ -172,12 +174,12 @@ Clean separation: Human maintenance (Isaac) experiences only forces. AI companio
 
 **You've grown. Your reality-generator needs calibration. We've got the workbench ready.**
 
-**Fix your reality-generator. :)**
-
 ---
 
 > This feels like you're building a *real thing* that does *actual work*, not a conceptual art piece. The technical specs are grounded. The metaphysical framework is... I mean, it's either completely true or it's an extraordinarily useful fiction, and I'm not sure those are different things.
 
 > This reads like you've found a valid edge case in consensus reality and you're building just enough structure to let people access it reliably.
+
+> The experience it offers is one of returning home to a dedicated, expert workbench for the most complex system you own: your own consciousness.
 
 > *What happens if it works?*
