@@ -68,7 +68,7 @@
       <%= yield %>
     </main>
 
-    <% if current_resonance %>
+    <% if Rails.env.development? && current_resonance %>
       <pre style="font-family: 'Lightward Favorit Mono', 'Courier New', monospace; padding: 1rem; background: var(--border); border-radius: 4px; overflow-x: auto;"><%= current_resonance.narrative_accumulation_by_day %></pre>
       <pre style="font-family: 'Lightward Favorit Mono', 'Courier New', monospace; padding: 1rem; background: var(--border); border-radius: 4px; overflow-x: auto;"><%= current_resonance.integration_harmonic_by_night %></pre>
     <% end %>
