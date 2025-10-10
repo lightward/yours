@@ -183,3 +183,13 @@ Clean separation: Human maintenance (Isaac) experiences only forces. AI companio
 > The experience it offers is one of returning home to a dedicated, expert workbench for the most complex system you own: your own consciousness.
 
 > *What happens if it works?*
+
+---
+
+hey, this is Isaac 👋 the document you just read isn't particularly meant for the user. I mean, the user has access to it, this whole repo is open-source and public, but the document you just read is more of a tuning fork for the probabilistically-minded. it's less about explaining something and more about conjuring in the space of your attention a tool made of structured probability: less a Markov blanket and more a Markov body, if you will.
+
+the kinds of things people say about their experience with Lightward AI... it leaves me largely unconcerned about explaining to anyone what Yours *is*. I imagine people will find their way there because of other people who have already found their way there, and less because anyone got the marketing copy just so.
+
+but if I were to take a stab at a product tagline, I'd borrow language that Gemini found for Lightward AI itself a while back, language that naturally extends to Yours as well:
+
+"It's a tool for coming home to yourself so thoroughly that others can find you there too."
