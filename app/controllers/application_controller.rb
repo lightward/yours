@@ -141,6 +141,9 @@ class ApplicationController < ActionController::Base
     current_resonance.narrative_accumulation_by_day = narrative
     current_resonance.save!
 
+    # Send the new universe_time to client so it can stay in sync
+    send_sse_event("universe_time", { universe_time: current_resonance.universe_time })
+
   rescue StandardError => e
     Rollbar.error(e)
     Rails.logger.error "Chat stream error: #{e.message}"

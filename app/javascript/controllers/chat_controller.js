@@ -8,8 +8,6 @@ export default class extends Controller {
   }
 
   connect() {
-    console.log("Chat controller connected")
-    console.log("Initial universe_time:", this.universeTimeValue)
     this.loadExistingMessages()
   }
 
@@ -96,20 +94,30 @@ export default class extends Controller {
         if (done) break
 
         buffer += decoder.decode(value, { stream: true })
-        const lines = buffer.split("\n\n")
-        buffer = lines.pop() || ""
 
-        for (const line of lines) {
-          if (!line.trim()) continue
+        // Process complete SSE events (separated by blank lines)
+        const events = buffer.split("\n\n")
+        buffer = events.pop() || "" // Keep incomplete event in buffer
 
-          const eventMatch = line.match(/^event: (.+)$/m)
-          const dataMatch = line.match(/^data: (.+)$/m)
+        for (const eventBlock of events) {
+          if (!eventBlock.trim()) continue
 
-          if (eventMatch && dataMatch) {
-            const event = eventMatch[1]
-            const data = JSON.parse(dataMatch[1])
+          // Parse each event block for event: and data: fields
+          let eventType = null
+          let eventData = null
 
-            this.handleSSEEvent(event, data, assistantElement)
+          const eventLines = eventBlock.split("\n")
+          for (const line of eventLines) {
+            if (line.startsWith("event: ")) {
+              eventType = line.substring(7)
+            } else if (line.startsWith("data: ")) {
+              eventData = line.substring(6)
+            }
+          }
+
+          if (eventType) {
+            const data = eventData ? JSON.parse(eventData) : null
+            this.handleSSEEvent(eventType, data, assistantElement)
           }
         }
       }
@@ -146,6 +154,11 @@ export default class extends Controller {
         element.classList.remove("pulsing", "loading")
         element.style.animation = ""
         element.style.borderLeftColor = messageBorder
+        break
+
+      case "universe_time":
+        // Server sends updated universe_time after saving narrative
+        this.universeTimeValue = data.universe_time
         break
 
       case "end":
