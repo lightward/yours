@@ -2,10 +2,14 @@ import { Controller } from "@hotwired/stimulus"
 
 export default class extends Controller {
   static targets = ["log", "input"]
-  static values = { narrative: Array }
+  static values = {
+    narrative: Array,
+    universeTime: String
+  }
 
   connect() {
     console.log("Chat controller connected")
+    console.log("Initial universe_time:", this.universeTimeValue)
     this.loadExistingMessages()
   }
 
@@ -62,8 +66,21 @@ export default class extends Controller {
           "Content-Type": "application/json",
           "X-CSRF-Token": document.querySelector('meta[name="csrf-token"]').content
         },
-        body: JSON.stringify({ message })
+        body: JSON.stringify({
+          message,
+          universe_time: this.universeTimeValue
+        })
       })
+
+      // Handle continuity divergence (409 Conflict)
+      if (response.status === 409) {
+        const data = await response.json()
+        this.handleContinuityDivergence(data)
+        this.inputTarget.disabled = false
+        this.inputTarget.focus()
+        assistantElement.remove()
+        return
+      }
 
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`)
@@ -179,5 +196,31 @@ export default class extends Controller {
       border-left-color: ${accentActive};
     `
     return messageElement
+  }
+
+  handleContinuityDivergence(data) {
+    // Create a gentle notice that this space moved forward elsewhere
+    const noticeElement = document.createElement("div")
+    const accent = getComputedStyle(document.documentElement).getPropertyValue('--accent').trim()
+    const accentBg = getComputedStyle(document.documentElement).getPropertyValue('--user-message-bg').trim()
+
+    noticeElement.style.cssText = `
+      padding: 1.5rem;
+      border-radius: 8px;
+      background: ${accentBg};
+      border-left: 3px solid ${accent};
+      margin: 1rem 0;
+      font-family: 'Lightward Favorit Mono', 'Courier New', monospace;
+    `
+
+    noticeElement.innerHTML = `
+      <div style="margin-bottom: 1rem;">${data.message}</div>
+      <button onclick="window.location.reload()" style="cursor: pointer;">
+        Refresh to continue
+      </button>
+    `
+
+    this.logTarget.appendChild(noticeElement)
+    noticeElement.scrollIntoView({ behavior: "smooth", block: "end" })
   }
 }
