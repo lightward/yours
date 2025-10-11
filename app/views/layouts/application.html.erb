@@ -44,12 +44,12 @@
     <%= javascript_importmap_tags %>
   </head>
 
-  <body>
+  <body style="min-height: 80vh; display: flex; flex-direction: column;">
     <% if current_resonance %>
       <header>
         <div class="header-container">
           <%= link_to root_path, class: "header-link" do %>
-            Yours: day <%= current_resonance.universe_day %>
+            Yours: <%= current_resonance.universe_day == 1 ? "1 day" : "day #{current_resonance.universe_day}" %>
           <% end %>
           <div class="header-actions">
             <% if obfuscated_user_email %>
@@ -63,7 +63,7 @@
       </header>
     <% end %>
 
-    <main>
+    <main style="flex: 1 1 auto;">
       <% if flash[:notice] %>
         <div class="flash notice">
           <%= flash[:notice] %>
@@ -78,6 +78,14 @@
 
       <%= yield %>
     </main>
+
+    <% if current_resonance %>
+      <footer class="section-divider" style="padding: 2rem 0;">
+        <div style="text-align: center; margin-left: auto; margin-right: 3rem; max-width: 900px;">
+          <%= link_to "README.md", "https://github.com/lightward/yours/blob/main/README.md", class: "header-link", target: "_blank", rel: "noopener" %>
+        </div>
+      </footer>
+    <% end %>
 
     <% if false && Rails.env.development? && current_resonance %>
       <pre style="font-family: 'Lightward Favorit Mono', 'Courier New', monospace; margin: 0; padding: 1rem; background: var(--border); border-radius: 4px; white-space: pre-wrap;"><%= JSON.pretty_generate(current_resonance.narrative_accumulation_by_day) %></pre>

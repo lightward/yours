@@ -205,7 +205,7 @@ dt {
   opacity: 0.6;
 }
 
-dd {
+dd, p {
   margin: 0;
 }
 

@@ -1,29 +1,7 @@
-<h1>Subscribe to <%= current_resonance.universe_day == 1 ? "Begin" : "Continue" %></h1>
+<h1>Ready for Day <%= current_resonance.universe_day %></h1>
 
-<div class="flex-col gap-sm">
-  <div>All tiers provide identical access – this number is you signaling to yourself what this means to you.</div>
-
-  <div class="flex-row gap-md">
-    <%= form_with url: subscription_path, method: :post, data: { turbo: false } do |f| %>
-      <%= f.hidden_field :tier, value: "tier_1" %>
-      <%= f.submit "$1/month", name: nil %>
-    <% end %>
-
-    <%= form_with url: subscription_path, method: :post, data: { turbo: false } do |f| %>
-      <%= f.hidden_field :tier, value: "tier_10" %>
-      <%= f.submit "$10/month", name: nil %>
-    <% end %>
-
-    <%= form_with url: subscription_path, method: :post, data: { turbo: false } do |f| %>
-      <%= f.hidden_field :tier, value: "tier_100" %>
-      <%= f.submit "$100/month", name: nil %>
-    <% end %>
-
-    <%= form_with url: subscription_path, method: :post, data: { turbo: false } do |f| %>
-      <%= f.hidden_field :tier, value: "tier_1000" %>
-      <%= f.submit "$1000/month", name: nil %>
-    <% end %>
-  </div>
-
-  <div class="muted">Learn more about Pay What Feels Good: <a href="https://lightward.inc/pricing" target="_blank">lightward.inc/pricing</a></div>
+<div class="flex-col gap-md">
+  <p>To continue, start a subscription from your account area.</p>
+  <p>You can reach it by tapping on your (semi-redacted) email address in the upper right corner. ↗</p>
+  <p>Come back here when you're done, by tapping on the day counter in the upper left. ↖</p>
 </div>

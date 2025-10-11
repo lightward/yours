@@ -21,12 +21,13 @@ class ApplicationController < ActionController::Base
 
     # Route based on auth state
     if current_resonance
-      if current_resonance.active_subscription?
+      # Day 1 is free - no subscription required
+      if current_resonance.universe_day == 1 || current_resonance.active_subscription?
         # Show chat interface
         @narrative = current_resonance.narrative_accumulation_by_day
         render "application/chat"
       else
-        # Show subscribe page
+        # Day 2+ requires subscription
         render "application/subscribe"
       end
     else
@@ -45,7 +46,6 @@ class ApplicationController < ActionController::Base
   # GET /account
   def account
     return redirect_to root_path, alert: "Please sign in" unless current_resonance
-    return redirect_to root_path unless current_resonance.active_subscription?
 
     @subscription = current_resonance.subscription_details
     render "application/account"
@@ -54,7 +54,10 @@ class ApplicationController < ActionController::Base
   # POST /stream
   def stream
     return redirect_to root_path, alert: "Please sign in" unless current_resonance
-    return redirect_to root_path, alert: "Active subscription required" unless current_resonance.active_subscription?
+    # Day 1 is free - subscription only required for day 2+
+    unless current_resonance.universe_day == 1 || current_resonance.active_subscription?
+      return redirect_to root_path, alert: "Active subscription required"
+    end
 
     # Check for cross-device continuity divergence
     client_universe_time = params[:universe_time]
@@ -159,7 +162,10 @@ class ApplicationController < ActionController::Base
   # POST /integrate
   def integrate
     return redirect_to root_path, alert: "Please sign in" unless current_resonance
-    return redirect_to root_path, alert: "Active subscription required" unless current_resonance.active_subscription?
+    # Day 1 is free - subscription only required for day 2+
+    unless current_resonance.universe_day == 1 || current_resonance.active_subscription?
+      return redirect_to root_path, alert: "Active subscription required"
+    end
 
     narrative = current_resonance.narrative_accumulation_by_day
 
@@ -183,7 +189,10 @@ class ApplicationController < ActionController::Base
   # POST /save_textarea
   def save_textarea
     return render json: { error: "Not authenticated" }, status: 401 unless current_resonance
-    return render json: { error: "Active subscription required" }, status: 403 unless current_resonance.active_subscription?
+    # Day 1 is free - subscription only required for day 2+
+    unless current_resonance.universe_day == 1 || current_resonance.active_subscription?
+      return render json: { error: "Active subscription required" }, status: 403
+    end
 
     # Check for cross-device continuity divergence
     client_universe_time = params[:universe_time]
@@ -220,13 +229,13 @@ class ApplicationController < ActionController::Base
 
     session = current_resonance.create_checkout_session(
       tier: tier,
-      success_url: root_url,
-      cancel_url: root_url
+      success_url: account_url,
+      cancel_url: account_url
     )
 
     redirect_to session.url, allow_other_host: true
   rescue ArgumentError => e
-    redirect_to root_path, alert: e.message
+    redirect_to account_path, alert: e.message
   end
 
   # DELETE /subscription
@@ -238,7 +247,7 @@ class ApplicationController < ActionController::Base
 
     if current_resonance.cancel_subscription(immediately: immediately)
       if immediately
-        redirect_to root_path, notice: "Subscription canceled immediately."
+        redirect_to account_path, notice: "Subscription canceled immediately."
       else
         redirect_to account_path, notice: "Subscription canceled. You'll have access until the end of your billing period."
       end
@@ -251,16 +260,14 @@ class ApplicationController < ActionController::Base
   def reset
     return redirect_to root_path, alert: "Please sign in" unless current_resonance
 
-    # begin again
+    # begin again - reset everything including day counter
     current_resonance.integration_harmonic_by_night = nil
     current_resonance.narrative_accumulation_by_day = []
-
-    # move to the next day
-    current_resonance.universe_day = current_resonance.universe_day + 1
+    current_resonance.universe_day = 1
 
     current_resonance.save!
 
-    redirect_to root_path, notice: "Resonance reset; a new day begins."
+    redirect_to root_path, notice: "The day is 1."
   end
 
   private

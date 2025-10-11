@@ -125,7 +125,7 @@ class Resonance < ApplicationRecord
     "#{universe_day}:#{narrative_accumulation_by_day.length}"
   end
 
-  # Validation: universe_day can only increase, never decrease
+  # Validation: universe_day can only increase, never decrease (except when resetting to 1)
   validate :universe_day_cannot_decrease
 
   private
@@ -136,7 +136,8 @@ class Resonance < ApplicationRecord
     old_value = @universe_day_was
     new_value = universe_day
 
-    if new_value < old_value
+    # Allow reset to 1 (begin again), but prevent other decreases
+    if new_value < old_value && new_value != 1
       errors.add(:universe_day, "cannot decrease (was #{old_value}, attempted #{new_value})")
     end
   end

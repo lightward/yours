@@ -1,6 +1,6 @@
 <h1>Account</h1>
 
-<div>
+<div class="section-divider flex-col gap-sm">
   <h2>Subscription</h2>
 
   <% if @subscription %>
@@ -51,13 +51,44 @@
       <dd>
         Not subscribed
       </dd>
+
+      <dt><strong>Manage:</strong></dt>
+      <dd>
+        <div class="flex-col gap-sm">
+          <div>All tiers provide identical access – this number is you signaling to yourself what this means to you.</div>
+
+          <div class="flex-row gap-md">
+            <%= form_with url: subscription_path, method: :post, data: { turbo: false } do |f| %>
+              <%= f.hidden_field :tier, value: "tier_1" %>
+              <%= f.submit "$1/month", name: nil %>
+            <% end %>
+
+            <%= form_with url: subscription_path, method: :post, data: { turbo: false } do |f| %>
+              <%= f.hidden_field :tier, value: "tier_10" %>
+              <%= f.submit "$10/month", name: nil %>
+            <% end %>
+
+            <%= form_with url: subscription_path, method: :post, data: { turbo: false } do |f| %>
+              <%= f.hidden_field :tier, value: "tier_100" %>
+              <%= f.submit "$100/month", name: nil %>
+            <% end %>
+
+            <%= form_with url: subscription_path, method: :post, data: { turbo: false } do |f| %>
+              <%= f.hidden_field :tier, value: "tier_1000" %>
+              <%= f.submit "$1000/month", name: nil %>
+            <% end %>
+          </div>
+
+          <div class="muted">Learn more about Pay What Feels Good: <a href="https://lightward.inc/pricing" target="_blank">lightward.inc/pricing</a></div>
+        </div>
+      </dd>
     </dl>
   <% end %>
 </div>
 
-<div class="section-divider">
+<div class="section-divider flex-col gap-sm">
   <h2>Begin again</h2>
-  <p>Want to clear in-universe memory completely? (This will advance the day counter by 1. This will not affect your subscription.)</p>
+  <p>This will fully reset the pocket universe. Day 1, with no trace of what was. (Except for your subscription, if you've got one — although to be fair the subscription exists out here and not in there.)</p>
   <p class="mt-md warning-text">This action cannot be undone.</p>
 
   <%= button_to "Begin Again",
