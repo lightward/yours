@@ -89,12 +89,12 @@
 <% if current_resonance.universe_day > 1 %>
   <div class="section-divider flex-col gap-sm">
     <h2>Begin again</h2>
-    <p>Return to 1 day and start fresh. The pocket universe will reset completely - no trace of what was. (Your subscription remains - it exists out here, not in there.)</p>
+    <p>Return to <%= universe_day_with_units(1) %> and start fresh. The pocket universe will reset completely - no trace of what was. (Your subscription remains - it exists out here, not in there.)</p>
 
-    <%= button_to "Return to 1 day",
+    <%= button_to "Return to #{universe_day_with_units(1)}",
         reset_path,
         method: :post,
         class: "exit-link mt-md",
-        data: { turbo_confirm: "Ready to return to 1 day?" } %>
+        data: { turbo_confirm: "Ready to return to #{universe_day_with_units(1)}?" } %>
   </div>
 <% end %>

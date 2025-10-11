@@ -8,7 +8,8 @@ Rails.application.routes.draw do
 
   # Service routes
   post "stream", to: "application#stream"
-  post "integrate", to: "application#integrate"
+  get "sleep", to: "application#sleep"
+  post "sleep", to: "application#sleep"
   put "textarea", to: "application#save_textarea"
   post "subscription", to: "application#create_subscription"
   delete "subscription", to: "application#destroy_subscription"

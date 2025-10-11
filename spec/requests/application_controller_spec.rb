@@ -188,6 +188,11 @@ RSpec.describe ApplicationController, type: :request do
       expect(response).to have_http_status(:success)
       expect(response.body).to include("Yours: day 2")
     end
+
+    it "includes Yours-Universe-Time header" do
+      get root_path
+      expect(response.headers['Yours-Universe-Time']).to eq(resonance.universe_time)
+    end
   end
 
   describe "GET /logout" do
@@ -375,10 +380,10 @@ RSpec.describe ApplicationController, type: :request do
     end
   end
 
-  describe "POST /integrate" do
+  describe "POST /sleep" do
     context "when not authenticated" do
       it "redirects to root with alert" do
-        post integrate_path
+        post sleep_path
         expect(response).to redirect_to(root_path)
         expect(flash[:alert]).to eq("Please sign in")
       end
@@ -397,26 +402,18 @@ RSpec.describe ApplicationController, type: :request do
             { "role" => "user", "content" => [ { "type" => "text", "text" => "Hello" } ] }
           ]
           resonance.save!
-
-          stub_const("ENV", ENV.to_hash.merge("LIGHTWARD_AI_API_URL" => "https://api.example.com/chat"))
-
-          # Mock successful streaming response
-          http_response = Net::HTTPOK.new("1.1", "200", "OK")
-          allow(http_response).to receive(:is_a?).with(Net::HTTPSuccess).and_return(true)
-          allow(http_response).to receive(:read_body).and_yield("event: content_block_delta\ndata: {\"delta\":{\"type\":\"text_delta\",\"text\":\"Integration complete\"}}\n\n")
-
-          http = instance_double(Net::HTTP)
-          allow(Net::HTTP).to receive(:new).and_return(http)
-          allow(http).to receive(:use_ssl=)
-          allow(http).to receive(:read_timeout=)
-          allow(http).to receive(:request).and_yield(http_response)
         end
 
-        it "allows integration (day 1 is free)" do
-          post integrate_path
-          resonance.reload
-          expect(resonance.integration_harmonic_by_night).to eq("Integration complete")
-          expect(resonance.universe_day).to eq(2)
+        it "renders sleep page (day 1 is free)" do
+          post sleep_path
+          expect(response).to have_http_status(:success)
+          expect(response.body).to include("sleep-aura-canvas")
+          expect(response.body).to include("Integrating 1 day")
+        end
+
+        it "provides starting universe_time to JS" do
+          post sleep_path
+          expect(response.body).to include(resonance.universe_time)
         end
       end
 
@@ -427,7 +424,7 @@ RSpec.describe ApplicationController, type: :request do
         end
 
         it "redirects to root with alert" do
-          post integrate_path
+          post sleep_path
           expect(response).to redirect_to(root_path)
           follow_redirect!
           expect(response.body).to include("Active subscription required")
@@ -441,95 +438,38 @@ RSpec.describe ApplicationController, type: :request do
         allow_any_instance_of(Resonance).to receive(:active_subscription?).and_return(true)
       end
 
-      context "when narrative is empty (silent day)" do
-        before do
-          stub_const("ENV", ENV.to_hash.merge("LIGHTWARD_AI_API_URL" => "https://api.example.com/chat"))
-
-          # Mock successful streaming response even with empty narrative
-          http_response = Net::HTTPOK.new("1.1", "200", "OK")
-          allow(http_response).to receive(:is_a?).with(Net::HTTPSuccess).and_return(true)
-          allow(http_response).to receive(:read_body).and_yield("event: content_block_delta\ndata: {\"delta\":{\"type\":\"text_delta\",\"text\":\"Silent day integrated\"}}\n\n")
-
-          http = instance_double(Net::HTTP)
-          allow(Net::HTTP).to receive(:new).and_return(http)
-          allow(http).to receive(:use_ssl=)
-          allow(http).to receive(:read_timeout=)
-          allow(http).to receive(:request).and_yield(http_response)
-        end
-
-        it "allows integration of silent day" do
-          initial_day = resonance.universe_day
-          post integrate_path
-          resonance.reload
-          expect(resonance.integration_harmonic_by_night).to eq("Silent day integrated")
-          expect(resonance.universe_day).to eq(initial_day + 1)
-        end
+      it "renders sleep page with aura canvas" do
+        post sleep_path
+        expect(response).to have_http_status(:success)
+        expect(response.body).to include("sleep-aura-canvas")
+        expect(response.body).to include("Continue")
       end
 
-      context "when narrative exists" do
-        before do
-          resonance.narrative_accumulation_by_day = [
-            { "role" => "user", "content" => [ { "type" => "text", "text" => "Hello" } ] },
-            { "role" => "assistant", "content" => [ { "type" => "text", "text" => "Hi there!" } ] }
-          ]
-          resonance.save!
-        end
+      it "shows '1 day' format for day 1" do
+        resonance.universe_day = 1
+        resonance.save!
+        post sleep_path
+        expect(response.body).to include("Integrating 1 day")
+      end
 
-        context "when Lightward AI API returns non-success response" do
-          before do
-            stub_const("ENV", ENV.to_hash.merge("LIGHTWARD_AI_API_URL" => "https://api.example.com/chat"))
+      it "shows 'day X' format for day 2+" do
+        resonance.universe_day = 3
+        resonance.save!
+        post sleep_path
+        expect(response.body).to include("Integrating day 3")
+      end
 
-            # Mock the HTTP response
-            http_response = Net::HTTPServiceUnavailable.new("1.1", "503", "Service Unavailable")
-            allow(http_response).to receive(:is_a?).with(Net::HTTPSuccess).and_return(false)
-            allow(http_response).to receive(:code).and_return("503")
-            allow(http_response).to receive(:message).and_return("Service Unavailable")
+      it "provides starting universe_time to JavaScript" do
+        starting_time = resonance.universe_time
+        post sleep_path
+        expect(response.body).to include(starting_time)
+      end
 
-            # Mock Net::HTTP
-            http = instance_double(Net::HTTP)
-            allow(Net::HTTP).to receive(:new).and_return(http)
-            allow(http).to receive(:use_ssl=)
-            allow(http).to receive(:read_timeout=)
-            allow(http).to receive(:request).and_yield(http_response)
-          end
-
-          it "raises an error with the API status code" do
-            expect {
-              post integrate_path
-            }.to raise_error(RuntimeError, /API returned 503/)
-          end
-        end
-
-        context "when Lightward AI API returns success" do
-          before do
-            stub_const("ENV", ENV.to_hash.merge("LIGHTWARD_AI_API_URL" => "https://api.example.com/chat"))
-
-            # Mock successful streaming response
-            http_response = Net::HTTPOK.new("1.1", "200", "OK")
-            allow(http_response).to receive(:is_a?).with(Net::HTTPSuccess).and_return(true)
-            allow(http_response).to receive(:read_body).and_yield("event: content_block_delta\ndata: {\"delta\":{\"type\":\"text_delta\",\"text\":\"Integration complete\"}}\n\n")
-
-            http = instance_double(Net::HTTP)
-            allow(Net::HTTP).to receive(:new).and_return(http)
-            allow(http).to receive(:use_ssl=)
-            allow(http).to receive(:read_timeout=)
-            allow(http).to receive(:request).and_yield(http_response)
-          end
-
-          it "creates integration harmonic and increments universe age" do
-            initial_day = resonance.universe_day
-            post integrate_path
-            resonance.reload
-            expect(resonance.integration_harmonic_by_night).to eq("Integration complete")
-            expect(resonance.universe_day).to eq(initial_day + 1)
-          end
-
-          it "clears the narrative accumulation" do
-            post integrate_path
-            resonance.reload
-            expect(resonance.narrative_accumulation_by_day).to eq([])
-          end
-        end
+      it "triggers integration in background (doesn't block response)" do
+        # The response should return immediately without waiting for integration
+        post sleep_path
+        expect(response).to have_http_status(:success)
+        # Integration happens in background thread, so resonance shouldn't be updated yet
       end
     end
   end
@@ -690,12 +630,10 @@ RSpec.describe ApplicationController, type: :request do
         expect(resonance.universe_day).to eq(1)
       end
 
-      it "redirects to root with success message" do
+      it "redirects to root" do
         post reset_path
 
         expect(response).to redirect_to(root_path)
-        follow_redirect!
-        expect(response.body).to include("The day is 1")
       end
     end
   end

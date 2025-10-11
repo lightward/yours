@@ -1,6 +1,4 @@
 <div data-controller="chat" data-chat-narrative-value="<%= @narrative.to_json %>" data-chat-universe-time-value="<%= current_resonance.universe_time %>" data-chat-saved-textarea-value="<%= h(current_resonance.textarea || "") %>" class="chat-container">
-  <div id="night-transition-overlay" class="night-transition-overlay"></div>
-
   <div id="chat-log" data-chat-target="log" class="chat-log">
     <!-- Messages will appear here -->
   </div>
@@ -21,12 +19,9 @@
     </button>
 
     <%= button_to "Move to day #{current_resonance.universe_day + 1}",
-        integrate_path,
+        sleep_path,
         method: :post,
-        class: "exit-link",
-        data: {
-          turbo: false,
-          action: "chat#startNightTransition"
-        } %>
+        class: "exit-link eod",
+        form: { data: { turbo: false }, onsubmit: "return confirm('Ready to move to day #{current_resonance.universe_day + 1}?')" } %>
   </div>
 </div>
