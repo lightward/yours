@@ -144,7 +144,10 @@ RSpec.describe ApplicationController, type: :request do
     end
 
     context "when authenticated with active subscription" do
-      before { sign_in_as(google_id) }
+      before do
+        sign_in_as(google_id)
+        allow_any_instance_of(Resonance).to receive(:active_subscription?).and_return(true)
+      end
 
       it "shows account details" do
         details = {
@@ -166,16 +169,15 @@ RSpec.describe ApplicationController, type: :request do
     end
 
     context "when authenticated but no active subscription" do
-      before { sign_in_as(google_id) }
+      before do
+        sign_in_as(google_id)
+        allow_any_instance_of(Resonance).to receive(:active_subscription?).and_return(false)
+      end
 
-      it "shows account page with subscription options" do
-        allow_any_instance_of(Resonance).to receive(:subscription_details).and_return(nil)
-
+      it "redirects to root path" do
         get account_path
 
-        expect(response).to have_http_status(:success)
-        expect(response.body).to include("Account")
-        expect(response.body).to include("Not subscribed")
+        expect(response).to redirect_to(root_path)
       end
     end
   end
@@ -430,14 +432,40 @@ RSpec.describe ApplicationController, type: :request do
     context "when authenticated" do
       before { sign_in_as(google_id) }
 
-      it "cancels subscription and redirects" do
-        allow_any_instance_of(Resonance).to receive(:cancel_subscription).and_return(true)
+      context "when canceling immediately" do
+        it "cancels subscription and redirects to root" do
+          allow_any_instance_of(Resonance).to receive(:cancel_subscription).with(immediately: true).and_return(true)
 
-        delete subscription_path
+          delete subscription_path, params: { immediately: true }
 
-        expect(response).to redirect_to(root_path)
-        follow_redirect!
-        expect(response.body).to include("canceled")
+          expect(response).to redirect_to(root_path)
+          follow_redirect!
+          expect(response.body).to include("canceled immediately")
+        end
+      end
+
+      context "when canceling at period end" do
+        it "cancels subscription and redirects to account" do
+          # Mock subscription details for the account page
+          details = {
+            id: "sub_test123",
+            status: "active",
+            current_period_end: 30.days.from_now,
+            amount: 1000,
+            currency: "usd",
+            interval: "month",
+            cancel_at_period_end: true
+          }
+          allow_any_instance_of(Resonance).to receive(:subscription_details).and_return(details)
+          allow_any_instance_of(Resonance).to receive(:active_subscription?).and_return(true)
+          allow_any_instance_of(Resonance).to receive(:cancel_subscription).with(immediately: false).and_return(true)
+
+          delete subscription_path
+
+          expect(response).to redirect_to(account_path)
+          follow_redirect!
+          expect(response.body).to include("billing period")
+        end
       end
 
       it "shows error if cancellation fails" do
@@ -452,13 +480,13 @@ RSpec.describe ApplicationController, type: :request do
           cancel_at_period_end: false
         }
         allow_any_instance_of(Resonance).to receive(:subscription_details).and_return(details)
+        allow_any_instance_of(Resonance).to receive(:active_subscription?).and_return(true)
         allow_any_instance_of(Resonance).to receive(:cancel_subscription).and_return(false)
 
         delete subscription_path
 
         expect(response).to redirect_to(account_path)
-        follow_redirect!
-        expect(response.body).to include("Unable to cancel")
+        expect(flash[:alert]).to eq("Unable to cancel subscription. Please try again.")
       end
     end
   end
