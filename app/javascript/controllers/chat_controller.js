@@ -83,11 +83,11 @@ export default class extends Controller {
         method: "PUT",
         headers: {
           "Content-Type": "application/json",
-          "X-CSRF-Token": document.querySelector('meta[name="csrf-token"]').content
+          "X-CSRF-Token": document.querySelector('meta[name="csrf-token"]').content,
+          "Assert-Yours-Universe-Time": this.universeTimeValue
         },
         body: JSON.stringify({
-          textarea: value,
-          universe_time: this.universeTimeValue
+          textarea: value
         })
       })
 
@@ -98,6 +98,10 @@ export default class extends Controller {
         // Could show a subtle notice here if desired
       } else if (!response.ok) {
         console.error("Failed to save textarea:", response.status)
+      } else {
+        // Success! Clear localStorage now that server has it
+        const storageKey = `yours-input-${this.universeTimeValue || 'current'}`
+        localStorage.removeItem(storageKey)
       }
     } catch (error) {
       console.error("Error saving textarea:", error)
@@ -149,7 +153,7 @@ export default class extends Controller {
     this.inputTarget.value = ""
     this.inputTarget.style.height = "auto"
     this.inputTarget.disabled = true
-    this.clearSavedInput()
+    // Note: localStorage will be cleared when server confirms save via universe_time event
 
     // Create message object in Lightward AI format
     const message = {
@@ -171,11 +175,11 @@ export default class extends Controller {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          "X-CSRF-Token": document.querySelector('meta[name="csrf-token"]').content
+          "X-CSRF-Token": document.querySelector('meta[name="csrf-token"]').content,
+          "Assert-Yours-Universe-Time": this.universeTimeValue
         },
         body: JSON.stringify({
-          message,
-          universe_time: this.universeTimeValue
+          message
         })
       })
 
@@ -263,6 +267,10 @@ export default class extends Controller {
 
       case "universe_time":
         // Server sends updated universe_time after saving narrative
+        // Clear localStorage for the OLD universe_time before updating
+        const oldStorageKey = `yours-input-${this.universeTimeValue || 'current'}`
+        localStorage.removeItem(oldStorageKey)
+        // Now update to the new universe_time
         this.universeTimeValue = data.universe_time
         break
 
