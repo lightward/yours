@@ -133,12 +133,15 @@ button.danger:hover {
 }
 
 button.exit, a.exit {
+  display: inline-block;
   background: var(--background);
   color: var(--foreground);
   border: none;
   border-left: 3px solid var(--accent-active);
   border-radius: 4px;
+  padding: 0.5rem 1rem;
   transition: all 0.2s;
+  text-decoration: none;
 }
 
 button.exit:hover, a.exit:hover {
@@ -236,13 +239,13 @@ dd {
 .header-link {
   color: var(--accent);
   text-decoration: none;
-  transition: all 0.2s;
   font-family: "Lightward Favorit Mono", monospace;
   font-size: 0.9em;
 }
 
 .header-link:hover {
   text-decoration: underline;
+  color: var(--accent);
 }
 
 /* Header container */
