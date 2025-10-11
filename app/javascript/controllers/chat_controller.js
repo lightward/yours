@@ -12,13 +12,21 @@ export default class extends Controller {
     this.loadExistingMessages()
     this.loadSavedInput()
     this.saveDebounceTimeout = null
+
+    // Scroll to bottom after loading messages
+    if (this.narrativeValue && this.narrativeValue.length > 0) {
+      // Use requestAnimationFrame to ensure DOM is fully rendered
+      requestAnimationFrame(() => {
+        window.scrollTo({ top: document.body.scrollHeight, behavior: "instant" })
+      })
+    }
   }
 
   loadExistingMessages() {
     if (this.narrativeValue && this.narrativeValue.length > 0) {
       this.narrativeValue.forEach(message => {
         const text = message.content[0].text
-        this.addMessage(message.role, text)
+        this.addMessage(message.role, text, { skipScroll: true })
       })
     }
   }
@@ -225,7 +233,6 @@ export default class extends Controller {
       console.error("Stream error:", error)
       assistantElement.textContent = `⚠️ Error: ${error.message}`
       assistantElement.classList.remove("pulsing", "loading")
-      assistantElement.style.borderLeftColor = getComputedStyle(document.documentElement).getPropertyValue('--message-border').trim()
     } finally {
       // Re-enable input when done
       this.inputTarget.disabled = false
@@ -234,8 +241,6 @@ export default class extends Controller {
   }
 
   handleSSEEvent(event, data, element) {
-    const messageBorder = getComputedStyle(document.documentElement).getPropertyValue('--message-border').trim()
-
     switch (event) {
       case "message_start":
         element.classList.remove("pulsing")
@@ -253,7 +258,6 @@ export default class extends Controller {
       case "message_stop":
         element.classList.remove("pulsing", "loading")
         element.style.animation = ""
-        element.style.borderLeftColor = messageBorder
         break
 
       case "universe_time":
@@ -264,19 +268,17 @@ export default class extends Controller {
       case "end":
         element.classList.remove("pulsing", "loading")
         element.style.animation = ""
-        element.style.borderLeftColor = messageBorder
         break
 
       case "error":
         element.textContent = `⚠️ ${data.error.message}`
         element.classList.remove("pulsing", "loading")
         element.style.animation = ""
-        element.style.borderLeftColor = messageBorder
         break
     }
   }
 
-  addMessage(role, text) {
+  addMessage(role, text, options = {}) {
     const messageElement = document.createElement("div")
     messageElement.classList.add("chat-message", role)
     messageElement.textContent = text
@@ -290,23 +292,26 @@ export default class extends Controller {
       padding: 1rem;
       border-radius: 8px;
       background: ${role === "user" ? userBg : assistantBg};
-      border-left: 3px solid ${role === "user" ? accent : messageBorder};
+      ${role === "user" ? `border-left: 3px solid ${accent};` : ''}
       white-space: pre-wrap;
       font-family: 'Lightward Favorit Mono', 'Courier New', monospace;
     `
     this.logTarget.appendChild(messageElement)
-    messageElement.scrollIntoView({ behavior: "smooth", block: "end" })
+
+    // Only scroll if not explicitly skipped (for initial load)
+    if (!options.skipScroll) {
+      messageElement.scrollIntoView({ behavior: "smooth", block: "end" })
+    }
+
     return messageElement
   }
 
   addPulsingMessage(role) {
     const messageElement = this.addMessage(role, "")
     messageElement.classList.add("pulsing")
-    const accentActive = getComputedStyle(document.documentElement).getPropertyValue('--accent-active').trim()
     messageElement.style.cssText += `
       min-height: 3rem;
       animation: pulse 1.5s ease-in-out infinite;
-      border-left-color: ${accentActive};
     `
     return messageElement
   }
