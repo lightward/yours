@@ -29,10 +29,15 @@ jobs:
         uses: actions/checkout@v5
         with:
           ref: ${{ inputs.sha }}
+      # Bundler caching disabled for all jobs: This workflow runs in pull_request_target
+      # context where malicious PRs could modify Gemfile/Gemfile.lock to poison the cache.
+      # We prioritize security over build speed since test runs are still reasonably fast.
       - name: Install Ruby and gems
         uses: ruby/setup-ruby@v1
         with:
-          bundler-cache: true
+          bundler-cache: false
+      - name: Install gems
+        run: bundle install
       - name: Lint Ruby files
         run: bin/rubocop --parallel --only-recognized-file-types --extra-details --format github --fail-level info
 
@@ -46,7 +51,9 @@ jobs:
       - name: Install Ruby and gems
         uses: ruby/setup-ruby@v1
         with:
-          bundler-cache: true
+          bundler-cache: false
+      - name: Install gems
+        run: bundle install
       - name: Security audit dependencies
         run: bin/bundler-audit --update
       - name: Security audit application code
@@ -64,7 +71,10 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: '20'
-          cache: 'npm'
+          # Caching disabled: In pull_request_target workflows, an attacker could modify
+          # package.json/package-lock.json to poison the cache, potentially affecting
+          # subsequent workflow runs. Since test runs are fast enough without caching,
+          # we avoid this risk entirely by not caching npm dependencies.
       - name: Install JavaScript dependencies
         run: npm ci
       - name: Run JavaScript tests
@@ -98,7 +108,9 @@ jobs:
       - name: Install Ruby and gems
         uses: ruby/setup-ruby@v1
         with:
-          bundler-cache: true
+          bundler-cache: false
+      - name: Install gems
+        run: bundle install
       - name: Set up database schema
         run: bin/rails db:schema:load
       - name: Run rspec tests
