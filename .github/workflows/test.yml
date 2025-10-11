@@ -71,10 +71,12 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: '20'
-          # Caching disabled: In pull_request_target workflows, an attacker could modify
+          cache: ''
+          # Caching explicitly disabled: In pull_request_target workflows, an attacker could modify
           # package.json/package-lock.json to poison the cache, potentially affecting
           # subsequent workflow runs. Since test runs are fast enough without caching,
-          # we avoid this risk entirely by not caching npm dependencies.
+          # we avoid this risk entirely. We set cache to empty string to prevent implicit
+          # package manager detection from enabling caching automatically.
       - name: Install JavaScript dependencies
         run: npm ci
       - name: Run JavaScript tests
