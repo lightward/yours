@@ -1,7 +1,7 @@
 import { Controller } from "@hotwired/stimulus"
 
 export default class extends Controller {
-  static targets = ["log", "input"]
+  static targets = ["log", "input", "actions"]
   static values = {
     narrative: Array,
     universeTime: String,
@@ -153,6 +153,9 @@ export default class extends Controller {
     this.inputTarget.value = ""
     this.inputTarget.style.height = "auto"
     this.inputTarget.disabled = true
+
+    // Add waiting state to actions
+    this.actionsTarget.classList.add("waiting")
     // Note: localStorage will be cleared when server confirms save via universe_time event
 
     // Create message object in Lightward AI format
@@ -188,6 +191,7 @@ export default class extends Controller {
         const data = await response.json()
         this.handleContinuityDivergence(data)
         this.inputTarget.disabled = false
+        this.actionsTarget.classList.remove("waiting")
         this.inputTarget.focus()
         assistantElement.remove()
         return
@@ -239,8 +243,9 @@ export default class extends Controller {
       assistantElement.textContent = `⚠️ Error: ${error.message}`
       assistantElement.classList.remove("pulsing", "loading")
     } finally {
-      // Re-enable input when done
+      // Re-enable input and remove waiting state when done
       this.inputTarget.disabled = false
+      this.actionsTarget.classList.remove("waiting")
       this.inputTarget.focus()
     }
   }

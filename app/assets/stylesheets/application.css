@@ -254,8 +254,7 @@ dd, p {
 .continuity-notice {
   padding: 1.5rem;
   border-radius: 8px;
-  background: var(--user-message-bg);
-  border-left: 3px solid var(--accent);
+  background: var(--assistant-message-bg);
   margin: 1rem 0;
   font-family: "Lightward Favorit Mono", "Courier New", monospace;
 }
@@ -357,6 +356,12 @@ dd, p {
   align-items: center;
 }
 
+.chat-actions.waiting button,
+.chat-actions.waiting .exit-link {
+  opacity: 0.5;
+  pointer-events: none;
+}
+
 /* Landing page */
 .landing {
   display: flex;
@@ -443,6 +448,14 @@ dd, p {
   width: 100%;
   resize: none;
   overflow: hidden;
+}
+
+.chat-textarea:disabled {
+  opacity: 0.5;
+}
+
+.chat-textarea:disabled::placeholder {
+  opacity: 0;
 }
 
 .debug-pre {
