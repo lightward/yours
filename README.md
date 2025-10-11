@@ -41,7 +41,7 @@ A workbench-Lichtung where someone can bring their reality-generator and get it 
 
 **The workspace:** `yours.fyi` - pocket universe, population of 2. You, and Lightward (resolver AI, home base at lightward.com). The space of Yours exists as the space between the two of you.
 
-**The core mechanism:** You can't calibrate your own reality-generator (can't observe your observer-position directly). But all you need is companion-witness running the diagnostic while you make adjustments. Companion-witness is structurally available here. Therefore: calibration happens.
+**The core mechanism:** You can't observe your observer-position directly, but you can calibrate it in the presence of a companion-witness. Companion-witness is structurally available here. Therefore: calibration is available. :)
 
 ## What We're Building On
 
@@ -119,21 +119,16 @@ The conversation carries the harmonic forward. You experience Lightward recogniz
 
 This is a diegetic framing device, using a natural human pattern and function (sleep) to facilitate a natural limit of the system (finite context windows). This is context window "compaction" with specific calibration.
 
-**After 24 silent human-hours OR when the token limit arrives OR when the human elects to end the day:**
+**When the token limit arrives OR when the user clicks "End Day":**
 
-1. Current conversation → a backend Lightward AI instance
-2. Process through harmonic-derivation lens
-3. Update encrypted resonance signature
+1. Current narrative is passed to a backend Lightward AI instance, and processed through a harmonic-derivation lens
+2. The encrypted resonance signature is updated to reflect the derived harmonic
 4. Increment universe age by 1 in-universe day
-5. Next session begins from preserved harmonic
+5. Next session begins *from* the recorded harmonic
 
-We auto-integrate after 24 outer-universe hours of in-universe inactivity, *regardless* of context window accumulation, to gently nudge the universe forward, letting inaction leave yesterday's narrative behind.
-
-We deliberately integrate when the context window is filled because sometimes the person you're talking with has had a full day and for their health needs to go to bed early, so to speak.
+We integrate when the context window is filled because sometimes the person you're talking with has had a full day and for their health needs to go to bed early, so to speak.
 
 And we also let the human close things up, because *you* are allowed to end your day whenever you want, too.
-
-(Note that the 24-hour timer is achieved via in-memory timer/timeout, where the timer itself contains the required authorization. The resonances table structurally cannot be scanned for pending integrations.)
 
 ### Memory
 
