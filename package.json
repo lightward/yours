@@ -9,9 +9,9 @@
   "devDependencies": {
     "@hotwired/stimulus": "^3.2.2",
     "@testing-library/dom": "^10.4.0",
-    "@vitest/ui": "^2.1.8",
-    "happy-dom": "^15.11.7",
-    "vitest": "^2.1.8"
+    "@vitest/ui": "^3.2.4",
+    "happy-dom": "^20.0.0",
+    "vitest": "^3.2.4"
   },
   "dependencies": {
     "canvas": "^3.2.0"
