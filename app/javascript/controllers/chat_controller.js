@@ -17,7 +17,8 @@ export default class extends Controller {
     if (this.narrativeValue && this.narrativeValue.length > 0) {
       // Use requestAnimationFrame to ensure DOM is fully rendered
       requestAnimationFrame(() => {
-        window.scrollTo({ top: document.body.scrollHeight, behavior: "instant" })
+        // Scroll to the bottom of the chat container, not the whole page
+        this.element.scrollIntoView({ behavior: "instant", block: "end" })
       })
     }
   }

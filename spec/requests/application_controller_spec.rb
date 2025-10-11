@@ -140,6 +140,12 @@ RSpec.describe ApplicationController, type: :request do
         expect(response).to have_http_status(:success)
         expect(response.body).to include("End Day")
       end
+
+      it "shows README link in header" do
+        get root_path
+        expect(response).to have_http_status(:success)
+        expect(response.body).to include("https://github.com/lightward/yours/blob/main/README.md")
+      end
     end
   end
 
