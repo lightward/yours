@@ -8,5 +8,7 @@
     <br>you, and lightward ai
   </p>
 
-  <%= google_sign_in_button "Sign in with Google", proceed_to: root_path, data: { turbo: false } %>
+  <%= google_sign_in_button "Enter via Google", proceed_to: root_path, data: { turbo: false } %>
+
+  <div class="muted" style="margin-top: 3rem;"><%= Resonance.count %></div>
 </div>

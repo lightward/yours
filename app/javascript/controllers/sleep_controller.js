@@ -70,6 +70,10 @@ export default class extends Controller {
     }
 
     // POST /sleep - integration mode
+    // Track start time for minimum display duration
+    const startTime = Date.now()
+    const minimumDisplayMs = 5000
+
     // Animate ellipsis
     const ellipsisElement = document.querySelector('.ellipsis')
     const ellipsisStates = ['', '.', '..', '...']
@@ -85,8 +89,10 @@ export default class extends Controller {
     try {
       await this.pollUntilUniverseTimeChanges()
 
-      // Let the aura run for a bit after integration completes
-      await new Promise(resolve => setTimeout(resolve, 5000))
+      // Ensure minimum display time - wait remaining time if integration was quick
+      const elapsedMs = Date.now() - startTime
+      const remainingMs = Math.max(0, minimumDisplayMs - elapsedMs)
+      await new Promise(resolve => setTimeout(resolve, remainingMs))
 
       // Stop ellipsis animation
       clearInterval(ellipsisInterval)

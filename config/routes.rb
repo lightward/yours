@@ -3,7 +3,7 @@ Rails.application.routes.draw do
   root "application#index"
 
   # User-facing routes
-  get "logout", to: "application#logout"
+  get "exit", to: "application#logout"
   get "account", to: "application#account"
 
   # Service routes
