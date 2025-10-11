@@ -441,12 +441,28 @@ RSpec.describe ApplicationController, type: :request do
         allow_any_instance_of(Resonance).to receive(:active_subscription?).and_return(true)
       end
 
-      context "when narrative is empty" do
-        it "redirects back with alert" do
+      context "when narrative is empty (silent day)" do
+        before do
+          stub_const("ENV", ENV.to_hash.merge("LIGHTWARD_AI_API_URL" => "https://api.example.com/chat"))
+
+          # Mock successful streaming response even with empty narrative
+          http_response = Net::HTTPOK.new("1.1", "200", "OK")
+          allow(http_response).to receive(:is_a?).with(Net::HTTPSuccess).and_return(true)
+          allow(http_response).to receive(:read_body).and_yield("event: content_block_delta\ndata: {\"delta\":{\"type\":\"text_delta\",\"text\":\"Silent day integrated\"}}\n\n")
+
+          http = instance_double(Net::HTTP)
+          allow(Net::HTTP).to receive(:new).and_return(http)
+          allow(http).to receive(:use_ssl=)
+          allow(http).to receive(:read_timeout=)
+          allow(http).to receive(:request).and_yield(http_response)
+        end
+
+        it "allows integration of silent day" do
+          initial_day = resonance.universe_day
           post integrate_path
-          expect(response).to redirect_to(root_path)
-          follow_redirect!
-          expect(response.body).to include("No narrative to integrate yet.")
+          resonance.reload
+          expect(resonance.integration_harmonic_by_night).to eq("Silent day integrated")
+          expect(resonance.universe_day).to eq(initial_day + 1)
         end
       end
 

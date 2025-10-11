@@ -169,12 +169,7 @@ class ApplicationController < ActionController::Base
 
     narrative = current_resonance.narrative_accumulation_by_day
 
-    if narrative.empty?
-      redirect_to root_path, alert: "No narrative to integrate yet."
-      return
-    end
-
-    # Call Lightward AI to create the harmonic
+    # Call Lightward AI to create the harmonic (even if narrative is empty - silent days are valid)
     harmonic = create_integration_harmonic(narrative)
 
     # Save the harmonic and reset for new day

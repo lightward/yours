@@ -315,4 +315,81 @@ export default class extends Controller {
     this.logTarget.appendChild(noticeElement)
     noticeElement.scrollIntoView({ behavior: "smooth", block: "end" })
   }
+
+  async startNightTransition(event) {
+    // Get the form element (button_to creates a form)
+    const form = event.target.closest('form')
+    if (!form) return
+
+    // Prevent default form submission
+    event.preventDefault()
+
+    // Get the next day number from the button text
+    const buttonText = event.target.textContent || event.target.closest('button')?.textContent
+    const dayMatch = buttonText.match(/day (\d+)/)
+    const nextDay = dayMatch ? dayMatch[1] : '?'
+
+    // Ask for confirmation
+    if (!confirm(`Ready to move to day ${nextDay}?`)) {
+      return
+    }
+
+    // Disable UI elements
+    this.inputTarget.disabled = true
+    this.inputTarget.placeholder = ""
+    const sendButton = this.element.querySelector('button[data-action*="send"]')
+    if (sendButton) sendButton.disabled = true
+
+    // Get the overlay and trigger animation
+    const overlay = document.getElementById('night-transition-overlay')
+    if (overlay) {
+      overlay.classList.add('transitioning')
+      document.body.classList.add('night-transitioning')
+    }
+
+    try {
+      // Submit via fetch instead of form submission
+      const response = await fetch(form.action, {
+        method: form.method,
+        headers: {
+          "X-CSRF-Token": document.querySelector('meta[name="csrf-token"]').content,
+        },
+        redirect: 'manual' // Don't follow redirects
+      })
+
+      // Wait for plasma animation to complete (let it run for 5 more seconds after integration)
+      await new Promise(resolve => setTimeout(resolve, 5000))
+
+      // Snap to flat background
+      if (overlay) {
+        overlay.classList.remove('transitioning')
+        overlay.classList.add('completing')
+      }
+
+      // Wait a moment for the snap to settle
+      await new Promise(resolve => setTimeout(resolve, 500))
+
+      // Create and show Continue link
+      const continueLink = document.createElement('a')
+      continueLink.href = '#'
+      continueLink.textContent = 'Continue'
+      continueLink.className = 'night-continue-link'
+      continueLink.addEventListener('click', (e) => {
+        e.preventDefault()
+        window.location.reload()
+      })
+
+      overlay.appendChild(continueLink)
+
+      // Fade in the continue link
+      requestAnimationFrame(() => {
+        continueLink.classList.add('visible')
+      })
+
+    } catch (error) {
+      console.error('Night transition error:', error)
+      // Fallback: just reload
+      window.location.reload()
+    }
+  }
 }
