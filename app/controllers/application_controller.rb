@@ -21,7 +21,7 @@ class ApplicationController < ActionController::Base
 
     # Set universe time header if authenticated
     if current_resonance
-      response.headers['Yours-Universe-Time'] = current_resonance.universe_time
+      response.headers["Yours-Universe-Time"] = current_resonance.universe_time
     end
 
     # Route based on auth state
