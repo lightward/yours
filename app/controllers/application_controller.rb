@@ -2,7 +2,8 @@ class ApplicationController < ActionController::Base
   include ActionController::Live
 
   # Only allow modern browsers supporting webp images, web push, badges, import maps, CSS nesting, and CSS :has.
-  allow_browser versions: :modern
+  # Skip for index action to allow social media crawlers to read meta tags
+  allow_browser versions: :modern, except: :index
 
   before_action :verify_host!
 
