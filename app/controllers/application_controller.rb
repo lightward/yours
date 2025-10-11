@@ -44,6 +44,7 @@ class ApplicationController < ActionController::Base
   # GET /account
   def account
     return redirect_to root_path, alert: "Please sign in" unless current_resonance
+    return redirect_to root_path unless current_resonance.active_subscription?
 
     @subscription = current_resonance.subscription_details
     render "application/account"
@@ -236,9 +237,9 @@ class ApplicationController < ActionController::Base
 
     if current_resonance.cancel_subscription(immediately: immediately)
       if immediately
-        redirect_to account_path, notice: "Subscription canceled immediately."
+        redirect_to root_path, notice: "Subscription canceled immediately."
       else
-        redirect_to root_path, notice: "Subscription canceled. You'll have access until the end of your billing period."
+        redirect_to account_path, notice: "Subscription canceled. You'll have access until the end of your billing period."
       end
     else
       redirect_to account_path, alert: "Unable to cancel subscription. Please try again."

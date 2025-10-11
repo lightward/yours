@@ -51,17 +51,13 @@
       <dd>
         Not subscribed
       </dd>
-      <dt><strong>Manage:</strong></dt>
-      <dd>
-        <%= render "subscription_tiers" %>
-      </dd>
     </dl>
   <% end %>
 </div>
 
 <div style="margin: 3rem 0; padding-top: 2rem; border-top: 1px solid var(--border);">
   <h2>Begin again</h2>
-  <p>Want to clear in-universe memory completely? (This will not reset the day counter, and will not cancel your subscription.)</p>
+  <p>Want to clear in-universe memory completely? (This will advance the day counter by 1. This will not affect your subscription.)</p>
   <p style="margin-top: 1rem; color: var(--warning);">This action cannot be undone.</p>
 
   <%= button_to "Begin Again",
