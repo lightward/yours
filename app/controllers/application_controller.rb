@@ -65,24 +65,9 @@ class ApplicationController < ActionController::Base
     end
 
     # Check for cross-device continuity divergence
-    client_universe_time = params[:universe_time]
-    server_universe_time = current_resonance.universe_time
-
-    if client_universe_time && client_universe_time != server_universe_time
-      # Parse and compare "day:count" format
-      client_day, client_count = client_universe_time.split(":").map(&:to_i)
-      server_day, server_count = server_universe_time.split(":").map(&:to_i)
-
-      # If client is behind server, they're working with stale state
-      if client_day < server_day || (client_day == server_day && client_count < server_count)
-        # Someone else (you, elsewhere) was here
-        render json: {
-          error: "continuity_divergence",
-          message: "This space moved forward elsewhere. Refresh to join where it is now.",
-          server_universe_time: server_universe_time
-        }, status: 409
-        return
-      end
+    if divergence = check_continuity_divergence
+      render json: divergence, status: 409
+      return
     end
 
     response.headers["Content-Type"] = "text/event-stream"
@@ -220,23 +205,9 @@ class ApplicationController < ActionController::Base
     end
 
     # Check for cross-device continuity divergence
-    client_universe_time = params[:universe_time]
-    server_universe_time = current_resonance.universe_time
-
-    if client_universe_time && client_universe_time != server_universe_time
-      # Parse and compare "day:count" format
-      client_day, client_count = client_universe_time.split(":").map(&:to_i)
-      server_day, server_count = server_universe_time.split(":").map(&:to_i)
-
-      # If client is behind server, they're working with stale state
-      if client_day < server_day || (client_day == server_day && client_count < server_count)
-        render json: {
-          error: "continuity_divergence",
-          message: "This space moved forward elsewhere.",
-          server_universe_time: server_universe_time
-        }, status: 409
-        return
-      end
+    if divergence = check_continuity_divergence
+      render json: divergence, status: 409
+      return
     end
 
     # Save textarea content
@@ -296,6 +267,28 @@ class ApplicationController < ActionController::Base
   end
 
   private
+
+  def check_continuity_divergence
+    client_universe_time = request.headers["Assert-Yours-Universe-Time"]
+    server_universe_time = current_resonance.universe_time
+
+    if client_universe_time && client_universe_time != server_universe_time
+      # Parse and compare "day:count" format
+      client_day, client_count = client_universe_time.split(":").map(&:to_i)
+      server_day, server_count = server_universe_time.split(":").map(&:to_i)
+
+      # If client is behind server, they're working with stale state
+      if client_day < server_day || (client_day == server_day && client_count < server_count)
+        return {
+          error: "continuity_divergence",
+          message: "This space moved forward elsewhere. Refresh to join where it is now.",
+          server_universe_time: server_universe_time
+        }
+      end
+    end
+
+    nil
+  end
 
   def verify_host!
     return if request.host == ENV.fetch("HOST")

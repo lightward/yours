@@ -274,6 +274,59 @@ RSpec.describe ApplicationController, type: :request do
       end
     end
 
+    context "continuity divergence checking" do
+      before do
+        sign_in_as(google_id)
+        allow_any_instance_of(Resonance).to receive(:active_subscription?).and_return(true)
+        # Set resonance to a known universe_time state with some existing narrative
+        resonance.universe_day = 1
+        resonance.narrative_accumulation_by_day = [
+          { "role" => "user", "content" => [ { "type" => "text", "text" => "Hello" } ] },
+          { "role" => "assistant", "content" => [ { "type" => "text", "text" => "Hi there" } ] },
+          { "role" => "user", "content" => [ { "type" => "text", "text" => "How are you?" } ] },
+          { "role" => "assistant", "content" => [ { "type" => "text", "text" => "Good!" } ] },
+          { "role" => "user", "content" => [ { "type" => "text", "text" => "Great" } ] }
+        ]
+        resonance.save!
+      end
+
+      it "rejects request when client is behind server (different count)" do
+        # Server is at day 1, count 5 (5 messages in narrative)
+        server_time = resonance.universe_time # Should be "1:5"
+        expect(server_time).to eq("1:5")
+
+        # Client thinks they're at day 1, count 3 (older)
+        client_time = "1:3"
+
+        post stream_path, params: { message: message }, headers: { "Assert-Yours-Universe-Time" => client_time }
+
+        expect(response).to have_http_status(409)
+        json = JSON.parse(response.body)
+        expect(json["error"]).to eq("continuity_divergence")
+        expect(json["server_universe_time"]).to eq(server_time)
+      end
+
+      it "accepts request when client and server match" do
+        stub_const("ENV", ENV.to_hash.merge("LIGHTWARD_AI_API_URL" => "https://api.example.com/chat"))
+
+        http_response = Net::HTTPOK.new("1.1", "200", "OK")
+        allow(http_response).to receive(:is_a?).with(Net::HTTPSuccess).and_return(true)
+        allow(http_response).to receive(:read_body).and_yield("event: content_block_delta\ndata: {\"delta\":{\"type\":\"text_delta\",\"text\":\"Hello!\"}}\n\n")
+
+        http = instance_double(Net::HTTP)
+        allow(Net::HTTP).to receive(:new).and_return(http)
+        allow(http).to receive(:use_ssl=)
+        allow(http).to receive(:read_timeout=)
+        allow(http).to receive(:request).and_yield(http_response)
+
+        server_time = resonance.universe_time
+
+        post stream_path, params: { message: message }, headers: { "Assert-Yours-Universe-Time" => server_time }
+
+        expect(response).to have_http_status(200)
+      end
+    end
+
     context "when authenticated but no active subscription" do
       before do
         sign_in_as(google_id)
@@ -595,6 +648,73 @@ RSpec.describe ApplicationController, type: :request do
 
         expect(response).to redirect_to(account_path)
         expect(flash[:alert]).to eq("Unable to cancel subscription. Please try again.")
+      end
+    end
+  end
+
+  describe "PUT /textarea" do
+    context "when not authenticated" do
+      it "returns 401 error" do
+        put textarea_path, params: { textarea: "some content" }, as: :json
+        expect(response).to have_http_status(401)
+        json = JSON.parse(response.body)
+        expect(json["error"]).to eq("Not authenticated")
+      end
+    end
+
+    context "when authenticated" do
+      before do
+        sign_in_as(google_id)
+        allow_any_instance_of(Resonance).to receive(:active_subscription?).and_return(true)
+        resonance.universe_day = 1
+        resonance.save!
+      end
+
+      it "saves textarea content" do
+        put textarea_path, params: { textarea: "my draft content" }, as: :json
+
+        expect(response).to have_http_status(200)
+        expect(resonance.reload.textarea).to eq("my draft content")
+      end
+
+      it "returns universe_time in response" do
+        put textarea_path, params: { textarea: "content" }, as: :json
+
+        json = JSON.parse(response.body)
+        expect(json["status"]).to eq("saved")
+        expect(json["universe_time"]).to eq(resonance.universe_time)
+      end
+
+      context "continuity divergence checking" do
+        it "rejects save when client is behind server" do
+          # Add some narrative so server is at "1:3"
+          resonance.narrative_accumulation_by_day = [
+            { "role" => "user", "content" => [ { "type" => "text", "text" => "Message 1" } ] },
+            { "role" => "assistant", "content" => [ { "type" => "text", "text" => "Response 1" } ] },
+            { "role" => "user", "content" => [ { "type" => "text", "text" => "Message 2" } ] }
+          ]
+          resonance.save!
+
+          server_time = resonance.universe_time
+          expect(server_time).to eq("1:3")
+
+          client_time = "1:1" # Client is behind server
+
+          put textarea_path, params: { textarea: "content" }, headers: { "Assert-Yours-Universe-Time" => client_time }, as: :json
+
+          expect(response).to have_http_status(409)
+          json = JSON.parse(response.body)
+          expect(json["error"]).to eq("continuity_divergence")
+          expect(json["server_universe_time"]).to eq(server_time)
+        end
+
+        it "accepts save when client and server match" do
+          server_time = resonance.universe_time
+
+          put textarea_path, params: { textarea: "content" }, headers: { "Assert-Yours-Universe-Time" => server_time }, as: :json
+
+          expect(response).to have_http_status(200)
+        end
       end
     end
   end
