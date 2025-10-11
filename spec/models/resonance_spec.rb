@@ -98,6 +98,38 @@ RSpec.describe Resonance, type: :model do
       decrypted = resonance.decrypt_field(encrypted)
       expect(decrypted).to eq("")
     end
+
+    it "returns decrypted data with UTF-8 encoding" do
+      resonance = Resonance.find_or_create_by_google_id(google_id)
+
+      # Test with text that includes non-ASCII characters
+      test_data = "Hello 世界 🌍"
+      encrypted = resonance.encrypt_field(test_data)
+      decrypted = resonance.decrypt_field(encrypted)
+
+      expect(decrypted.encoding).to eq(Encoding::UTF_8)
+      expect(decrypted).to eq(test_data)
+    end
+
+    it "allows decrypted JSON data to be concatenated with UTF-8 strings" do
+      resonance = Resonance.find_or_create_by_google_id(google_id)
+
+      # Simulate narrative data with special characters
+      messages = [
+        { role: "user", content: [ { type: "text", text: "Hello 世界" } ] },
+        { role: "assistant", content: [ { type: "text", text: "Response with emoji 🎉" } ] }
+      ]
+
+      resonance.narrative_accumulation_by_day = messages
+      resonance.save!
+
+      # Reload and verify we can call .to_json without encoding errors
+      reloaded = Resonance.find_by_google_id(google_id)
+      narrative_json = reloaded.narrative_accumulation_by_day.to_json
+
+      expect(narrative_json.encoding).to eq(Encoding::UTF_8)
+      expect { "UTF-8 string" << narrative_json }.not_to raise_error
+    end
   end
 
   describe "#universe_day" do

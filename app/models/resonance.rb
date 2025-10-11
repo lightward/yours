@@ -68,7 +68,9 @@ class Resonance < ApplicationRecord
     decipher.auth_tag = auth_tag
     decipher.auth_data = ""
 
-    decipher.update(encrypted) + decipher.final
+    decrypted = decipher.update(encrypted) + decipher.final
+    # Force UTF-8 encoding to prevent encoding compatibility errors
+    decrypted.force_encoding("UTF-8")
   end
 
   # Accessors for encrypted fields
