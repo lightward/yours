@@ -14,15 +14,15 @@
   --foreground: #b7b3ac;
   --border: #1a1a2e;
   --border-light: #2a2a3e;
-  --accent: #00d9ff;
-  --accent-hover: #00b8d4;
-  --accent-active: #ff00ff;
+  --accent: #00e5ff;
+  --accent-hover: #00c2d9;
+  --accent-active: #ff66ff;
   --success: #00ffa3;
   --warning: #ffd700;
   --error: #ff0080;
   --user-message-bg: #1a1a3e;
   --assistant-message-bg: #0f0f1f;
-  --message-border: #00d9ff;
+  --message-border: #00e5ff;
 }
 
 * {
@@ -49,6 +49,10 @@ main {
   display: flex;
   flex-direction: column;
   gap: 1rem;
+  max-width: 900px;
+  margin-left: auto;
+  margin-right: auto;
+  width: 100%;
 }
 
 @media (min-width: 768px) {
@@ -62,6 +66,8 @@ main {
   main {
     padding: 1rem 3rem 3rem 3rem;
     gap: 2rem;
+    margin-left: max(3rem, calc((100vw - 900px) / 3));
+    margin-right: max(3rem, calc((100vw - 900px) * 2 / 3));
   }
 }
 
@@ -127,12 +133,15 @@ button.danger:hover {
 }
 
 button.exit, a.exit {
+  display: inline-block;
   background: var(--background);
   color: var(--foreground);
   border: none;
   border-left: 3px solid var(--accent-active);
   border-radius: 4px;
+  padding: 0.5rem 1rem;
   transition: all 0.2s;
+  text-decoration: none;
 }
 
 button.exit:hover, a.exit:hover {
@@ -192,6 +201,189 @@ dt {
 
 dd {
   margin: 0;
+}
+
+/* Chat messages */
+.chat-message {
+  padding: 1rem;
+  border-radius: 8px;
+  white-space: pre-wrap;
+  font-family: "Lightward Favorit Mono", "Courier New", monospace;
+}
+
+.chat-message.user {
+  background: var(--user-message-bg);
+  border-left: 3px solid var(--accent);
+}
+
+.chat-message.assistant {
+  background: var(--assistant-message-bg);
+}
+
+.chat-message.pulsing {
+  min-height: 3rem;
+  animation: pulse 1.5s ease-in-out infinite;
+}
+
+/* Continuity notice */
+.continuity-notice {
+  padding: 1.5rem;
+  border-radius: 8px;
+  background: var(--user-message-bg);
+  border-left: 3px solid var(--accent);
+  margin: 1rem 0;
+  font-family: "Lightward Favorit Mono", "Courier New", monospace;
+}
+
+/* Header links */
+.header-link {
+  color: var(--accent);
+  text-decoration: none;
+  font-family: "Lightward Favorit Mono", monospace;
+  font-size: 0.9em;
+}
+
+.header-link:hover {
+  text-decoration: underline;
+  color: var(--accent);
+}
+
+/* Header container */
+.header-container {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.header-actions {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+/* Flash messages */
+.flash {
+  padding: 1rem;
+  background: var(--border-light);
+  color: var(--foreground);
+  margin-bottom: 1rem;
+  border-radius: 4px;
+}
+
+.flash.notice {
+  border-left: 4px solid var(--success);
+}
+
+.flash.alert {
+  border-left: 4px solid var(--error);
+}
+
+/* Layout helpers */
+.flex-col {
+  display: flex;
+  flex-direction: column;
+}
+
+.flex-row {
+  display: flex;
+  flex-direction: row;
+  flex-wrap: wrap;
+}
+
+.flex-center {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+}
+
+.items-center {
+  align-items: center;
+}
+
+.gap-sm {
+  gap: 0.75rem;
+}
+
+.gap-md {
+  gap: 1rem;
+}
+
+.gap-lg {
+  gap: 2rem;
+}
+
+/* Chat layout */
+.chat-container {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.chat-log {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.chat-actions {
+  display: flex;
+  gap: 2rem;
+  align-items: center;
+}
+
+/* Landing page */
+.landing {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 80vh;
+  text-align: center;
+}
+
+.landing-icon {
+  width: 200px;
+  height: 200px;
+  margin-bottom: 2rem;
+  border-radius: 50%;
+}
+
+.landing-title {
+  font-size: 3rem;
+  margin-bottom: 1rem;
+}
+
+.landing-tagline {
+  max-width: 600px;
+  color: var(--accent);
+  margin-bottom: 3rem;
+}
+
+/* Utility classes */
+.muted {
+  opacity: 0.6;
+}
+
+.warning-text {
+  color: var(--warning);
+}
+
+.error-text {
+  color: var(--error);
+}
+
+.section-divider {
+  border-top: 1px solid var(--border);
+  padding-top: 2rem;
+}
+
+.mt-sm {
+  margin-top: 0.5rem;
+}
+
+.mt-md {
+  margin-top: 1rem;
 }
 
 header {

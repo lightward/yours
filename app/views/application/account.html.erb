@@ -9,7 +9,7 @@
       <dd>
         <%= @subscription[:status].capitalize %>
         <% if @subscription[:cancel_at_period_end] %>
-          <span style="color: var(--error);">(Canceling at period end)</span>
+          <span class="error-text">(Canceling at period end)</span>
         <% end %>
       </dd>
 
@@ -31,7 +31,7 @@
               method: :delete,
               class: "exit",
               data: { turbo_confirm: "End access now? This cannot be undone." } %>
-          <div style="margin-top: 0.5rem; opacity: 0.7;">
+          <div class="mt-sm muted">
             After canceling immediately, you'll be able to start a new subscription
           </div>
         </dd>
@@ -55,15 +55,14 @@
   <% end %>
 </div>
 
-<div style="border-top: 1px solid var(--border); padding-top: 2rem;">
+<div class="section-divider">
   <h2>Begin again</h2>
   <p>Want to clear in-universe memory completely? (This will advance the day counter by 1. This will not affect your subscription.)</p>
-  <p style="margin-top: 1rem; color: var(--warning);">This action cannot be undone.</p>
+  <p class="mt-md warning-text">This action cannot be undone.</p>
 
   <%= button_to "Begin Again",
       reset_path,
       method: :post,
-      class: "exit",
-      style: "margin-top: 1rem;",
+      class: "exit mt-md",
       data: { turbo_confirm: "Are you sure? There is no undo!" } %>
 </div>

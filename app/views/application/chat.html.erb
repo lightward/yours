@@ -1,5 +1,5 @@
-<div data-controller="chat" data-chat-narrative-value="<%= @narrative.to_json %>" data-chat-universe-time-value="<%= current_resonance.universe_time %>" data-chat-saved-textarea-value="<%= h(current_resonance.textarea || "") %>" style="display: flex; flex-direction: column; gap: 2rem;">
-  <div id="chat-log" data-chat-target="log" style="display: flex; flex-direction: column; gap: 1rem;">
+<div data-controller="chat" data-chat-narrative-value="<%= @narrative.to_json %>" data-chat-universe-time-value="<%= current_resonance.universe_time %>" data-chat-saved-textarea-value="<%= h(current_resonance.textarea || "") %>" class="chat-container">
+  <div id="chat-log" data-chat-target="log" class="chat-log">
     <!-- Messages will appear here -->
   </div>
 
@@ -11,7 +11,7 @@
     style="width: 100%; resize: none; overflow: hidden;"
   ></textarea>
 
-  <div style="display: flex; gap: 2rem; align-items: center;">
+  <div class="chat-actions">
     <button
       data-action="click->chat#send"
     >
