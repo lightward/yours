@@ -87,6 +87,17 @@ RSpec.describe Resonance, type: :model do
       reloaded = Resonance.find_by(encrypted_google_id_hash: resonance.encrypted_google_id_hash)
       expect(reloaded.stripe_customer_id).to be_nil
     end
+
+    it "can encrypt and decrypt empty strings" do
+      resonance = Resonance.find_or_create_by_google_id(google_id)
+
+      encrypted = resonance.encrypt_field("")
+      expect(encrypted).to be_present
+      expect(encrypted).to be_a(String)
+
+      decrypted = resonance.decrypt_field(encrypted)
+      expect(decrypted).to eq("")
+    end
   end
 
   describe "#universe_day" do

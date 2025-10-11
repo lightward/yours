@@ -34,6 +34,7 @@ class Resonance < ApplicationRecord
   # Encrypt data using Google ID as key
   def encrypt_field(value)
     return nil if value.nil?
+
     cipher = OpenSSL::Cipher.new("aes-256-gcm")
     cipher.encrypt
     cipher.key = encryption_key
@@ -43,8 +44,9 @@ class Resonance < ApplicationRecord
     encrypted = cipher.update(value.to_s) + cipher.final
     auth_tag = cipher.auth_tag
 
-    # Store: iv + auth_tag + encrypted_data (all base64 encoded)
-    Base64.strict_encode64([ iv, auth_tag, encrypted ].map { |d| Base64.strict_encode64(d) }.join(":"))
+    # Fixed-length concatenation: iv (12 bytes) + auth_tag (16 bytes) + encrypted data
+    # Works for empty strings since we just concatenate the bytes directly
+    Base64.strict_encode64(iv + auth_tag + encrypted)
   end
 
   # Decrypt data using Google ID as key
@@ -52,15 +54,12 @@ class Resonance < ApplicationRecord
     return nil if encrypted_value.nil? || encrypted_value.blank?
     return nil unless google_id # Can't decrypt without Google ID
 
-    # Handle case where encrypted_value might not be a string
-    encrypted_str = encrypted_value.to_s
+    raw = Base64.strict_decode64(encrypted_value.to_s)
 
-    decoded = Base64.strict_decode64(encrypted_str)
-    iv_b64, auth_tag_b64, encrypted_b64 = decoded.split(":")
-
-    iv = Base64.strict_decode64(iv_b64)
-    auth_tag = Base64.strict_decode64(auth_tag_b64)
-    encrypted = Base64.strict_decode64(encrypted_b64)
+    # Fixed-length extraction: first 12 bytes = iv, next 16 bytes = auth_tag, rest = encrypted
+    iv = raw[0, 12]
+    auth_tag = raw[12, 16]
+    encrypted = raw[28..-1] || "" # Handle case where encrypted portion is empty
 
     decipher = OpenSSL::Cipher.new("aes-256-gcm")
     decipher.decrypt
