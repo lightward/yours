@@ -19,6 +19,11 @@ class ApplicationController < ActionController::Base
       return
     end
 
+    # Set universe time header if authenticated
+    if current_resonance
+      response.headers["Yours-Universe-Time"] = current_resonance.universe_time
+    end
+
     # Route based on auth state
     if current_resonance
       # Day 1 is free - no subscription required
@@ -159,31 +164,51 @@ class ApplicationController < ActionController::Base
     response.stream.close
   end
 
-  # POST /integrate
-  def integrate
+  # GET/POST /sleep
+  def sleep
     return redirect_to root_path, alert: "Please sign in" unless current_resonance
-    # Day 1 is free - subscription only required for day 2+
-    unless current_resonance.universe_day == 1 || current_resonance.active_subscription?
-      return redirect_to root_path, alert: "Active subscription required"
+
+    # POST triggers integration, GET is just contemplative viewing
+    if request.post?
+      # Day 1 is free - subscription only required for day 2+
+      unless current_resonance.universe_day == 1 || current_resonance.active_subscription?
+        return redirect_to root_path, alert: "Active subscription required"
+      end
+
+      # Capture universe_time before integration
+      @starting_universe_time = current_resonance.universe_time
+      @integrating = true
+
+      # Kick off integration in background thread
+      google_id = session[:google_id] # Capture for thread
+      Thread.new do
+        # Need to find resonance fresh in this thread
+        google_id_hash = Digest::SHA256.hexdigest(google_id)
+        resonance = Resonance.find_by(encrypted_google_id_hash: google_id_hash)
+        next unless resonance
+
+        resonance.google_id = google_id
+        narrative = resonance.narrative_accumulation_by_day
+
+        # Call Lightward AI to create the harmonic
+        harmonic = create_integration_harmonic_for(resonance, narrative)
+
+        # Save the harmonic and reset for new day
+        resonance.integration_harmonic_by_night = harmonic
+        resonance.narrative_accumulation_by_day = []
+        resonance.universe_day = resonance.universe_day + 1
+        resonance.save!
+      rescue => e
+        Rollbar.error(e)
+        Rails.logger.error "Background integration error: #{e.message}"
+      end
+    else
+      # GET request - just viewing
+      @integrating = false
     end
 
-    narrative = current_resonance.narrative_accumulation_by_day
-
-    if narrative.empty?
-      redirect_to root_path, alert: "No narrative to integrate yet."
-      return
-    end
-
-    # Call Lightward AI to create the harmonic
-    harmonic = create_integration_harmonic(narrative)
-
-    # Save the harmonic and reset for new day
-    current_resonance.integration_harmonic_by_night = harmonic
-    current_resonance.narrative_accumulation_by_day = []
-    current_resonance.universe_day = current_resonance.universe_day + 1
-    current_resonance.save!
-
-    redirect_to root_path, notice: "Day completed."
+    @universe_day = current_resonance.universe_day
+    render "application/sleep", layout: "sleep"
   end
 
   # POST /save_textarea
@@ -267,7 +292,7 @@ class ApplicationController < ActionController::Base
 
     current_resonance.save!
 
-    redirect_to root_path, notice: "The day is 1."
+    redirect_to root_path
   end
 
   private
@@ -318,6 +343,11 @@ class ApplicationController < ActionController::Base
   end
   helper_method :obfuscated_user_email
 
+  def universe_day_with_units(day)
+    day == 1 ? "1 day" : "day #{day}"
+  end
+  helper_method :universe_day_with_units
+
   def obfuscate_email(email)
     return nil unless email
     local, domain = email.split("@")
@@ -333,7 +363,7 @@ class ApplicationController < ActionController::Base
     "#{local_preview}@#{domain_preview}"
   end
 
-  def create_integration_harmonic(narrative)
+  def create_integration_harmonic_for(resonance, narrative)
     integration_prompt = [
       {
         role: "user",
@@ -359,7 +389,7 @@ class ApplicationController < ActionController::Base
 
               here's yesterday's harmonic (or [empty] if this is the first day):
             eod
-          { type: "text", text: "<harmonic>#{current_resonance.integration_harmonic_by_night.presence || "[empty]"}</harmonic>" },
+          { type: "text", text: "<harmonic>#{resonance.integration_harmonic_by_night.presence || "[empty]"}</harmonic>" },
           { type: "text", text: "and here's the full narrative from today, a transcript of this universe:" },
           { type: "text", text: "<narrative>#{narrative.to_json}</narrative>" },
           { type: "text", text: <<~eod.strip }

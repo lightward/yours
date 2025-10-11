@@ -19,12 +19,9 @@
     </button>
 
     <%= button_to "Move to day #{current_resonance.universe_day + 1}",
-        integrate_path,
+        sleep_path,
         method: :post,
-        class: "exit-link",
-        data: {
-          turbo_confirm: "Ready to move to day #{current_resonance.universe_day + 1}?",
-          turbo_submits_with: "Moving to day #{current_resonance.universe_day + 1}..."
-        } %>
+        class: "exit-link eod",
+        form: { data: { turbo: false }, onsubmit: "return confirm('Ready to move to day #{current_resonance.universe_day + 1}?')" } %>
   </div>
 </div>

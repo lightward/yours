@@ -41,6 +41,7 @@
 
     <%# Includes all stylesheet files in app/assets/stylesheets %>
     <%= stylesheet_link_tag :app %>
+    <script src="https://aura.lightward.io/dist/aura.js" defer></script>
     <%= javascript_importmap_tags %>
 
     <% if ENV["FATHOM_SITE"].present? %>
@@ -53,7 +54,7 @@
       <header>
         <div class="header-container">
           <%= link_to root_path, class: "header-link" do %>
-            Yours: <%= current_resonance.universe_day == 1 ? "1 day" : "day #{current_resonance.universe_day}" %>
+            Yours: <%= universe_day_with_units(current_resonance.universe_day) %>
           <% end %>
           <div class="header-actions">
             <% if obfuscated_user_email %>
