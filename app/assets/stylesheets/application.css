@@ -69,6 +69,12 @@ main {
     margin-left: max(3rem, calc((100vw - 900px) / 3));
     margin-right: max(3rem, calc((100vw - 900px) * 2 / 3));
   }
+
+  /* Landing page gets perfect horizontal centering */
+  main:has(.landing) {
+    margin-left: auto;
+    margin-right: auto;
+  }
 }
 
 h1, h2, h3, h4, h5, h6 {
