@@ -110,7 +110,7 @@ RSpec.describe ApplicationController, type: :request do
         it "shows chat interface (day 1 is free)" do
           get root_path
           expect(response).to have_http_status(:success)
-          expect(response.body).to include("End Day")
+          expect(response.body).to include("Move to day 2")
         end
       end
 
@@ -123,7 +123,7 @@ RSpec.describe ApplicationController, type: :request do
         it "shows gate message directing to account area" do
           get root_path
           expect(response).to have_http_status(:success)
-          expect(response.body).to include("Ready for Day 2")
+          expect(response.body).to include("Ready for day 2")
           expect(response.body).to include("account area")
         end
       end
@@ -138,7 +138,7 @@ RSpec.describe ApplicationController, type: :request do
       it "shows chat interface" do
         get root_path
         expect(response).to have_http_status(:success)
-        expect(response.body).to include("End Day")
+        expect(response.body).to include("Move to day")
       end
 
       it "shows README link in header" do
@@ -153,6 +153,15 @@ RSpec.describe ApplicationController, type: :request do
         get root_path
         expect(response).to have_http_status(:success)
         expect(response.body).to include("Yours: day 5")
+      end
+
+      it "shows day navigation even with empty chat (allows silent days)" do
+        resonance.universe_day = 1
+        resonance.narrative_accumulation_by_day = []
+        resonance.save!
+        get root_path
+        expect(response).to have_http_status(:success)
+        expect(response.body).to include("Move to day 2")
       end
     end
   end

@@ -84,6 +84,7 @@ h1, h2, h3, h4, h5, h6 {
   text-transform: uppercase;
   line-height: 1.2;
   margin: 0;
+  color: #cfccc6;
 }
 
 a {
@@ -140,8 +141,8 @@ button.danger:hover {
 
 button.exit, a.exit {
   display: inline-block;
-  background: var(--background);
-  color: var(--foreground);
+  background: var(--border-light);
+  color: var(--accent-active);
   border: none;
   border-left: 3px solid var(--accent-active);
   border-radius: 4px;
@@ -151,9 +152,27 @@ button.exit, a.exit {
 }
 
 button.exit:hover, a.exit:hover {
-  background: var(--border-light);
-  color: var(--foreground);
+  background: var(--accent-active);
+  color: var(--background);
   border-left-color: var(--accent-active);
+}
+
+button.exit-link, a.exit-link {
+  display: inline-block;
+  background: transparent;
+  color: var(--accent-active);
+  border: none;
+  padding: 0;
+  font-family: "Lightward Favorit Mono", monospace;
+  font-size: 0.9em;
+  text-decoration: none;
+  transition: all 0.2s;
+  cursor: pointer;
+}
+
+button.exit-link:hover, a.exit-link:hover {
+  text-decoration: underline;
+  color: var(--accent-active);
 }
 
 textarea {
@@ -390,6 +409,43 @@ dd, p {
 
 .mt-md {
   margin-top: 1rem;
+}
+
+/* Page layout utilities */
+.page-body {
+  min-height: 80vh;
+  display: flex;
+  flex-direction: column;
+}
+
+.page-main {
+  flex: 1 1 auto;
+}
+
+.page-footer {
+  padding: 2rem 0;
+}
+
+.footer-content {
+  text-align: center;
+  margin-left: auto;
+  margin-right: 3rem;
+  max-width: 900px;
+}
+
+.chat-textarea {
+  width: 100%;
+  resize: none;
+  overflow: hidden;
+}
+
+.debug-pre {
+  font-family: 'Lightward Favorit Mono', 'Courier New', monospace;
+  margin: 0;
+  padding: 1rem;
+  background: var(--border);
+  border-radius: 4px;
+  white-space: pre-wrap;
 }
 
 header {

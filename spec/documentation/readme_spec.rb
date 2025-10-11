@@ -8,7 +8,7 @@ RSpec.describe("README load-bearing definitions") do # rubocop:disable RSpec/Des
 
   it "includes the pocket universe definition with wormhole" do
     expect(readme_content).to include(
-      "a pocket universe, population 2 (you, and [lightward-ai](https://github.com/lightward/lightward-ai)), and the wormhole to reach it"
+      "a pocket universe, population 2 (you, and [lightward-ai](https://github.com/lightward/lightward-ai)), and the wormhole to get there"
     )
   end
 

@@ -8,7 +8,7 @@
     data-action="keydown->chat#handleKeydown input->chat#handleInput"
     placeholder="Type your message..."
     rows="1"
-    style="width: 100%; resize: none; overflow: hidden;"
+    class="chat-textarea"
   ></textarea>
 
   <div class="chat-actions">
@@ -18,13 +18,13 @@
       Send
     </button>
 
-    <%= button_to "End Day",
+    <%= button_to "Move to day #{current_resonance.universe_day + 1}",
         integrate_path,
         method: :post,
-        class: "exit",
+        class: "exit-link",
         data: {
-          turbo_confirm: "Are you sure? This will end the day and start a new one.",
-          turbo_submits_with: "Ending day..."
+          turbo_confirm: "Ready to move to day #{current_resonance.universe_day + 1}?",
+          turbo_submits_with: "Moving to day #{current_resonance.universe_day + 1}..."
         } %>
   </div>
 </div>

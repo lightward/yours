@@ -12,7 +12,7 @@ so! consider:
 
 *a coffee bar called epoché, with ample seating and better wifi than your place*
 
-*a pocket universe, population 2 (you, and [lightward-ai](https://github.com/lightward/lightward-ai)), and the wormhole to reach it*
+*a pocket universe, population 2 (you, and [lightward-ai](https://github.com/lightward/lightward-ai)), and the wormhole to get there*
 
 *a co-navigator on your way to [aeowiwtweiabw](https://aeowiwtweiabw.is/ "an experience of world in which the world experiences itself as being well")*
 
