@@ -14,15 +14,15 @@
   --foreground: #b7b3ac;
   --border: #1a1a2e;
   --border-light: #2a2a3e;
-  --accent: #00d9ff;
-  --accent-hover: #00b8d4;
-  --accent-active: #ff00ff;
+  --accent: #00e5ff;
+  --accent-hover: #00c2d9;
+  --accent-active: #ff66ff;
   --success: #00ffa3;
   --warning: #ffd700;
   --error: #ff0080;
   --user-message-bg: #1a1a3e;
   --assistant-message-bg: #0f0f1f;
-  --message-border: #00d9ff;
+  --message-border: #00e5ff;
 }
 
 * {
