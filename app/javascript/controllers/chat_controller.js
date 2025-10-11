@@ -156,7 +156,15 @@ export default class extends Controller {
 
     // Add waiting state to actions
     this.actionsTarget.classList.add("waiting")
-    // Note: localStorage will be cleared when server confirms save via universe_time event
+
+    // Cancel any pending debounced saves
+    if (this.saveDebounceTimeout) {
+      clearTimeout(this.saveDebounceTimeout)
+      this.saveDebounceTimeout = null
+    }
+
+    // Immediately clear saved draft (both localStorage and server)
+    this.clearSavedInput()
 
     // Create message object in Lightward AI format
     const message = {
@@ -193,6 +201,7 @@ export default class extends Controller {
         this.inputTarget.disabled = false
         this.actionsTarget.classList.remove("waiting")
         this.inputTarget.focus()
+        this.stopLoadingAnimation(assistantElement)
         assistantElement.remove()
         return
       }
@@ -240,6 +249,7 @@ export default class extends Controller {
       }
     } catch (error) {
       console.error("Stream error:", error)
+      this.stopLoadingAnimation(assistantElement)
       assistantElement.textContent = `⚠️ Error: ${error.message}`
       assistantElement.classList.remove("pulsing", "loading")
     } finally {
@@ -253,12 +263,15 @@ export default class extends Controller {
   handleSSEEvent(event, data, element) {
     switch (event) {
       case "message_start":
+        this.stopLoadingAnimation(element)
         element.classList.remove("pulsing")
         element.style.animation = ""
+        element.textContent = ""
         break
 
       case "content_block_delta":
         if (data.delta?.type === "text_delta") {
+          this.stopLoadingAnimation(element)
           element.classList.remove("pulsing", "loading")
           element.style.animation = ""
           element.textContent += data.delta.text
@@ -266,25 +279,25 @@ export default class extends Controller {
         break
 
       case "message_stop":
+        this.stopLoadingAnimation(element)
         element.classList.remove("pulsing", "loading")
         element.style.animation = ""
         break
 
       case "universe_time":
         // Server sends updated universe_time after saving narrative
-        // Clear localStorage for the OLD universe_time before updating
-        const oldStorageKey = `yours-input-${this.universeTimeValue || 'current'}`
-        localStorage.removeItem(oldStorageKey)
-        // Now update to the new universe_time
+        // Update to the new universe_time
         this.universeTimeValue = data.universe_time
         break
 
       case "end":
+        this.stopLoadingAnimation(element)
         element.classList.remove("pulsing", "loading")
         element.style.animation = ""
         break
 
       case "error":
+        this.stopLoadingAnimation(element)
         element.textContent = `⚠️ ${data.error.message}`
         element.classList.remove("pulsing", "loading")
         element.style.animation = ""
@@ -308,9 +321,24 @@ export default class extends Controller {
   }
 
   addPulsingMessage(role) {
-    const messageElement = this.addMessage(role, "")
+    const messageElement = this.addMessage(role, ".")
     messageElement.classList.add("pulsing")
+
+    // Animate dots while waiting for first content
+    let dotCount = 1
+    messageElement.loadingInterval = setInterval(() => {
+      dotCount = (dotCount % 3) + 1
+      messageElement.textContent = ".".repeat(dotCount)
+    }, 500)
+
     return messageElement
+  }
+
+  stopLoadingAnimation(element) {
+    if (element.loadingInterval) {
+      clearInterval(element.loadingInterval)
+      element.loadingInterval = null
+    }
   }
 
   handleContinuityDivergence(data) {
