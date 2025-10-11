@@ -344,7 +344,7 @@ class ApplicationController < ActionController::Base
   helper_method :obfuscated_user_email
 
   def universe_day_with_units(day)
-    day == 1 ? "1 day" : "day #{day}"
+    day == 1 ? "1\u00A0day" : "day\u00A0#{day}"
   end
   helper_method :universe_day_with_units
 

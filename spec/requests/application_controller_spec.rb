@@ -25,7 +25,7 @@ RSpec.describe ApplicationController, type: :request do
       it "shows landing page" do
         get root_path
         expect(response).to have_http_status(:success)
-        expect(response.body).to include("Sign in with Google")
+        expect(response.body).to include("Enter via Google")
       end
     end
 
@@ -123,7 +123,7 @@ RSpec.describe ApplicationController, type: :request do
         it "shows gate message directing to account area" do
           get root_path
           expect(response).to have_http_status(:success)
-          expect(response.body).to include("Ready for day 2")
+          expect(response.body).to include("Ready for day\u00A02")
           expect(response.body).to include("account area")
         end
       end
@@ -152,7 +152,7 @@ RSpec.describe ApplicationController, type: :request do
         resonance.save!
         get root_path
         expect(response).to have_http_status(:success)
-        expect(response.body).to include("Yours: day 5")
+        expect(response.body).to include("Yours: day\u00A05")
       end
 
       it "shows day navigation even with empty chat (allows silent days)" do
@@ -177,8 +177,8 @@ RSpec.describe ApplicationController, type: :request do
       resonance.save!
       get root_path
       expect(response).to have_http_status(:success)
-      expect(response.body).to include("Yours: 1 day")
-      expect(response.body).not_to include("Yours: day 1")
+      expect(response.body).to include("Yours: 1\u00A0day")
+      expect(response.body).not_to include("Yours: day\u00A01")
     end
 
     it "shows 'day X' format for day 2+" do
@@ -186,7 +186,7 @@ RSpec.describe ApplicationController, type: :request do
       resonance.save!
       get root_path
       expect(response).to have_http_status(:success)
-      expect(response.body).to include("Yours: day 2")
+      expect(response.body).to include("Yours: day\u00A02")
     end
 
     it "includes Yours-Universe-Time header" do
@@ -195,11 +195,11 @@ RSpec.describe ApplicationController, type: :request do
     end
   end
 
-  describe "GET /logout" do
+  describe "GET /exit" do
     it "clears the session and redirects to root" do
       sign_in_as(google_id)
 
-      get logout_path
+      get exit_path
 
       expect(response).to redirect_to(root_path)
       expect(session[:google_id]).to be_nil
@@ -408,7 +408,7 @@ RSpec.describe ApplicationController, type: :request do
           post sleep_path
           expect(response).to have_http_status(:success)
           expect(response.body).to include("sleep-aura-canvas")
-          expect(response.body).to include("Integrating 1 day")
+          expect(response.body).to include("Integrating 1\u00A0day")
         end
 
         it "provides starting universe_time to JS" do
@@ -449,14 +449,14 @@ RSpec.describe ApplicationController, type: :request do
         resonance.universe_day = 1
         resonance.save!
         post sleep_path
-        expect(response.body).to include("Integrating 1 day")
+        expect(response.body).to include("Integrating 1\u00A0day")
       end
 
       it "shows 'day X' format for day 2+" do
         resonance.universe_day = 3
         resonance.save!
         post sleep_path
-        expect(response.body).to include("Integrating day 3")
+        expect(response.body).to include("Integrating day\u00A03")
       end
 
       it "provides starting universe_time to JavaScript" do
