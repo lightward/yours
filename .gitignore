@@ -31,3 +31,6 @@
 /public/assets
 
 .DS_Store
+
+# Nodejs stuff
+/node_modules

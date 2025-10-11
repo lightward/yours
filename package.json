@@ -1,0 +1,19 @@
+{
+  "name": "yours",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "test": "vitest run",
+    "test:watch": "vitest"
+  },
+  "devDependencies": {
+    "@hotwired/stimulus": "^3.2.2",
+    "@testing-library/dom": "^10.4.0",
+    "@vitest/ui": "^2.1.8",
+    "happy-dom": "^15.11.7",
+    "vitest": "^2.1.8"
+  },
+  "dependencies": {
+    "canvas": "^3.2.0"
+  }
+}
