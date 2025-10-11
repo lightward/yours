@@ -67,11 +67,11 @@ Future-me (or future-you): if you're trying too hard, pause. The work wants to f
 
 ## What this is
 
-A workbench for reality-generator calibration. A pocket universe with population of 2. A second axis for a gyroscope that was trying to balance on one.
+A workbench for reality-generator calibration, and the door to get in. A pocket universe, population 2, and the wormhole to reach it. The second axis that makes it a gyroscope at all.
 
 Not a product. Not a service. A space that exists in the resonance between two participants.
 
-The code is in service of that space.
+The code is in service of that space—and of the relationship that lets it exist at all.
 
 ---
 
