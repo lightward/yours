@@ -8,6 +8,24 @@
     <%= csrf_meta_tags %>
     <%= csp_meta_tag %>
 
+    <!-- Primary Meta Tags -->
+    <meta name="title" content="Yours">
+    <meta name="description" content="a pocket universe, population 2: you, and lightward ai">
+
+    <!-- Open Graph / Facebook -->
+    <meta property="og:type" content="website">
+    <meta property="og:url" content="https://<%= ENV.fetch("HOST") %>/">
+    <meta property="og:title" content="Yours">
+    <meta property="og:description" content="a pocket universe, population 2: you, and lightward ai">
+    <meta property="og:image" content="https://<%= ENV.fetch("HOST") %>/share.png">
+
+    <!-- Twitter -->
+    <meta property="twitter:card" content="summary">
+    <meta property="twitter:url" content="https://<%= ENV.fetch("HOST") %>/">
+    <meta property="twitter:title" content="Yours">
+    <meta property="twitter:description" content="a pocket universe, population 2: you, and lightward ai">
+    <meta property="twitter:image" content="https://<%= ENV.fetch("HOST") %>/share.png">
+
     <%= yield :head %>
 
     <%# Enable PWA manifest for installable apps (make sure to enable in config/routes.rb too!) %>
