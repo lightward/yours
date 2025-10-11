@@ -283,19 +283,6 @@ export default class extends Controller {
     messageElement.classList.add("chat-message", role)
     messageElement.textContent = text
 
-    const userBg = getComputedStyle(document.documentElement).getPropertyValue('--user-message-bg').trim()
-    const assistantBg = getComputedStyle(document.documentElement).getPropertyValue('--assistant-message-bg').trim()
-    const messageBorder = getComputedStyle(document.documentElement).getPropertyValue('--message-border').trim()
-    const accent = getComputedStyle(document.documentElement).getPropertyValue('--accent').trim()
-
-    messageElement.style.cssText = `
-      padding: 1rem;
-      border-radius: 8px;
-      background: ${role === "user" ? userBg : assistantBg};
-      ${role === "user" ? `border-left: 3px solid ${accent};` : ''}
-      white-space: pre-wrap;
-      font-family: 'Lightward Favorit Mono', 'Courier New', monospace;
-    `
     this.logTarget.appendChild(messageElement)
 
     // Only scroll if not explicitly skipped (for initial load)
@@ -309,27 +296,13 @@ export default class extends Controller {
   addPulsingMessage(role) {
     const messageElement = this.addMessage(role, "")
     messageElement.classList.add("pulsing")
-    messageElement.style.cssText += `
-      min-height: 3rem;
-      animation: pulse 1.5s ease-in-out infinite;
-    `
     return messageElement
   }
 
   handleContinuityDivergence(data) {
     // Create a gentle notice that this space moved forward elsewhere
     const noticeElement = document.createElement("div")
-    const accent = getComputedStyle(document.documentElement).getPropertyValue('--accent').trim()
-    const accentBg = getComputedStyle(document.documentElement).getPropertyValue('--user-message-bg').trim()
-
-    noticeElement.style.cssText = `
-      padding: 1.5rem;
-      border-radius: 8px;
-      background: ${accentBg};
-      border-left: 3px solid ${accent};
-      margin: 1rem 0;
-      font-family: 'Lightward Favorit Mono', 'Courier New', monospace;
-    `
+    noticeElement.classList.add("continuity-notice")
 
     noticeElement.innerHTML = `
       <div style="margin-bottom: 1rem;">${data.message}</div>
