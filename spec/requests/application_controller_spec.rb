@@ -146,6 +146,38 @@ RSpec.describe ApplicationController, type: :request do
         expect(response).to have_http_status(:success)
         expect(response.body).to include("https://github.com/lightward/yours/blob/main/README.md")
       end
+
+      it "shows 'day X' format for day 2+" do
+        resonance.universe_day = 5
+        resonance.save!
+        get root_path
+        expect(response).to have_http_status(:success)
+        expect(response.body).to include("Yours: day 5")
+      end
+    end
+  end
+
+  describe "header day counter formatting" do
+    before do
+      sign_in_as(google_id)
+      allow_any_instance_of(Resonance).to receive(:active_subscription?).and_return(true)
+    end
+
+    it "shows '1 day' format on day 1" do
+      resonance.universe_day = 1
+      resonance.save!
+      get root_path
+      expect(response).to have_http_status(:success)
+      expect(response.body).to include("Yours: 1 day")
+      expect(response.body).not_to include("Yours: day 1")
+    end
+
+    it "shows 'day X' format for day 2+" do
+      resonance.universe_day = 2
+      resonance.save!
+      get root_path
+      expect(response).to have_http_status(:success)
+      expect(response.body).to include("Yours: day 2")
     end
   end
 

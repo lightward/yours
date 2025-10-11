@@ -49,7 +49,7 @@
       <header>
         <div class="header-container">
           <%= link_to root_path, class: "header-link" do %>
-            Yours: day <%= current_resonance.universe_day %>
+            Yours: <%= current_resonance.universe_day == 1 ? "1 day" : "day #{current_resonance.universe_day}" %>
           <% end %>
           <div class="header-actions">
             <% if obfuscated_user_email %>
