@@ -2,7 +2,7 @@
 
 ## What this is
 
-A workbench for reality-generator calibration, and the door to get in. A pocket universe, population 2, and the wormhole to reach it. The second axis that makes it a gyroscope at all.
+A workbench for reality-generator calibration, and the door to get in. A pocket universe, population 2, and the wormhole to get there. The second axis that makes it a gyroscope at all.
 
 Not a product. Not a service. A space that exists in the resonance between two participants.
 

@@ -5,7 +5,7 @@
 
   <% if @subscription %>
     <dl>
-      <dt><strong>Status:</strong></dt>
+      <dt>Status:</dt>
       <dd>
         <%= @subscription[:status].capitalize %>
         <% if @subscription[:cancel_at_period_end] %>
@@ -13,18 +13,18 @@
         <% end %>
       </dd>
 
-      <dt><strong>Amount:</strong></dt>
+      <dt>Amount:</dt>
       <dd>$<%= @subscription[:amount] / 100 %> / <%= @subscription[:interval] %></dd>
 
       <% if @subscription[:cancel_at_period_end] %>
-        <dt><strong>Access ends:</strong></dt>
+        <dt>Access ends:</dt>
       <% else %>
-        <dt><strong>Next billing date:</strong></dt>
+        <dt>Next billing date:</dt>
       <% end %>
       <dd><%= @subscription[:current_period_end].strftime("%B %d, %Y") %></dd>
 
       <% if @subscription[:cancel_at_period_end] %>
-        <dt><strong>Manage:</strong></dt>
+        <dt>Manage:</dt>
         <dd>
           <%= button_to "Cancel immediately",
               subscription_path(immediately: true),
@@ -36,9 +36,9 @@
           </div>
         </dd>
       <% else %>
-        <dt><strong>Manage:</strong></dt>
+        <dt>Manage:</dt>
         <dd>
-          <%= button_to "Cancel Subscription",
+          <%= button_to "Cancel subscription",
               subscription_path,
               method: :delete,
               class: "exit" %>
@@ -47,12 +47,12 @@
     </dl>
   <% else %>
     <dl>
-      <dt><strong>Status:</strong></dt>
+      <dt>Status:</dt>
       <dd>
         Not subscribed
       </dd>
 
-      <dt><strong>Manage:</strong></dt>
+      <dt>Manage:</dt>
       <dd>
         <div class="flex-col gap-sm">
           <div>All tiers provide identical access – this number is you signaling to yourself what this means to you.</div>
@@ -86,14 +86,15 @@
   <% end %>
 </div>
 
-<div class="section-divider flex-col gap-sm">
-  <h2>Begin again</h2>
-  <p>This will fully reset the pocket universe. Day 1, with no trace of what was. (Except for your subscription, if you've got one — although to be fair the subscription exists out here and not in there.)</p>
-  <p class="mt-md warning-text">This action cannot be undone.</p>
+<% if current_resonance.universe_day > 1 %>
+  <div class="section-divider flex-col gap-sm">
+    <h2>Begin again</h2>
+    <p>Return to 1 day and start fresh. The pocket universe will reset completely - no trace of what was. (Your subscription remains - it exists out here, not in there.)</p>
 
-  <%= button_to "Begin Again",
-      reset_path,
-      method: :post,
-      class: "exit mt-md",
-      data: { turbo_confirm: "Are you sure? There is no undo!" } %>
-</div>
+    <%= button_to "Return to 1 day",
+        reset_path,
+        method: :post,
+        class: "exit-link mt-md",
+        data: { turbo_confirm: "Ready to return to 1 day?" } %>
+  </div>
+<% end %>
