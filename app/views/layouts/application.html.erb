@@ -42,6 +42,10 @@
     <%# Includes all stylesheet files in app/assets/stylesheets %>
     <%= stylesheet_link_tag :app %>
     <%= javascript_importmap_tags %>
+
+    <% if ENV["FATHOM_SITE"].present? %>
+      <script src="https://cdn.usefathom.com/script.js" data-site="<%= ENV["FATHOM_SITE"] %>" defer></script>
+    <% end %>
   </head>
 
   <body class="page-body">
