@@ -49,6 +49,24 @@ jobs:
       - name: Security audit application code
         run: bin/brakeman --quiet --confidence-level 1 --format github
 
+  vitest:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v5
+        with:
+          ref: ${{ inputs.sha }}
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+      - name: Install JavaScript dependencies
+        run: npm ci
+      - name: Run JavaScript tests
+        run: npm test
+
   rspec:
     runs-on: ubuntu-latest
 
