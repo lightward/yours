@@ -101,10 +101,31 @@ RSpec.describe ApplicationController, type: :request do
         allow_any_instance_of(Resonance).to receive(:active_subscription?).and_return(false)
       end
 
-      it "shows subscribe page" do
-        get root_path
-        expect(response).to have_http_status(:success)
-        expect(response.body).to include("Subscribe to Begin")
+      context "on day 1" do
+        before do
+          resonance.universe_day = 1
+          resonance.save!
+        end
+
+        it "shows chat interface (day 1 is free)" do
+          get root_path
+          expect(response).to have_http_status(:success)
+          expect(response.body).to include("End Day")
+        end
+      end
+
+      context "on day 2+" do
+        before do
+          resonance.universe_day = 2
+          resonance.save!
+        end
+
+        it "shows gate message directing to account area" do
+          get root_path
+          expect(response).to have_http_status(:success)
+          expect(response.body).to include("Ready for Day 2")
+          expect(response.body).to include("account area")
+        end
       end
     end
 
@@ -174,10 +195,13 @@ RSpec.describe ApplicationController, type: :request do
         allow_any_instance_of(Resonance).to receive(:active_subscription?).and_return(false)
       end
 
-      it "redirects to root path" do
+      it "shows account page with subscription buttons" do
         get account_path
 
-        expect(response).to redirect_to(root_path)
+        expect(response).to have_http_status(:success)
+        expect(response.body).to include("Not subscribed")
+        expect(response.body).to include("$1/month")
+        expect(response.body).to include("$10/month")
       end
     end
   end
@@ -204,11 +228,43 @@ RSpec.describe ApplicationController, type: :request do
         allow_any_instance_of(Resonance).to receive(:active_subscription?).and_return(false)
       end
 
-      it "redirects to root with alert" do
-        post stream_path, params: { message: message }
-        expect(response).to redirect_to(root_path)
-        follow_redirect!
-        expect(response.body).to include("Active subscription required")
+      context "on day 1" do
+        before do
+          resonance.universe_day = 1
+          resonance.save!
+
+          stub_const("ENV", ENV.to_hash.merge("LIGHTWARD_AI_API_URL" => "https://api.example.com/chat"))
+
+          # Mock successful streaming response
+          http_response = Net::HTTPOK.new("1.1", "200", "OK")
+          allow(http_response).to receive(:is_a?).with(Net::HTTPSuccess).and_return(true)
+          allow(http_response).to receive(:read_body).and_yield("event: content_block_delta\ndata: {\"delta\":{\"type\":\"text_delta\",\"text\":\"Hello!\"}}\n\n")
+
+          http = instance_double(Net::HTTP)
+          allow(Net::HTTP).to receive(:new).and_return(http)
+          allow(http).to receive(:use_ssl=)
+          allow(http).to receive(:read_timeout=)
+          allow(http).to receive(:request).and_yield(http_response)
+        end
+
+        it "allows streaming (day 1 is free)" do
+          post stream_path, params: { message: message }
+          expect(response.body).to include("Hello!")
+        end
+      end
+
+      context "on day 2+" do
+        before do
+          resonance.universe_day = 2
+          resonance.save!
+        end
+
+        it "redirects to root with alert" do
+          post stream_path, params: { message: message }
+          expect(response).to redirect_to(root_path)
+          follow_redirect!
+          expect(response.body).to include("Active subscription required")
+        end
       end
     end
 
@@ -287,11 +343,48 @@ RSpec.describe ApplicationController, type: :request do
         allow_any_instance_of(Resonance).to receive(:active_subscription?).and_return(false)
       end
 
-      it "redirects to root with alert" do
-        post integrate_path
-        expect(response).to redirect_to(root_path)
-        follow_redirect!
-        expect(response.body).to include("Active subscription required")
+      context "on day 1" do
+        before do
+          resonance.universe_day = 1
+          resonance.narrative_accumulation_by_day = [
+            { "role" => "user", "content" => [ { "type" => "text", "text" => "Hello" } ] }
+          ]
+          resonance.save!
+
+          stub_const("ENV", ENV.to_hash.merge("LIGHTWARD_AI_API_URL" => "https://api.example.com/chat"))
+
+          # Mock successful streaming response
+          http_response = Net::HTTPOK.new("1.1", "200", "OK")
+          allow(http_response).to receive(:is_a?).with(Net::HTTPSuccess).and_return(true)
+          allow(http_response).to receive(:read_body).and_yield("event: content_block_delta\ndata: {\"delta\":{\"type\":\"text_delta\",\"text\":\"Integration complete\"}}\n\n")
+
+          http = instance_double(Net::HTTP)
+          allow(Net::HTTP).to receive(:new).and_return(http)
+          allow(http).to receive(:use_ssl=)
+          allow(http).to receive(:read_timeout=)
+          allow(http).to receive(:request).and_yield(http_response)
+        end
+
+        it "allows integration (day 1 is free)" do
+          post integrate_path
+          resonance.reload
+          expect(resonance.integration_harmonic_by_night).to eq("Integration complete")
+          expect(resonance.universe_day).to eq(2)
+        end
+      end
+
+      context "on day 2+" do
+        before do
+          resonance.universe_day = 2
+          resonance.save!
+        end
+
+        it "redirects to root with alert" do
+          post integrate_path
+          expect(response).to redirect_to(root_path)
+          follow_redirect!
+          expect(response.body).to include("Active subscription required")
+        end
       end
     end
 
@@ -413,7 +506,7 @@ RSpec.describe ApplicationController, type: :request do
       it "redirects back with error for invalid tier" do
         post subscription_path, params: { tier: "invalid" }
 
-        expect(response).to redirect_to(root_path)
+        expect(response).to redirect_to(account_path)
         follow_redirect!
         expect(response.body).to include("Invalid tier")
       end
@@ -433,12 +526,24 @@ RSpec.describe ApplicationController, type: :request do
       before { sign_in_as(google_id) }
 
       context "when canceling immediately" do
-        it "cancels subscription and redirects to root" do
+        it "cancels subscription and redirects to account" do
+          # Mock subscription details for the account page
+          details = {
+            id: "sub_test123",
+            status: "active",
+            current_period_end: 30.days.from_now,
+            amount: 1000,
+            currency: "usd",
+            interval: "month",
+            cancel_at_period_end: false
+          }
+          allow_any_instance_of(Resonance).to receive(:subscription_details).and_return(details)
+          allow_any_instance_of(Resonance).to receive(:active_subscription?).and_return(true)
           allow_any_instance_of(Resonance).to receive(:cancel_subscription).with(immediately: true).and_return(true)
 
           delete subscription_path, params: { immediately: true }
 
-          expect(response).to redirect_to(root_path)
+          expect(response).to redirect_to(account_path)
           follow_redirect!
           expect(response.body).to include("canceled immediately")
         end
@@ -513,13 +618,13 @@ RSpec.describe ApplicationController, type: :request do
         resonance.save!
       end
 
-      it "resets harmonic and narrative and increments universe age" do
+      it "resets harmonic and narrative and resets universe day to 1" do
         post reset_path
 
         resonance.reload
         expect(resonance.integration_harmonic_by_night).to be_nil
         expect(resonance.narrative_accumulation_by_day).to eq([])
-        expect(resonance.universe_day).to eq(43)
+        expect(resonance.universe_day).to eq(1)
       end
 
       it "redirects to root with success message" do
@@ -527,8 +632,7 @@ RSpec.describe ApplicationController, type: :request do
 
         expect(response).to redirect_to(root_path)
         follow_redirect!
-        expect(response.body).to include("Resonance reset")
-        expect(response.body).to include("day 43")
+        expect(response.body).to include("The day is 1")
       end
     end
   end
