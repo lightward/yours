@@ -272,6 +272,38 @@ class ApplicationController < ActionController::Base
     redirect_to root_path
   end
 
+  # GET /save
+  def save
+    return redirect_to root_path, alert: "Please sign in" unless current_resonance
+
+    narrative = current_resonance.narrative_accumulation_by_day || []
+
+    # Format as plain text, just message content separated clearly
+    parts = narrative.map do |msg|
+      content = msg.is_a?(Hash) ? (msg["content"] || msg[:content]) : msg
+      text = if content.is_a?(Array)
+        content.map { |c| c.is_a?(Hash) ? (c["text"] || c[:text]) : c.to_s }.join("\n")
+      else
+        content.to_s
+      end
+      text
+    end
+
+    # Include textarea at the end if present
+    if current_resonance.textarea.present?
+      parts << current_resonance.textarea
+    end
+
+    plain_text = parts.join("\n\n---\n\n")
+
+    # Use universe_time for filename (format: "day:count")
+    filename = "yours-#{current_resonance.universe_time.gsub(':', '-')}.txt"
+
+    send_data plain_text,
+      type: "text/plain; charset=utf-8",
+      disposition: "attachment; filename=\"#{filename}\""
+  end
+
   # GET /llms.txt
   def llms_txt
     readme_content = Rails.root.join("README.md").read

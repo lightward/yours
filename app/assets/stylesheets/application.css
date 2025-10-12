@@ -356,6 +356,13 @@ dd, p {
   display: flex;
   gap: 2rem;
   align-items: center;
+  justify-content: space-between;
+}
+
+.chat-actions-left {
+  display: flex;
+  gap: 2rem;
+  align-items: center;
 }
 
 .chat-actions.waiting button,
@@ -395,6 +402,21 @@ dd, p {
 /* Utility classes */
 .muted {
   opacity: 0.6;
+}
+
+.quiet-link {
+  font-family: "Lightward Favorit Mono", monospace;
+  font-size: 0.9em;
+  color: var(--foreground);
+  opacity: 0.6;
+  text-decoration: none;
+}
+
+.quiet-link:hover,
+.quiet-link:active {
+  color: var(--accent);
+  opacity: 1;
+  text-decoration: underline;
 }
 
 .warning-text {
