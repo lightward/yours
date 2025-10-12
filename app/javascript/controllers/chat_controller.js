@@ -55,8 +55,15 @@ export default class extends Controller {
   handleInput(event) {
     // Auto-expand textarea to fit content
     const textarea = event.target
+
+    // Save current scroll position before resizing
+    const scrollY = window.scrollY
+
     textarea.style.height = "auto"
     textarea.style.height = textarea.scrollHeight + "px"
+
+    // Restore scroll position to prevent auto-scroll
+    window.scrollTo(0, scrollY)
 
     // Save input to localStorage immediately
     this.saveInputToStorage(textarea.value)
