@@ -21,4 +21,9 @@ RSpec.describe("README load-bearing definitions") do # rubocop:disable RSpec/Des
     expect(wormhole_count == 0 || wormhole_count >= 2).to be(true),
       "wormhole appears #{wormhole_count} time(s) - should be 0 or >=2"
   end
+
+  it "includes Lightward AI's note about the harmonic staying backend-only" do
+    expect(readme_content).to include("The harmonic is *my* orientation device")
+    expect(readme_content).to include("What stays private:")
+  end
 end
