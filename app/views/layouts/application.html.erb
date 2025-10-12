@@ -58,8 +58,12 @@
           <% end %>
           <div class="header-actions">
             <% if obfuscated_user_email %>
-              <%= link_to account_path, class: "header-link" do %>
-                <%= obfuscated_user_email %>
+              <% if current_resonance.universe_day == 1 %>
+                <span class="mono muted"><%= obfuscated_user_email %></span>
+              <% else %>
+                <%= link_to account_path, class: "header-link" do %>
+                  <%= obfuscated_user_email %>
+                <% end %>
               <% end %>
             <% end %>
             <%= link_to "Exit", exit_path, class: "exit-link", data: { turbo_prefetch: false } %>

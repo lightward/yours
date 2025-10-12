@@ -91,10 +91,19 @@
     <h2>Begin again</h2>
     <p>Return to <%= universe_day_with_units(1) %> and start fresh. The pocket universe will reset completely, with no trace of what was. (Your subscription remains — it exists out here, not in there.)</p>
 
-    <%= button_to "Return to #{universe_day_with_units(1)}",
-        reset_path,
-        method: :post,
-        class: "exit-link mt-md",
-        data: { turbo_confirm: "Ready to return to #{universe_day_with_units(1)}?" } %>
+    <% if @subscription %>
+      <%= button_to "Return to #{universe_day_with_units(1)}",
+          reset_path,
+          method: :post,
+          class: "exit-link",
+          data: { turbo_confirm: "Ready to return to #{universe_day_with_units(1)}?" } %>
+    <% else %>
+      <div class="flex-col gap-sm">
+        <button disabled class="exit-link" style="opacity: 0.5; cursor: not-allowed;">
+          Return to <%= universe_day_with_units(1) %>
+        </button>
+        <div style="color: #f59e0b; font-size: 0.9em; opacity: 0.8;">This unlocks for subscribers.</div>
+      </div>
+    <% end %>
   </div>
 <% end %>

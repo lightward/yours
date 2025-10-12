@@ -53,6 +53,12 @@ class ApplicationController < ActionController::Base
   def account
     return redirect_to root_path, alert: "Please sign in" unless current_resonance
 
+    # Day 1: account page doesn't exist yet
+    if current_resonance.universe_day == 1
+      render file: "#{Rails.public_path}/418.html", status: 418, layout: false
+      return
+    end
+
     @subscription = current_resonance.subscription_details
     render "application/account"
   end

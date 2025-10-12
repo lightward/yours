@@ -400,6 +400,11 @@ dd, p {
 }
 
 /* Utility classes */
+.mono {
+  font-family: "Lightward Favorit Mono", monospace;
+  font-size: 0.9em;
+}
+
 .muted {
   opacity: 0.6;
 }

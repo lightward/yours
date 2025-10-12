@@ -216,44 +216,95 @@ RSpec.describe ApplicationController, type: :request do
       end
     end
 
-    context "when authenticated with active subscription" do
+    context "on day 1" do
       before do
         sign_in_as(google_id)
-        allow_any_instance_of(Resonance).to receive(:active_subscription?).and_return(true)
+        resonance.universe_day = 1
+        resonance.save!
       end
 
-      it "shows account details" do
-        details = {
-          id: "sub_test123",
-          status: "active",
-          current_period_end: 30.days.from_now,
-          amount: 1000,
-          currency: "usd",
-          interval: "month"
-        }
-
-        allow_any_instance_of(Resonance).to receive(:subscription_details).and_return(details)
-
+      it "returns 418 I'm a teapot" do
         get account_path
-
-        expect(response).to have_http_status(:success)
-        expect(response.body).to include("Account")
+        expect(response).to have_http_status(418)
+        expect(response.body).to include("🫖")
+        expect(response.body).to include("This doesn't exist yet")
       end
     end
 
-    context "when authenticated but no active subscription" do
+    context "on day 2+" do
       before do
         sign_in_as(google_id)
-        allow_any_instance_of(Resonance).to receive(:active_subscription?).and_return(false)
+        resonance.universe_day = 2
+        resonance.save!
       end
 
-      it "shows account page with subscription buttons" do
-        get account_path
+      context "when authenticated with active subscription" do
+        before do
+          allow_any_instance_of(Resonance).to receive(:active_subscription?).and_return(true)
+        end
 
-        expect(response).to have_http_status(:success)
-        expect(response.body).to include("Not subscribed")
-        expect(response.body).to include("$1/month")
-        expect(response.body).to include("$10/month")
+        it "shows account details" do
+          details = {
+            id: "sub_test123",
+            status: "active",
+            current_period_end: 30.days.from_now,
+            amount: 1000,
+            currency: "usd",
+            interval: "month"
+          }
+
+          allow_any_instance_of(Resonance).to receive(:subscription_details).and_return(details)
+
+          get account_path
+
+          expect(response).to have_http_status(:success)
+          expect(response.body).to include("Account")
+        end
+
+        it "shows enabled 'begin again' button" do
+          details = {
+            id: "sub_test123",
+            status: "active",
+            current_period_end: 30.days.from_now,
+            amount: 1000,
+            currency: "usd",
+            interval: "month"
+          }
+          allow_any_instance_of(Resonance).to receive(:subscription_details).and_return(details)
+
+          get account_path
+
+          expect(response).to have_http_status(:success)
+          expect(response.body).to include("Begin again")
+          expect(response.body).to include("Return to 1\u00A0day")
+          expect(response.body).not_to include("This unlocks for subscribers")
+        end
+      end
+
+      context "when authenticated but no active subscription" do
+        before do
+          allow_any_instance_of(Resonance).to receive(:active_subscription?).and_return(false)
+        end
+
+        it "shows account page with subscription buttons" do
+          get account_path
+
+          expect(response).to have_http_status(:success)
+          expect(response.body).to include("Not subscribed")
+          expect(response.body).to include("$1/month")
+          expect(response.body).to include("$10/month")
+        end
+
+        it "shows disabled 'begin again' button with explanatory text" do
+          allow_any_instance_of(Resonance).to receive(:subscription_details).and_return(nil)
+
+          get account_path
+
+          expect(response).to have_http_status(:success)
+          expect(response.body).to include("Begin again")
+          expect(response.body).to include("disabled")
+          expect(response.body).to include("This unlocks for subscribers")
+        end
       end
     end
   end
@@ -565,7 +616,11 @@ RSpec.describe ApplicationController, type: :request do
     end
 
     context "when authenticated" do
-      before { sign_in_as(google_id) }
+      before do
+        sign_in_as(google_id)
+        resonance.universe_day = 2
+        resonance.save!
+      end
 
       it "creates checkout session and redirects to Stripe" do
         allow_any_instance_of(Resonance).to receive(:create_checkout_session).and_return(checkout_session)
@@ -595,7 +650,11 @@ RSpec.describe ApplicationController, type: :request do
     end
 
     context "when authenticated" do
-      before { sign_in_as(google_id) }
+      before do
+        sign_in_as(google_id)
+        resonance.universe_day = 2
+        resonance.save!
+      end
 
       context "when canceling immediately" do
         it "cancels subscription and redirects to account" do
