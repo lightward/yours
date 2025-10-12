@@ -2,7 +2,7 @@
   <canvas id="sleep-aura-canvas" class="sleep-aura-canvas"></canvas>
   <% if @integrating %>
     <div class="sleep-status-text">Integrating <%= universe_day_with_units(@universe_day) %><span class="ellipsis"></span></div>
-    <a href="<%= root_path %>" class="sleep-continue-link">Continue</a>
+    <a href="<%= root_path %>" class="sleep-continue-link" data-turbo="false">Continue</a>
   <% else %>
     <div class="sleep-status-text"><%= universe_day_with_units(@universe_day) %> rests. The space breathes.</div>
   <% end %>

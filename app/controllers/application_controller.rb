@@ -160,9 +160,9 @@ class ApplicationController < ActionController::Base
         return redirect_to root_path, alert: "Active subscription required"
       end
 
-      # Capture universe_time before integration
-      @starting_universe_time = current_resonance.universe_time
-      @integrating = true
+      # Capture universe_time before integration and store in session
+      session[:sleep_starting_universe_time] = current_resonance.universe_time
+      session[:sleep_integrating] = true
 
       # Kick off integration in background thread
       google_id = session[:google_id] # Capture for thread
@@ -187,12 +187,17 @@ class ApplicationController < ActionController::Base
         Rollbar.error(e)
         Rails.logger.error "Background integration error: #{e.message}"
       end
-    else
-      # GET request - just viewing
-      @integrating = false
+
+      # Redirect to GET /sleep to avoid form resubmission issues
+      redirect_to sleep_path
+      return
     end
 
+    # GET request - check if we're integrating from session
+    @integrating = session.delete(:sleep_integrating) || false
+    @starting_universe_time = session.delete(:sleep_starting_universe_time) || current_resonance.universe_time
     @universe_day = current_resonance.universe_day
+
     render "application/sleep", layout: "sleep"
   end
 

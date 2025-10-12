@@ -22,6 +22,6 @@
         sleep_path,
         method: :post,
         class: "exit-link eod",
-        form: { data: { turbo: false }, onsubmit: "return confirm('Ready to move to day #{current_resonance.universe_day + 1}?')" } %>
+        form: { data: { turbo_confirm: "Ready to move to day #{current_resonance.universe_day + 1}?" } } %>
   </div>
 </div>
