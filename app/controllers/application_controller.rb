@@ -3,7 +3,8 @@ class ApplicationController < ActionController::Base
 
   # Only allow modern browsers supporting webp images, web push, badges, import maps, CSS nesting, and CSS :has.
   # Skip for index action to allow social media crawlers to read meta tags
-  allow_browser versions: :modern, except: :index
+  # Skip for llms_txt to allow LLM crawlers to read documentation
+  allow_browser versions: :modern, except: [:index, :llms_txt]
 
   before_action :verify_host!
 
@@ -269,6 +270,12 @@ class ApplicationController < ActionController::Base
     current_resonance.save!
 
     redirect_to root_path
+  end
+
+  # GET /llms.txt
+  def llms_txt
+    readme_content = Rails.root.join("README.md").read
+    render plain: readme_content, content_type: "text/plain"
   end
 
   private

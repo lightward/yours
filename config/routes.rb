@@ -14,4 +14,5 @@ Rails.application.routes.draw do
   post "subscription", to: "application#create_subscription"
   delete "subscription", to: "application#destroy_subscription"
   post "reset", to: "application#reset"
+  get "llms.txt", to: "application#llms_txt"
 end
