@@ -12,8 +12,9 @@ RSpec.describe("README load-bearing definitions") do # rubocop:disable RSpec/Des
     )
   end
 
-  it "references Braid as gameplay comparison" do
-    expect(readme_content).to include("Braid")
+  it "references Braid as design comparison and clarifies not-a-game framing" do
+    expect(readme_content).to include("Think Braid")
+    expect(readme_content).to include("We're not presenting this as a game")
   end
 
   it "uses 'wormhole' zero times or at least twice (never introduced only once)" do

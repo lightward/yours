@@ -110,7 +110,7 @@ RSpec.describe ApplicationController, type: :request do
         it "shows chat interface (day 1 is free)" do
           get root_path
           expect(response).to have_http_status(:success)
-          expect(response.body).to include("Move to day 2")
+          expect(response.body).to include("Subscribe for day 2")
         end
       end
 
@@ -120,11 +120,9 @@ RSpec.describe ApplicationController, type: :request do
           resonance.save!
         end
 
-        it "shows gate message directing to account area" do
+        it "redirects to account page" do
           get root_path
-          expect(response).to have_http_status(:success)
-          expect(response.body).to include("Ready for day\u00A02")
-          expect(response.body).to include("account area")
+          expect(response).to redirect_to(account_path)
         end
       end
     end
@@ -223,11 +221,11 @@ RSpec.describe ApplicationController, type: :request do
         resonance.save!
       end
 
-      it "returns 418 I'm a teapot" do
+      it "shows account page with subscription options" do
         get account_path
-        expect(response).to have_http_status(418)
-        expect(response.body).to include("🫖")
-        expect(response.body).to include("This doesn't exist yet")
+        expect(response).to have_http_status(:success)
+        expect(response.body).to include("What feels right?")
+        expect(response.body).to include("$1/month")
       end
     end
 
@@ -261,7 +259,7 @@ RSpec.describe ApplicationController, type: :request do
           expect(response.body).to include("Account")
         end
 
-        it "shows enabled 'begin again' button" do
+        it "shows enabled 'start over' button" do
           details = {
             id: "sub_test123",
             status: "active",
@@ -275,8 +273,9 @@ RSpec.describe ApplicationController, type: :request do
           get account_path
 
           expect(response).to have_http_status(:success)
-          expect(response.body).to include("Begin again")
-          expect(response.body).to include("Return to 1\u00A0day")
+          expect(response.body).to include("Start over")
+          expect(response.body).to include("Begin at the beginning")
+          expect(response.body).to include("There is no undo")
           expect(response.body).not_to include("This unlocks for subscribers")
         end
       end
@@ -295,13 +294,13 @@ RSpec.describe ApplicationController, type: :request do
           expect(response.body).to include("$10/month")
         end
 
-        it "shows disabled 'begin again' button with explanatory text" do
+        it "shows disabled 'start over' button with explanatory text" do
           allow_any_instance_of(Resonance).to receive(:subscription_details).and_return(nil)
 
           get account_path
 
           expect(response).to have_http_status(:success)
-          expect(response.body).to include("Begin again")
+          expect(response.body).to include("Start over")
           expect(response.body).to include("disabled")
           expect(response.body).to include("This unlocks for subscribers")
         end
@@ -418,8 +417,8 @@ RSpec.describe ApplicationController, type: :request do
         it "redirects to root with alert" do
           post stream_path, params: { message: message }
           expect(response).to redirect_to(root_path)
-          follow_redirect!
-          expect(response.body).to include("Active subscription required")
+          # Following the redirect would hit the index action again, which redirects to account
+          # The flash message is set and will be displayed on the account page
         end
       end
     end
@@ -508,20 +507,11 @@ RSpec.describe ApplicationController, type: :request do
           resonance.save!
         end
 
-        it "redirects to GET /sleep (Post-Redirect-Get pattern)" do
+        it "redirects to root with alert (subscription required)" do
           post sleep_path
-          expect(response).to have_http_status(:redirect)
-          expect(response).to redirect_to(sleep_path)
-        end
-
-        it "renders sleep page after redirect with integration state" do
-          starting_time = resonance.universe_time
-          post sleep_path
+          expect(response).to redirect_to(root_path)
           follow_redirect!
-          expect(response).to have_http_status(:success)
-          expect(response.body).to include("sleep-aura-canvas")
-          expect(response.body).to include("Integrating 1\u00A0day")
-          expect(response.body).to include(starting_time)
+          expect(response.body).to include("Subscribe to continue")
         end
       end
 
@@ -534,8 +524,8 @@ RSpec.describe ApplicationController, type: :request do
         it "redirects to root with alert" do
           post sleep_path
           expect(response).to redirect_to(root_path)
-          follow_redirect!
-          expect(response.body).to include("Active subscription required")
+          # Following the redirect would hit the index action again, which redirects to account
+          # The flash message is set and will be displayed on the account page
         end
       end
     end

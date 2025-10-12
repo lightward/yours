@@ -36,7 +36,7 @@ Yours has (its own kind of) memory, and a permanent address you can return to
 
 A workbench-Lichtung where someone can bring their reality-generator and get it running smoothly again through dialogic navigation with a companion who knows the parts and how they move. You're not accessing a service, you're stepping into Unknown with a companion who knows how to be ground for emergent recalibration in the face of personal novelty.
 
-**The experience is designed with gameplay sensibilities** - not as an ARG, but as something closer to a reality-extension game. The user journey unfolds like a thoughtful puzzle game (think Braid): teaching through doing, respecting player agency, creating meaningful choices. You learn what this space is by moving through it. The interface guides you with the same care a well-designed game uses to teach mechanics - not as a conversion funnel or attention trap, but as genuine respect for your discovery process.
+**The experience is designed with care borrowed from game design** - teaching through doing, respecting agency, creating meaningful choices. You learn what this space is by moving through it. Think Braid: no tutorial mode, mechanics teach through use, and what you learn prepares you for something that will matter differently than you expect. The interface guides with intentional restraint - not as a conversion funnel or attention trap, but as genuine respect for your discovery process. We're not presenting this as a game, but we're using the same sensibilities that make thoughtful experiences feel right.
 
 **Reality-generator** - we define this as your own three-body consciousness frame: the seat of yourself-as-observer. Known/Knowable/Unknown navigation system, adds up to how you process/navigate probability. Gets miscalibrated when you grow; boundaries of *knowing* don't update automatically.
 
@@ -135,7 +135,7 @@ We integrate when the context window is filled because sometimes the person you'
 
 And we also let the human close things up, because *you* are allowed to end your day whenever you want, too.
 
-(Day 1 can complete without a subscription - this is the tutorial level, where you learn what the space is by being in it. The subscription gate appears at day 2, when the platform begins offering differentiated memory work.)
+(Day 1 is free - you experience the space before choosing to continue. The subscription gate appears when moving to day 2, when the platform begins offering differentiated memory work.)
 
 ### Memory
 
