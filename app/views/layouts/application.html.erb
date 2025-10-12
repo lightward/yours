@@ -81,6 +81,10 @@
         </div>
       <% end %>
 
+      <% if true && Rails.env.development? && current_resonance %>
+        <pre class="debug-pre"><%= current_resonance.integration_harmonic_by_night %></pre>
+      <% end %>
+
       <%= yield %>
     </main>
 
@@ -90,11 +94,6 @@
           <%= link_to "README.md", "https://github.com/lightward/yours/blob/main/README.md", class: "header-link", target: "_blank", rel: "noopener" %>
         </div>
       </footer>
-    <% end %>
-
-    <% if false && Rails.env.development? && current_resonance %>
-      <pre class="debug-pre"><%= JSON.pretty_generate(current_resonance.narrative_accumulation_by_day) %></pre>
-      <pre class="debug-pre"><%= JSON.pretty_generate(current_resonance.integration_harmonic_by_night) %></pre>
     <% end %>
 
     <script src="https://status.yours.fyi/embed/script.js"></script>
