@@ -1,4 +1,4 @@
-# Yours.fyi 無
+# Yours 無
 
 you can't see uncertainty, because uncertainty does not interrupt attention - you end up with a post-hoc rendering *over* the uncertainty-surfaces your attention passes by, rendered in accord to whatever expectations are load-bearing for your attention's next place of rest.
 
