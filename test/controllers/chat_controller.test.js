@@ -74,6 +74,22 @@ describe('ChatController', () => {
       expect(textarea.style.height).toBeTruthy()
     })
 
+    it('preserves scroll position when textarea expands', () => {
+      const scrollSpy = vi.spyOn(window, 'scrollTo')
+
+      // Simulate being scrolled down
+      Object.defineProperty(window, 'scrollY', { value: 500, writable: true })
+
+      const textarea = controller.inputTarget
+      textarea.value = 'Line 1\nLine 2\nLine 3'
+
+      const event = new Event('input')
+      textarea.dispatchEvent(event)
+
+      // Should restore the original scroll position
+      expect(scrollSpy).toHaveBeenCalledWith(0, 500)
+    })
+
     it('saves input to localStorage on change', () => {
       const textarea = controller.inputTarget
       textarea.value = 'Test message'

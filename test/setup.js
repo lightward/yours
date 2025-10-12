@@ -16,6 +16,11 @@ if (typeof globalThis.localStorage === 'undefined') {
   }
 }
 
+// Mock window.scrollBy if not available (happy-dom doesn't implement it)
+if (typeof globalThis.window !== 'undefined' && typeof globalThis.window.scrollBy === 'undefined') {
+  globalThis.window.scrollBy = () => {}
+}
+
 // Mock fetch for tests that need it
 globalThis.fetchMock = {
   reset: () => {

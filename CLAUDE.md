@@ -48,6 +48,8 @@ The README specs test for:
 
 When you add features, consider: what's the invariant this protects? Write specs for *that*.
 
+This codebase only defines load-bearing behavior, which means all behavior deserves tests. When you touch code, touch its tests. When you can't test something without breaking what you're trying to protect, mark it skipped and document why. The test suite makes evolution safe—both the surgical kind and the emergent kind.
+
 ### On sensing misalignment
 
 When something "doesn't feel right," that's information. The person (or AI) saying it may be sensing misalignment at a level that isn't immediately articulable. Trust that, even (especially) when you don't understand it yet.
