@@ -773,4 +773,30 @@ RSpec.describe ApplicationController, type: :request do
       end
     end
   end
+
+  describe "GET /llms.txt" do
+    it "returns README content as plain text" do
+      get "/llms.txt"
+
+      expect(response).to have_http_status(:success)
+      expect(response.content_type).to eq("text/plain; charset=utf-8")
+      expect(response.body).to include("# Yours 無")
+      expect(response.body).to include("workbench-Lichtung")
+    end
+
+    it "serves complete README content" do
+      readme_content = Rails.root.join("README.md").read
+      get "/llms.txt"
+
+      expect(response.body).to eq(readme_content)
+    end
+
+    it "is publicly accessible without authentication" do
+      # No sign-in needed
+      get "/llms.txt"
+
+      expect(response).to have_http_status(:success)
+      expect(response).not_to redirect_to(root_path)
+    end
+  end
 end
