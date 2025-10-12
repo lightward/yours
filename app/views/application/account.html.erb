@@ -32,7 +32,7 @@
               class: "exit",
               data: { turbo_confirm: "End access now? This cannot be undone." } %>
           <div class="mt-sm muted">
-            After canceling immediately, you'll be able to start a new subscription
+            After canceling immediately, you'll be able to start a new subscription.
           </div>
         </dd>
       <% else %>
@@ -44,7 +44,7 @@
               class: "exit",
               data: { turbo_confirm: "Cancel your subscription? You'll have access until the end of your billing period." } %>
           <div class="mt-sm muted">
-            You'll have access until the end of your billing period
+            You'll have access until the end of your billing period.
           </div>
         </dd>
       <% end %>
@@ -80,24 +80,23 @@
   <% end %>
 </div>
 
-<% if current_resonance.universe_day > 1 %>
-  <div class="section-divider flex-col gap-sm">
-    <h2>Begin again</h2>
-    <p>Return to <%= universe_day_with_units(1) %> and start fresh. The pocket universe will reset completely, with no trace of what was. (Your subscription remains — it exists out here, not in there.)</p>
+<div class="section-divider flex-col gap-sm">
+  <h2>Start over</h2>
+  <p>Begin at the beginning, at the dawn of <%= universe_day_with_units(1) %>, with no trace of what was.</p>
 
-    <% if @subscription %>
-      <%= button_to "Return to #{universe_day_with_units(1)}",
-          reset_path,
-          method: :post,
-          class: "exit-link",
-          data: { turbo_confirm: "Ready to return to #{universe_day_with_units(1)}?" } %>
-    <% else %>
-      <div class="flex-col gap-sm items-start">
-        <button disabled class="exit-link" style="opacity: 0.5; cursor: not-allowed;">
-          Return to <%= universe_day_with_units(1) %>
-        </button>
-        <p class="mt-sm" style="color: #f59e0b;">This unlocks for subscribers.</p>
-      </div>
-    <% end %>
-  </div>
-<% end %>
+  <% if @subscription %>
+    <%= button_to "Start over",
+        reset_path,
+        method: :post,
+        class: "exit-link",
+        data: { turbo_confirm: "Start over?" } %>
+    <p><span class="warning-amber">There is no undo.</span> <span class="muted">This does not affect your subscription.</span></p>
+  <% else %>
+    <div class="flex-col gap-sm items-start">
+      <button disabled class="exit-link" style="opacity: 0.5; cursor: not-allowed;">
+        Start over
+      </button>
+      <p class="mt-sm warning-amber">This unlocks for subscribers.</p>
+    </div>
+  <% end %>
+</div>

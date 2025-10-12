@@ -432,6 +432,10 @@ dd, p {
   color: var(--warning);
 }
 
+.warning-amber {
+  color: #f59e0b;
+}
+
 .error-text {
   color: var(--error);
 }

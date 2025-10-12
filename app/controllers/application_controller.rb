@@ -53,12 +53,6 @@ class ApplicationController < ActionController::Base
   def account
     return redirect_to root_path, alert: "Please sign in" unless current_resonance
 
-    # Day 1: account page doesn't exist yet
-    if current_resonance.universe_day == 1
-      render file: "#{Rails.public_path}/418.html", status: 418, layout: false
-      return
-    end
-
     @subscription = current_resonance.subscription_details
     render "application/account"
   end
@@ -162,8 +156,8 @@ class ApplicationController < ActionController::Base
 
     # POST triggers integration, GET is just contemplative viewing
     if request.post?
-      # Day 1 is free - subscription only required for day 2+
-      unless current_resonance.universe_day == 1 || current_resonance.active_subscription?
+      # Subscription required to move forward
+      unless current_resonance.active_subscription?
         return redirect_to root_path, alert: "Active subscription required"
       end
 
