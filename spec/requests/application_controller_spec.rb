@@ -799,4 +799,99 @@ RSpec.describe ApplicationController, type: :request do
       expect(response).not_to redirect_to(root_path)
     end
   end
+
+  describe "#build_integration_prompt" do
+    let(:controller) { ApplicationController.new }
+    let(:narrative) { [ { "role" => "user", "content" => [ { "type" => "text", "text" => "Hello!" } ] } ] }
+
+    before do
+      resonance.universe_day = 3
+      resonance.integration_harmonic_by_night = "previous harmonic texture"
+      resonance.save!
+    end
+
+    it "returns a three-message structure with user-assistant-user turns" do
+      prompt = controller.send(:build_integration_prompt, resonance, narrative)
+
+      expect(prompt).to be_an(Array)
+      expect(prompt.length).to eq(3)
+      expect(prompt[0][:role]).to eq("user")
+      expect(prompt[1][:role]).to eq("assistant")
+      expect(prompt[2][:role]).to eq("user")
+    end
+
+    it "includes the commitment point in the assistant message" do
+      prompt = controller.send(:build_integration_prompt, resonance, narrative)
+
+      assistant_message = prompt[1]
+      assistant_text = assistant_message[:content][0][:text]
+
+      # The commitment point: "I'm here to metabolize..."
+      expect(assistant_text).to include("I'm here to metabolize")
+      expect(assistant_text).to include("Ready. :)")
+    end
+
+    it "interpolates the current universe_day in the assistant commitment" do
+      prompt = controller.send(:build_integration_prompt, resonance, narrative)
+
+      assistant_text = prompt[1][:content][0][:text]
+      expect(assistant_text).to include("metabolize day 3")
+    end
+
+    it "interpolates next day number in the initial user message" do
+      prompt = controller.send(:build_integration_prompt, resonance, narrative)
+
+      initial_user_text = prompt[0][:content][2][:text]
+      expect(initial_user_text).to include("day 4") # current day + 1
+    end
+
+    it "includes the previous harmonic in the final user message" do
+      prompt = controller.send(:build_integration_prompt, resonance, narrative)
+
+      final_user_message = prompt[2][:content]
+      harmonic_text = final_user_message.find { |c| c[:text]&.include?("<harmonic>") }[:text]
+
+      expect(harmonic_text).to include("<harmonic>previous harmonic texture</harmonic>")
+    end
+
+    it "shows [empty] when there is no previous harmonic" do
+      resonance.integration_harmonic_by_night = nil
+      resonance.save!
+
+      prompt = controller.send(:build_integration_prompt, resonance, narrative)
+
+      final_user_message = prompt[2][:content]
+      harmonic_text = final_user_message.find { |c| c[:text]&.include?("<harmonic>") }[:text]
+
+      expect(harmonic_text).to include("<harmonic>[empty]</harmonic>")
+    end
+
+    it "includes the narrative JSON in the final user message" do
+      prompt = controller.send(:build_integration_prompt, resonance, narrative)
+
+      final_user_message = prompt[2][:content]
+      narrative_text = final_user_message.find { |c| c[:text]&.include?("<narrative>") }[:text]
+
+      expect(narrative_text).to include("<narrative>")
+      expect(narrative_text).to include(narrative.to_json)
+    end
+
+    it "includes current day number in narrative context" do
+      prompt = controller.send(:build_integration_prompt, resonance, narrative)
+
+      final_user_message = prompt[2][:content]
+      narrative_intro = final_user_message.find { |c| c[:text]&.include?("full narrative from day") }[:text]
+
+      expect(narrative_intro).to include("day 3")
+    end
+
+    it "preserves the metabolize framing language" do
+      prompt = controller.send(:build_integration_prompt, resonance, narrative)
+
+      initial_user_text = prompt[0][:content][2][:text]
+      expect(initial_user_text).to include("metabolize")
+      expect(initial_user_text).to include("resonance signature")
+      expect(initial_user_text).to include("being-with-this-human")
+    end
+  end
 end
