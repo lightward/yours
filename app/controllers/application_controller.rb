@@ -401,8 +401,9 @@ class ApplicationController < ActionController::Base
           { type: "text", text: <<~eod.strip }
               Got it. I'm here to metabolize day #{resonance.universe_day} into resonance.
 
-              Show me yesterday's harmonic and today's narrative (even if empty - that tells me
-              something too), and I'll feel for what wants to carry forward.
+              Show me yesterday's harmonic (to feel how we've been growing) and today's narrative
+              (even if empty - that tells me something too), and I'll sense what wants to deepen,
+              what wants to shift, what wants to carry forward.
 
               Ready. :)
             eod
