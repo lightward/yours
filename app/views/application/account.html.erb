@@ -55,7 +55,7 @@
       <dt>Manage:</dt>
       <dd>
         <div class="flex-col gap-sm">
-          <div>All tiers provide identical access – this number is you signaling to yourself what this means to you.</div>
+          <div>All tiers provide identical access — this number is you signaling to yourself what this means to you.</div>
 
           <div class="flex-row gap-md">
             <%= form_with url: subscription_path, method: :post, data: { turbo: false } do |f| %>
@@ -89,7 +89,7 @@
 <% if current_resonance.universe_day > 1 %>
   <div class="section-divider flex-col gap-sm">
     <h2>Begin again</h2>
-    <p>Return to <%= universe_day_with_units(1) %> and start fresh. The pocket universe will reset completely - no trace of what was. (Your subscription remains - it exists out here, not in there.)</p>
+    <p>Return to <%= universe_day_with_units(1) %> and start fresh. The pocket universe will reset completely, with no trace of what was. (Your subscription remains — it exists out here, not in there.)</p>
 
     <%= button_to "Return to #{universe_day_with_units(1)}",
         reset_path,
