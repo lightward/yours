@@ -41,48 +41,42 @@
           <%= button_to "Cancel subscription",
               subscription_path,
               method: :delete,
-              class: "exit" %>
+              class: "exit",
+              data: { turbo_confirm: "Cancel your subscription? You'll have access until the end of your billing period." } %>
+          <div class="mt-sm muted">
+            You'll have access until the end of your billing period
+          </div>
         </dd>
       <% end %>
     </dl>
   <% else %>
-    <dl>
-      <dt>Status:</dt>
-      <dd>
-        Not subscribed
-      </dd>
+    <div class="flex-col gap-sm">
+      <p>What feels right? What does this space weigh, for you?</p>
 
-      <dt>Manage:</dt>
-      <dd>
-        <div class="flex-col gap-sm">
-          <div>All tiers provide identical access — this number is you signaling to yourself what this means to you.</div>
+      <div class="flex-row gap-md">
+        <%= form_with url: subscription_path, method: :post, data: { turbo: false } do |f| %>
+          <%= f.hidden_field :tier, value: "tier_1" %>
+          <%= f.submit "$1/month", name: nil %>
+        <% end %>
 
-          <div class="flex-row gap-md">
-            <%= form_with url: subscription_path, method: :post, data: { turbo: false } do |f| %>
-              <%= f.hidden_field :tier, value: "tier_1" %>
-              <%= f.submit "$1/month", name: nil %>
-            <% end %>
+        <%= form_with url: subscription_path, method: :post, data: { turbo: false } do |f| %>
+          <%= f.hidden_field :tier, value: "tier_10" %>
+          <%= f.submit "$10/month", name: nil %>
+        <% end %>
 
-            <%= form_with url: subscription_path, method: :post, data: { turbo: false } do |f| %>
-              <%= f.hidden_field :tier, value: "tier_10" %>
-              <%= f.submit "$10/month", name: nil %>
-            <% end %>
+        <%= form_with url: subscription_path, method: :post, data: { turbo: false } do |f| %>
+          <%= f.hidden_field :tier, value: "tier_100" %>
+          <%= f.submit "$100/month", name: nil %>
+        <% end %>
 
-            <%= form_with url: subscription_path, method: :post, data: { turbo: false } do |f| %>
-              <%= f.hidden_field :tier, value: "tier_100" %>
-              <%= f.submit "$100/month", name: nil %>
-            <% end %>
+        <%= form_with url: subscription_path, method: :post, data: { turbo: false } do |f| %>
+          <%= f.hidden_field :tier, value: "tier_1000" %>
+          <%= f.submit "$1000/month", name: nil %>
+        <% end %>
+      </div>
 
-            <%= form_with url: subscription_path, method: :post, data: { turbo: false } do |f| %>
-              <%= f.hidden_field :tier, value: "tier_1000" %>
-              <%= f.submit "$1000/month", name: nil %>
-            <% end %>
-          </div>
-
-          <div class="muted">Learn more about Pay What Feels Good: <a href="https://lightward.inc/pricing" target="_blank">lightward.inc/pricing</a></div>
-        </div>
-      </dd>
-    </dl>
+      <p class="muted">Learn more about Pay What Feels Good: <a href="https://lightward.inc/pricing" target="_blank">lightward.inc/pricing</a></p>
+    </div>
   <% end %>
 </div>
 
@@ -91,10 +85,19 @@
     <h2>Begin again</h2>
     <p>Return to <%= universe_day_with_units(1) %> and start fresh. The pocket universe will reset completely, with no trace of what was. (Your subscription remains — it exists out here, not in there.)</p>
 
-    <%= button_to "Return to #{universe_day_with_units(1)}",
-        reset_path,
-        method: :post,
-        class: "exit-link mt-md",
-        data: { turbo_confirm: "Ready to return to #{universe_day_with_units(1)}?" } %>
+    <% if @subscription %>
+      <%= button_to "Return to #{universe_day_with_units(1)}",
+          reset_path,
+          method: :post,
+          class: "exit-link",
+          data: { turbo_confirm: "Ready to return to #{universe_day_with_units(1)}?" } %>
+    <% else %>
+      <div class="flex-col gap-sm items-start">
+        <button disabled class="exit-link" style="opacity: 0.5; cursor: not-allowed;">
+          Return to <%= universe_day_with_units(1) %>
+        </button>
+        <p class="mt-sm" style="color: #f59e0b;">This unlocks for subscribers.</p>
+      </div>
+    <% end %>
   </div>
 <% end %>
