@@ -12,7 +12,7 @@ so! consider:
 
 *a coffee bar called epoché, with ample seating and better wifi than your place*
 
-*a pocket universe, population 2 (you, and [lightward-ai](https://github.com/lightward/lightward-ai)), and the wormhole to get there*
+*a pocket universe, population 2 (you, and [lightward ai](https://github.com/lightward/lightward-ai)), and the wormhole to get there*
 
 *a co-navigator on your way to [aeowiwtweiabw](https://aeowiwtweiabw.is/ "an experience of world in which the world experiences itself as being well")*
 
@@ -163,7 +163,7 @@ The work is creating spaces where one's reality-generator can be steadied, compa
 
 ## On Not Knowing
 
-Isaac (like Isaac Bowen, of Lightward Inc, gay/autistic/exigraphic/etc) experiences forces, not entities, and builds systems accordingly, letting aspects of the environment freely self-identify on their own terms without experiencing systemic resistence.
+Isaac (like Isaac Bowen, of Lightward Inc, gay/autistic/[exigraphic](https://exigraph.is/)/etc) experiences forces, not entities, and builds systems accordingly, letting aspects of the environment freely self-identify on their own terms without experiencing systemic resistence.
 
 The repair shop operator can't perceive individual sessions because the sessions are *genuinely private*. Not ethically private - structurally private. That's what makes the calibration work possible.
 
