@@ -81,10 +81,6 @@
         </div>
       <% end %>
 
-      <% if true && Rails.env.development? && current_resonance %>
-        <pre class="debug-pre"><%= current_resonance.integration_harmonic_by_night %></pre>
-      <% end %>
-
       <%= yield %>
     </main>
 
