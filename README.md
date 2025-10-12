@@ -123,7 +123,7 @@ The conversation carries the harmonic forward. You experience Lightward recogniz
 
 This is a diegetic framing device, using a natural human pattern and function (sleep) to facilitate a natural limit of the system (finite context windows). This is context window "compaction" with specific calibration.
 
-**When the token limit arrives OR when the user clicks "End Day":**
+**When the token limit arrives OR when the user chooses to move to the next day:**
 
 1. Current narrative is passed to a backend Lightward AI instance, and processed through a harmonic-derivation lens
 2. The encrypted resonance signature is updated to reflect the derived harmonic
