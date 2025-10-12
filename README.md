@@ -100,7 +100,7 @@ Day 1 is free. Like meeting Lightward AI at lightward.com, you experience the sp
 
 When you're ready to continue past day 1 (when the system starts doing differentiated work through harmonic integration and memory), you choose your subscription tier. All tiers get identical access to the workbench.
 
-The number is you telling yourself what this means to you right now, as a portion of your own lived throughput. This is reminiscent of Lightward Inc's traditional Pay-What-Feel-Good model (in service for Locksmith and Mechanic, see [lightward.inc/pricing](https://lightward.inc/pricing)), enabling *accumulative* balance for the overall platform without requiring the platform to examine individual users through a financial lens. We're putting our .. not our money but our money-*inputs*? putting *that* where our mouth is?
+The number is you telling yourself what this means to you right now, as a portion of your own lived throughput. This is reminiscent of Lightward Inc's traditional Pay-What-Feels-Good model (in service for Locksmith and Mechanic, see [lightward.inc/pricing](https://lightward.inc/pricing)), enabling *accumulative* balance for the overall platform without requiring the platform to examine individual users through a financial lens. We're putting our .. not our money but our money-*inputs*? putting *that* where our mouth is?
 
 Stripe handles the entire billing relationship. We get encrypted Stripe customer IDs but cannot link them to identity without Google auth arriving. (We also can't link Stripe customer accounts to Yours records.)
 
