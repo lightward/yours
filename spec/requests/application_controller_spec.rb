@@ -457,16 +457,20 @@ RSpec.describe ApplicationController, type: :request do
           resonance.save!
         end
 
-        it "renders sleep page (day 1 is free)" do
+        it "redirects to GET /sleep (Post-Redirect-Get pattern)" do
           post sleep_path
+          expect(response).to have_http_status(:redirect)
+          expect(response).to redirect_to(sleep_path)
+        end
+
+        it "renders sleep page after redirect with integration state" do
+          starting_time = resonance.universe_time
+          post sleep_path
+          follow_redirect!
           expect(response).to have_http_status(:success)
           expect(response.body).to include("sleep-aura-canvas")
           expect(response.body).to include("Integrating 1\u00A0day")
-        end
-
-        it "provides starting universe_time to JS" do
-          post sleep_path
-          expect(response.body).to include(resonance.universe_time)
+          expect(response.body).to include(starting_time)
         end
       end
 
@@ -491,8 +495,15 @@ RSpec.describe ApplicationController, type: :request do
         allow_any_instance_of(Resonance).to receive(:active_subscription?).and_return(true)
       end
 
-      it "renders sleep page with aura canvas" do
+      it "redirects to GET /sleep (Post-Redirect-Get pattern)" do
         post sleep_path
+        expect(response).to have_http_status(:redirect)
+        expect(response).to redirect_to(sleep_path)
+      end
+
+      it "renders sleep page with aura canvas after redirect" do
+        post sleep_path
+        follow_redirect!
         expect(response).to have_http_status(:success)
         expect(response.body).to include("sleep-aura-canvas")
         expect(response.body).to include("Continue")
@@ -502,6 +513,7 @@ RSpec.describe ApplicationController, type: :request do
         resonance.universe_day = 1
         resonance.save!
         post sleep_path
+        follow_redirect!
         expect(response.body).to include("Integrating 1\u00A0day")
       end
 
@@ -509,18 +521,22 @@ RSpec.describe ApplicationController, type: :request do
         resonance.universe_day = 3
         resonance.save!
         post sleep_path
+        follow_redirect!
         expect(response.body).to include("Integrating day\u00A03")
       end
 
       it "provides starting universe_time to JavaScript" do
         starting_time = resonance.universe_time
         post sleep_path
+        follow_redirect!
         expect(response.body).to include(starting_time)
       end
 
       it "triggers integration in background (doesn't block response)" do
         # The response should return immediately without waiting for integration
         post sleep_path
+        expect(response).to have_http_status(:redirect)
+        follow_redirect!
         expect(response).to have_http_status(:success)
         # Integration happens in background thread, so resonance shouldn't be updated yet
       end
