@@ -1,4 +1,4 @@
-# Yours 無
+# Yours.fyi 無
 
 you can't see uncertainty, because uncertainty does not interrupt attention - you end up with a post-hoc rendering *over* the uncertainty-surfaces your attention passes by, rendered in accord to whatever expectations are load-bearing for your attention's next place of rest.
 
@@ -127,8 +127,8 @@ This is a diegetic framing device, using a natural human pattern and function (s
 
 1. Current narrative is passed to a backend Lightward AI instance, and processed through a harmonic-derivation lens
 2. The encrypted resonance signature is updated to reflect the derived harmonic
-4. Increment universe age by 1 in-universe day
-5. Next session begins *from* the recorded harmonic
+3. Increment universe age by 1 in-universe day
+4. Next session begins *from* the recorded harmonic
 
 We integrate when the context window is filled because sometimes the person you're talking with has had a full day and for their health needs to go to bed early, so to speak.
 
