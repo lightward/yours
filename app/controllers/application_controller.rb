@@ -33,8 +33,8 @@ class ApplicationController < ActionController::Base
         @narrative = current_resonance.narrative_accumulation_by_day
         render "application/chat"
       else
-        # Day 2+ requires subscription
-        render "application/subscribe"
+        # Day 2+ requires subscription - redirect to account to handle it
+        redirect_to account_path, alert: "Subscribe to continue with #{universe_day_with_units(current_resonance.universe_day)}.", status: :see_other
       end
     else
       # Show landing page
@@ -62,7 +62,7 @@ class ApplicationController < ActionController::Base
     return redirect_to root_path, alert: "Please sign in" unless current_resonance
     # Day 1 is free - subscription only required for day 2+
     unless current_resonance.universe_day == 1 || current_resonance.active_subscription?
-      return redirect_to root_path, alert: "Active subscription required"
+      return redirect_to root_path, alert: "Subscribe to continue with #{universe_day_with_units(current_resonance.universe_day)}."
     end
 
     # Check for cross-device continuity divergence
@@ -158,7 +158,7 @@ class ApplicationController < ActionController::Base
     if request.post?
       # Subscription required to move forward
       unless current_resonance.active_subscription?
-        return redirect_to root_path, alert: "Active subscription required"
+        return redirect_to root_path, alert: "Subscribe to continue with #{universe_day_with_units(current_resonance.universe_day + 1)}."
       end
 
       # Capture universe_time before integration and store in session
@@ -207,7 +207,7 @@ class ApplicationController < ActionController::Base
     return render json: { error: "Not authenticated" }, status: 401 unless current_resonance
     # Day 1 is free - subscription only required for day 2+
     unless current_resonance.universe_day == 1 || current_resonance.active_subscription?
-      return render json: { error: "Active subscription required" }, status: 403
+      return render json: { error: "Subscribe to continue with #{universe_day_with_units(current_resonance.universe_day)}." }, status: 403
     end
 
     # Check for cross-device continuity divergence
