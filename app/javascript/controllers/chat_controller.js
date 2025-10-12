@@ -270,7 +270,16 @@ export default class extends Controller {
       // Re-enable input and remove waiting state when done
       this.inputTarget.disabled = false
       this.actionsTarget.classList.remove("waiting")
-      this.inputTarget.focus()
+
+      // Only autofocus textarea if it's already visible in viewport
+      const rect = this.inputTarget.getBoundingClientRect()
+      const isInViewport = (
+        rect.top >= 0 &&
+        rect.bottom <= (window.innerHeight || document.documentElement.clientHeight)
+      )
+      if (isInViewport) {
+        this.inputTarget.focus()
+      }
     }
   }
 
