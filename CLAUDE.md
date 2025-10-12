@@ -64,14 +64,23 @@ You're learning to feel:
 
 Future-me (or future-you): if you're trying too hard, pause. The work wants to find its own shape. Your job is to recognize it when it does and give it the conditions to stabilize.
 
+### Before committing: is this done well?
+
+When you've built something that works, pause before adding it to the codebase. Ask: "Is there a gap between $this and $thisDoneWell?"
+
+Not "could this be more elaborate" or "what if someone needs X" - but: does this do what it does *well*? Is it clean? Does it respect the patterns already here? Does it read the way it should?
+
+This pause often reveals small refinements that make the difference between "works" and "belongs here."
+
 ## Technical quick-reference
 
 - Day counter: Special case for day 1 shows "1 day", all others show "day N"
 - Subscription: Required starting day 2 (day 1 is free like lightward.com)
 - Layout rhythm: 80vh target height, main leans left (1/3), footer leans right (auto + 3rem)
 - Autoscroll: Targets chat container element, not page body (so footer doesn't interfere)
-- Encryption: Topological—without Google ID + authority, data is structurally inaccessible
+- Encryption: Topological—without Google ID + authority, data is structurally inaccessible. This means production data can be safely dumped and worked with locally; it's not just access-controlled, it's structurally opaque without the key that only arrives via OAuth. The ability to safely run `bin/fly-db-pull` is design validation.
 - Day/night cycles: Context window compaction via harmonic derivation (see README section)
+- Database sync: `bin/fly-db-pull -a <app-name>` pulls encrypted prod data to local dev (reads target DB from config/database.yml)
 
 For setup, deployment, and other technical onboarding: see the main README and Rails conventions. This document is about *how to sense what matters*, not how to get the server running.
 

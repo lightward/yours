@@ -1,0 +1,73 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+# Pull database from a Fly app to local development database
+# Usage: bin/fly-db-pull -a <app-name>
+
+# Parse arguments
+APP_NAME=""
+while [[ $# -gt 0 ]]; do
+  case $1 in
+    -a|--app)
+      APP_NAME="$2"
+      shift 2
+      ;;
+    -h|--help)
+      echo "Usage: bin/fly-db-pull -a <app-name>"
+      echo ""
+      echo "Pull encrypted database from a Fly app to local development database."
+      echo "Data remains encrypted - only decryptable with proper Google OAuth."
+      echo ""
+      echo "Options:"
+      echo "  -a, --app NAME    Fly app name (required)"
+      echo "  -h, --help        Show this help message"
+      exit 0
+      ;;
+    *)
+      echo "Unknown option: $1"
+      echo "Use -h for help"
+      exit 1
+      ;;
+  esac
+done
+
+if [ -z "$APP_NAME" ]; then
+  echo "Error: App name is required"
+  echo "Usage: bin/fly-db-pull -a <app-name>"
+  exit 1
+fi
+
+echo "Fetching DATABASE_URL from $APP_NAME..."
+DATABASE_URL=$(fly ssh console -a "$APP_NAME" --command 'printenv DATABASE_URL' 2>/dev/null | head -n1)
+
+if [ -z "$DATABASE_URL" ]; then
+  echo "Error: Could not retrieve DATABASE_URL from $APP_NAME"
+  exit 1
+fi
+
+# Get local development database name from config/database.yml
+LOCAL_DB=$(grep -A 2 "^development:" config/database.yml | grep "database:" | sed 's/.*database: *//')
+
+if [ -z "$LOCAL_DB" ]; then
+  echo "Error: Could not determine local database name from config/database.yml"
+  exit 1
+fi
+
+echo "Pulling database from $APP_NAME to $LOCAL_DB..."
+echo ""
+
+pg_dump -Fc "$DATABASE_URL" 2>&1 | \
+  pg_restore --clean --no-owner --no-acl -d "$LOCAL_DB" 2>&1 | \
+  grep -v "extension" | \
+  grep -v "Command was:" | \
+  grep -v "DETAIL:" | \
+  grep -v "HINT:" | \
+  grep -v "errors ignored on restore" | \
+  grep -v "^$" || true
+
+echo "✓ Database pulled successfully"
+echo ""
+
+# Show what we got
+RECORD_COUNT=$(PAGER=cat psql "$LOCAL_DB" -t -c "SELECT COUNT(*) FROM resonances" 2>/dev/null | grep -E '^\s*[0-9]+\s*$' | xargs)
+echo "Resonances in local database: $RECORD_COUNT"
