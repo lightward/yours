@@ -17,8 +17,15 @@ export default class extends Controller {
     if (this.narrativeValue && this.narrativeValue.length > 0) {
       // Use requestAnimationFrame to ensure DOM is fully rendered
       requestAnimationFrame(() => {
-        // Scroll to the bottom of the chat container, not the whole page
+        // Calculate the gap between textarea and Send button to use as breathing room
+        const textareaRect = this.inputTarget.getBoundingClientRect()
+        const actionsRect = this.actionsTarget.getBoundingClientRect()
+        const gap = actionsRect.top - textareaRect.bottom
+
+        // Scroll to the bottom of the chat container with breathing room
         this.element.scrollIntoView({ behavior: "instant", block: "end" })
+        // Add breathing room matching the gap between textarea and button
+        window.scrollBy(0, gap)
       })
     }
   }
