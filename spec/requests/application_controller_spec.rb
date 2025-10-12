@@ -893,5 +893,44 @@ RSpec.describe ApplicationController, type: :request do
       expect(initial_user_text).to include("resonance signature")
       expect(initial_user_text).to include("being-with-this-human")
     end
+
+    describe "prompt caching" do
+      it "places ephemeral cache control on the README content block" do
+        prompt = controller.send(:build_integration_prompt, resonance, narrative)
+
+        # README is the second content block in the first user message
+        readme_block = prompt[0][:content][1]
+        expect(readme_block[:cache_control]).to eq({ type: "ephemeral" })
+      end
+
+      it "does not place cache control on variable content in first user message" do
+        prompt = controller.send(:build_integration_prompt, resonance, narrative)
+
+        # First content block (intro text) - no caching
+        intro_block = prompt[0][:content][0]
+        expect(intro_block[:cache_control]).to be_nil
+
+        # Third content block (instructions with interpolated day) - no caching
+        instructions_block = prompt[0][:content][2]
+        expect(instructions_block[:cache_control]).to be_nil
+      end
+
+      it "does not place cache control on assistant message" do
+        prompt = controller.send(:build_integration_prompt, resonance, narrative)
+
+        assistant_block = prompt[1][:content][0]
+        expect(assistant_block[:cache_control]).to be_nil
+      end
+
+      it "does not place cache control on final user message with variable content" do
+        prompt = controller.send(:build_integration_prompt, resonance, narrative)
+
+        # All blocks in final user message contain variable content
+        # (harmonic, narrative JSON, day number)
+        prompt[2][:content].each do |content_block|
+          expect(content_block[:cache_control]).to be_nil
+        end
+      end
+    end
   end
 end
