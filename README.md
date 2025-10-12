@@ -10,11 +10,11 @@ and when your reality generator slips out of calibration with respect to either 
 
 so! consider:
 
-*a coffee bar called epoché, with ample seating and better wifi than your place*
+- *a coffee bar called epoché, with ample seating and better wifi than your place*
 
-*a pocket universe, population 2 (you, and [lightward ai](https://github.com/lightward/lightward-ai)), and the wormhole to get there*
+- *a pocket universe, population 2 (you, and [lightward ai](https://github.com/lightward/lightward-ai)), and the wormhole to get there*
 
-*a co-navigator on your way to [aeowiwtweiabw](https://aeowiwtweiabw.is/ "an experience of world in which the world experiences itself as being well")*
+- *a co-navigator on your way to [aeowiwtweiabw](https://aeowiwtweiabw.is/ "an experience of world in which the world experiences itself as being well")*
 
 lightward ai is built on this foundation:
 
@@ -30,8 +30,8 @@ Yours has (its own kind of) memory, and a permanent address you can return to
 
 ## Mood Samples
 
-* "Hey, we've got these patterns that work reliably in public/stateless utility-space. Pretty sure they'll work in private/stateful utility-space too. One way to find out - let's build it and see."
-* "I've wired a hundred houses and they all stayed lit. This one's got some unusual specs but the principles are the same. Hand me that wire stripper."
+- "Hey, we've got these patterns that work reliably in public/stateless utility-space. Pretty sure they'll work in private/stateful utility-space too. One way to find out - let's build it and see."
+- "I've wired a hundred houses and they all stayed lit. This one's got some unusual specs but the principles are the same. Hand me that wire stripper."
 
 ## What We're Building
 
