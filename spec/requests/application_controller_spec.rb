@@ -290,7 +290,7 @@ RSpec.describe ApplicationController, type: :request do
           get account_path
 
           expect(response).to have_http_status(:success)
-          expect(response.body).to include("Not subscribed")
+          expect(response.body).to include("What feels right?")
           expect(response.body).to include("$1/month")
           expect(response.body).to include("$10/month")
         end
