@@ -5,6 +5,7 @@ Rails.application.routes.draw do
   # User-facing routes
   get "exit", to: "application#logout"
   get "account", to: "application#account"
+  get "save", to: "application#save"
 
   # Service routes
   post "stream", to: "application#stream"

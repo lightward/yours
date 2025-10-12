@@ -12,16 +12,20 @@
   ></textarea>
 
   <div data-chat-target="actions" class="chat-actions">
-    <button
-      data-action="click->chat#send"
-    >
-      Send
-    </button>
+    <div class="chat-actions-left">
+      <button
+        data-action="click->chat#send"
+      >
+        Send
+      </button>
 
-    <%= button_to "Move to day #{current_resonance.universe_day + 1}",
-        sleep_path,
-        method: :post,
-        class: "exit-link eod",
-        form: { data: { turbo_confirm: "Ready to move to day #{current_resonance.universe_day + 1}?" } } %>
+      <%= button_to "Move to day #{current_resonance.universe_day + 1}",
+          sleep_path,
+          method: :post,
+          class: "exit-link eod",
+          form: { data: { turbo_confirm: "Ready to move to day #{current_resonance.universe_day + 1}?" } } %>
+    </div>
+
+    <%= link_to "Save", save_path, class: "quiet-link" %>
   </div>
 </div>

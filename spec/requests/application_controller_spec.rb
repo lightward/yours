@@ -800,6 +800,94 @@ RSpec.describe ApplicationController, type: :request do
     end
   end
 
+  describe "GET /save" do
+    context "when not authenticated" do
+      it "redirects to root with alert" do
+        get save_path
+        expect(response).to redirect_to(root_path)
+        expect(flash[:alert]).to eq("Please sign in")
+      end
+    end
+
+    context "when authenticated" do
+      before do
+        sign_in_as(google_id)
+        allow_any_instance_of(Resonance).to receive(:active_subscription?).and_return(true)
+      end
+
+      it "returns plain text with correct content type" do
+        get save_path
+        expect(response).to have_http_status(:success)
+        expect(response.content_type).to eq("text/plain; charset=utf-8")
+      end
+
+      it "sets content-disposition as attachment with universe-time filename" do
+        resonance.universe_day = 3
+        resonance.narrative_accumulation_by_day = [
+          { "role" => "user", "content" => [ { "type" => "text", "text" => "Hello" } ] },
+          { "role" => "assistant", "content" => [ { "type" => "text", "text" => "Hi" } ] }
+        ]
+        resonance.save!
+
+        get save_path
+
+        expect(response.headers["Content-Disposition"]).to include("attachment")
+        expect(response.headers["Content-Disposition"]).to include("yours-3-2.txt")
+      end
+
+      it "exports narrative messages separated by dividers" do
+        resonance.narrative_accumulation_by_day = [
+          { "role" => "user", "content" => [ { "type" => "text", "text" => "First message" } ] },
+          { "role" => "assistant", "content" => [ { "type" => "text", "text" => "Second message" } ] }
+        ]
+        resonance.save!
+
+        get save_path
+
+        expect(response.body).to include("First message")
+        expect(response.body).to include("\n\n---\n\n")
+        expect(response.body).to include("Second message")
+      end
+
+      it "includes textarea content at the end if present" do
+        resonance.narrative_accumulation_by_day = [
+          { "role" => "user", "content" => [ { "type" => "text", "text" => "Chat message" } ] }
+        ]
+        resonance.textarea = "Draft in progress"
+        resonance.save!
+
+        get save_path
+
+        expect(response.body).to include("Chat message")
+        expect(response.body).to include("\n\n---\n\n")
+        expect(response.body).to include("Draft in progress")
+      end
+
+      it "does not include textarea divider when textarea is empty" do
+        resonance.narrative_accumulation_by_day = [
+          { "role" => "user", "content" => [ { "type" => "text", "text" => "Only message" } ] }
+        ]
+        resonance.textarea = nil
+        resonance.save!
+
+        get save_path
+
+        expect(response.body).to eq("Only message")
+        expect(response.body).not_to end_with("\n\n---\n\n")
+      end
+
+      it "handles empty narrative gracefully" do
+        resonance.narrative_accumulation_by_day = []
+        resonance.save!
+
+        get save_path
+
+        expect(response).to have_http_status(:success)
+        expect(response.body).to eq("")
+      end
+    end
+  end
+
   describe "#build_integration_prompt" do
     let(:controller) { ApplicationController.new }
     let(:narrative) { [ { "role" => "user", "content" => [ { "type" => "text", "text" => "Hello!" } ] } ] }
