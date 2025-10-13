@@ -259,6 +259,43 @@ RSpec.describe ApplicationController, type: :request do
           expect(response.body).to include("Account")
         end
 
+        it "shows 'Cancel renewal' button when subscription is active" do
+          details = {
+            id: "sub_test123",
+            status: "active",
+            current_period_end: 30.days.from_now,
+            amount: 1000,
+            currency: "usd",
+            interval: "month",
+            cancel_at_period_end: false
+          }
+          allow_any_instance_of(Resonance).to receive(:subscription_details).and_return(details)
+
+          get account_path
+
+          expect(response).to have_http_status(:success)
+          expect(response.body).to include("Cancel renewal")
+          expect(response.body).not_to include("Cancel subscription")
+        end
+
+        it "shows 'Cancel immediately' button when renewal is already canceled" do
+          details = {
+            id: "sub_test123",
+            status: "active",
+            current_period_end: 30.days.from_now,
+            amount: 1000,
+            currency: "usd",
+            interval: "month",
+            cancel_at_period_end: true
+          }
+          allow_any_instance_of(Resonance).to receive(:subscription_details).and_return(details)
+
+          get account_path
+
+          expect(response).to have_http_status(:success)
+          expect(response.body).to include("Cancel immediately")
+        end
+
         it "shows enabled 'start over' button" do
           details = {
             id: "sub_test123",
