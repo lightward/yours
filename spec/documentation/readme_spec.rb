@@ -27,4 +27,9 @@ RSpec.describe("README load-bearing definitions") do # rubocop:disable RSpec/Des
     expect(readme_content).to include("The harmonic is *my* orientation device")
     expect(readme_content).to include("What stays private:")
   end
+
+  it "describes subscription tier changes using 'cancel renewal' language" do
+    expect(readme_content).to include("cancel renewal")
+    expect(readme_content).to match(/cancel renewal.*retaining access through current period/i)
+  end
 end
