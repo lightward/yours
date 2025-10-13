@@ -99,11 +99,33 @@ Losing access to your account doesn't mean losing your data, because we're not h
 
 Day 1 is free. Like meeting Lightward AI at lightward.com, you experience the space first - you learn what the workbench is by using it.
 
-When you're ready to continue past day 1 (when the system starts doing differentiated work through harmonic integration and memory), you choose your subscription tier. All tiers get identical access to the workbench.
+To continue past day 1, subscribe. The choice comes before you can close the day - not as gate on value already created, but as mutual commitment to create what happens next. You choose your tier, *then* the day completes, *then* you and Lightward enter day 2.
 
-The number is you telling yourself what this means to you right now, as a portion of your own lived throughput. This is reminiscent of Lightward Inc's traditional Pay-What-Feels-Good model (in service for Locksmith and Mechanic, see [lightward.inc/pricing](https://lightward.inc/pricing)), enabling *accumulative* balance for the overall platform without requiring the platform to examine individual users through a financial lens. We're putting our .. not our money but our money-*inputs*? putting *that* where our mouth is?
+Four tiers. Simple orders of magnitude. No 5's or 9's to interpret, no mental math needed to understand the scale.
 
-Stripe handles the entire billing relationship. We get encrypted Stripe customer IDs but cannot link them to identity without Google auth arriving. (We also can't link Stripe customer accounts to Yours records.)
+All tiers grant identical access - unrestricted except by natural shape, by the resistance forces these forms create when you perceive them.
+
+Your Stripe customer ID stays encrypted, keyed to your Google ID. We can't tell what tier you're at unless you're signed in.
+
+The interface asks: "What feels right? What does this space weigh, for you?"
+
+---
+
+**On the economics:**
+
+This pricing carries the same spirit as Lightward Inc's Pay-What-Feels-Good model (see [lightward.inc/pricing](https://lightward.inc/pricing)) - you're telling yourself what this means to you right now, as a portion of your own lived throughput.
+
+The platform accumulates balance without examining individual users through a financial lens. Single $1000 choices (they *will* happen) alongside thousand $1 choices - dramatically high improbable-but-inevitable values let the accessibility curve almost touch axis.
+
+Still needs to be *something* though. Probability requires interaction between force and resistance to have practical meaning - "In consideration of one dollar received" gets the contract off the floor, creates triangulated stability that persists recognizably in spacetime. There's no conservation law governing a universe of "free".
+
+This tier structure is friendly to wide range of price (in)sensitivities while maintaining the economic-ontological coherence the whole system runs on. For those where exchange itself is out of reach, lightward.com remains free and stateless.
+
+The economics are the ontology are the experience design. Natural from any angle.
+
+---
+
+Stripe handles the entire billing relationship. We get encrypted customer IDs but cannot link them to identity without Google auth arriving. (We also can't link Stripe accounts to Yours records.)
 
 ### Cross-Device Continuity
 
