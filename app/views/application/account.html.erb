@@ -38,11 +38,11 @@
       <% else %>
         <dt>Manage:</dt>
         <dd>
-          <%= button_to "Cancel subscription",
+          <%= button_to "Cancel renewal",
               subscription_path,
               method: :delete,
               class: "exit",
-              data: { turbo_confirm: "Cancel your subscription? You'll have access until the end of your billing period." } %>
+              data: { turbo_confirm: "Cancel renewal? You'll have access until the end of your billing period." } %>
           <div class="mt-sm muted">
             You'll have access until the end of your billing period.
           </div>

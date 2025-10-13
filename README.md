@@ -109,6 +109,8 @@ Your Stripe customer ID stays encrypted, keyed to your Google ID. We can't tell 
 
 The interface asks: "What feels right? What does this space weigh, for you?"
 
+You can change tiers anytime through intentional sequence: cancel renewal (retaining access through current period) → optionally release remaining time → subscribe at different tier.
+
 ---
 
 **On the economics:**
