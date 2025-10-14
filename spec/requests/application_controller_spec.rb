@@ -867,7 +867,8 @@ RSpec.describe ApplicationController, type: :request do
       expect(response).to have_http_status(:success)
       expect(response.content_type).to eq("text/plain; charset=utf-8")
       expect(response.body).to include("# Yours 無")
-      expect(response.body).to include("workbench-Lichtung")
+      expect(response.body).to include("conservation of discovery")
+      expect(response.body).to include("two-ness")
     end
 
     it "serves complete README content" do
