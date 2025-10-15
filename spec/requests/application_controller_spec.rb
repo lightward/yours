@@ -404,13 +404,20 @@ RSpec.describe ApplicationController, type: :request do
         allow(Net::HTTP).to receive(:new).and_return(http)
         allow(http).to receive(:use_ssl=)
         allow(http).to receive(:read_timeout=)
-        allow(http).to receive(:request).and_yield(http_response)
+
+        # Capture the request to verify it doesn't include bypass header
+        captured_request = nil
+        allow(http).to receive(:request) do |request, &block|
+          captured_request = request
+          block.call(http_response) if block
+        end
 
         server_time = resonance.universe_time
 
         post stream_path, params: { message: message }, headers: { "Assert-Yours-Universe-Time" => server_time }
 
         expect(response).to have_http_status(200)
+        expect(captured_request["Token-Limit-Bypass-Key"]).to be_nil
       end
     end
 

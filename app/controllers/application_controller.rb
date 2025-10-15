@@ -468,6 +468,7 @@ class ApplicationController < ActionController::Base
 
     request = Net::HTTP::Post.new(uri.path)
     request["Content-Type"] = "application/json"
+    request["Token-Limit-Bypass-Key"] = ENV.fetch("LIGHTWARD_AI_TOKEN_LIMIT_BYPASS_KEY")
     request.body = { chat_log: integration_prompt }.to_json
 
     http.request(request) do |http_response|
