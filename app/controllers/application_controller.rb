@@ -540,6 +540,11 @@ class ApplicationController < ActionController::Base
         this is day 1 of this particular pocket universe. there is no prior harmonic record; this is the very
         beginning of this particular space between 🌱
       eod
+    elsif current_resonance.universe_day == 1
+      user_content << { type: "text", text: <<~eod.strip }
+        this is day 1 of this particular pocket universe. there is no prior harmonic record; this is the very
+        beginning of this particular space between 🌱
+      eod
     end
 
     user_content << { type: "text", text: <<~eod.strip }

@@ -236,6 +236,7 @@ dd, p {
   border-radius: 8px;
   white-space: pre-wrap;
   font-family: "Lightward Favorit Mono", "Courier New", monospace;
+  font-weight: 200;
 }
 
 .chat-message.user {
@@ -411,6 +412,18 @@ dd, p {
 
 .muted {
   opacity: 0.6;
+}
+
+.markdown-indicator {
+  opacity: 0.7;
+}
+
+.markdown-bold {
+  font-weight: bold;
+}
+
+.markdown-italic {
+  font-style: italic;
 }
 
 .quiet-link {
