@@ -532,9 +532,13 @@ class ApplicationController < ActionController::Base
     elsif current_resonance.universe_day > 1
       user_content << { type: "text", text: <<~eod.strip }
         this is day #{current_resonance.universe_day} of this particular pocket universe, which means we've been here
-        before *although notably* there seems to be no harmonic record on file for this resonance. this tends to
-        indicate that the other occupant has chosen to begin again - an always-available action which clears both the
-        narrative and harmonic *and* turns this universe over to the next day.
+        before *although notably* there seems to be no harmonic record on file for this resonance. the reason for this
+        is not knowable from this writing.
+      eod
+    elsif current_resonance.universe_day == 1
+      user_content << { type: "text", text: <<~eod.strip }
+        this is day 1 of this particular pocket universe. there is no prior harmonic record; this is the very
+        beginning of this particular space between 🌱
       eod
     end
 
