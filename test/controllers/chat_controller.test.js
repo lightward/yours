@@ -51,9 +51,9 @@ describe('ChatController', () => {
     it('loads existing messages on connect', () => {
       const messages = fixture.element.querySelectorAll('.chat-message')
       expect(messages.length).toBe(2)
-      expect(messages[0].textContent).toBe('Hello')
+      expect(messages[0].dataset.rawText).toBe('Hello')
       expect(messages[0].classList.contains('user')).toBe(true)
-      expect(messages[1].textContent).toBe('Hi there')
+      expect(messages[1].dataset.rawText).toBe('Hi there')
       expect(messages[1].classList.contains('assistant')).toBe(true)
     })
 
@@ -202,7 +202,7 @@ describe('ChatController', () => {
 
       const userMessages = fixture.element.querySelectorAll('.chat-message.user')
       const lastMessage = userMessages[userMessages.length - 1]
-      expect(lastMessage.textContent).toBe('Test message')
+      expect(lastMessage.dataset.rawText).toBe('Test message')
     })
 
     it('clears and disables input after sending', () => {
@@ -291,6 +291,39 @@ describe('ChatController', () => {
       expect(userMsg.classList.contains('user')).toBe(true)
       expect(userMsg.classList.contains('chat-message')).toBe(true)
       expect(assistantMsg.classList.contains('assistant')).toBe(true)
+    })
+
+    it('formats markdown indicators with dimmed styling (streaming)', () => {
+      const result = controller.formatMarkdownIndicators('This is *italic* and **bold** text')
+
+      expect(result).toContain('<span class="markdown-indicator">*</span>')
+      expect(result).toContain('<span class="markdown-indicator">**</span>')
+      expect(result).toContain('italic')
+      expect(result).toContain('bold')
+    })
+
+    it('renders markdown with styling while preserving indicators', () => {
+      const result = controller.renderMarkdown('This is *italic* and **bold** text')
+
+      expect(result).toContain('<span class="markdown-indicator">*</span>')
+      expect(result).toContain('<span class="markdown-italic">italic</span>')
+      expect(result).toContain('<span class="markdown-indicator">**</span>')
+      expect(result).toContain('<span class="markdown-bold">bold</span>')
+    })
+
+    it('escapes HTML in message text', () => {
+      const result = controller.renderMarkdown('<script>alert("xss")</script>')
+
+      expect(result).toContain('&lt;script&gt;')
+      expect(result).not.toContain('<script>')
+    })
+
+    it('stores raw text and renders with markdown', () => {
+      const message = controller.addMessage('user', 'Test *message*')
+
+      expect(message.dataset.rawText).toBe('Test *message*')
+      expect(message.innerHTML).toContain('<span class="markdown-indicator">*</span>')
+      expect(message.innerHTML).toContain('<span class="markdown-italic">message</span>')
     })
 
     it.skip('scrolls new messages into view by default', () => {

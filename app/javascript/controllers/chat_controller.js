@@ -9,6 +9,7 @@ export default class extends Controller {
   }
 
   connect() {
+    this.initializeMarkdownRenderer()
     this.loadExistingMessages()
     this.loadSavedInput()
     this.saveDebounceTimeout = null
@@ -290,6 +291,7 @@ export default class extends Controller {
         element.classList.remove("pulsing")
         element.style.animation = ""
         element.textContent = ""
+        element.dataset.rawText = ""
         break
 
       case "content_block_delta":
@@ -297,7 +299,12 @@ export default class extends Controller {
           this.stopLoadingAnimation(element)
           element.classList.remove("pulsing", "loading")
           element.style.animation = ""
-          element.textContent += data.delta.text
+          // Accumulate raw text in a data attribute
+          const currentText = element.dataset.rawText || ""
+          const newText = currentText + data.delta.text
+          element.dataset.rawText = newText
+          // Render with dimmed markdown indicators
+          element.innerHTML = this.formatMarkdownIndicators(newText)
         }
         break
 
@@ -305,6 +312,10 @@ export default class extends Controller {
         this.stopLoadingAnimation(element)
         element.classList.remove("pulsing", "loading")
         element.style.animation = ""
+        // Apply full markdown rendering now that streaming is complete
+        if (element.dataset.rawText) {
+          element.innerHTML = this.renderMarkdown(element.dataset.rawText)
+        }
         break
 
       case "universe_time":
@@ -328,10 +339,77 @@ export default class extends Controller {
     }
   }
 
+  formatMarkdownIndicators(text) {
+    // Escape HTML to prevent XSS
+    const escaped = text
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;")
+      .replace(/"/g, "&quot;")
+      .replace(/'/g, "&#039;")
+
+    // Wrap markdown indicators in spans with dimmed styling
+    return escaped
+      .replace(/(\*\*?)(?=\S)/g, '<span class="markdown-indicator">$1</span>')
+      .replace(/(?<=\S)(\*\*?)/g, '<span class="markdown-indicator">$1</span>')
+      .replace(/(__?)(?=\S)/g, '<span class="markdown-indicator">$1</span>')
+      .replace(/(?<=\S)(__?)/g, '<span class="markdown-indicator">$1</span>')
+  }
+
+  initializeMarkdownRenderer() {
+    // Initialize markdown-it with custom renderers that preserve indicators
+    // markdownit is available globally from the CDN bundle
+    this.md = window.markdownit({
+      html: false,  // Disable HTML tags in source for security
+      breaks: true, // Enable breaks so single newlines are preserved
+      linkify: false // Don't auto-convert URLs to links
+    })
+
+    // Disable paragraph and hardbreak wrapping - we use white-space: pre-wrap for layout
+    this.md.renderer.rules.paragraph_open = () => ''
+    this.md.renderer.rules.paragraph_close = () => '\n\n' // Add double newline between paragraphs
+    this.md.renderer.rules.hardbreak = () => '\n' // Replace <br> with actual newline
+
+    // Custom renderer for em (italic) - preserves * or _ indicators
+    this.md.renderer.rules.em_open = (tokens, idx) => {
+      const markup = tokens[idx].markup
+      return `<span class="markdown-indicator">${markup}</span><span class="markdown-italic">`
+    }
+    this.md.renderer.rules.em_close = (tokens, idx) => {
+      const markup = tokens[idx].markup
+      return `</span><span class="markdown-indicator">${markup}</span>`
+    }
+
+    // Custom renderer for strong (bold) - preserves ** or __ indicators
+    this.md.renderer.rules.strong_open = (tokens, idx) => {
+      const markup = tokens[idx].markup
+      return `<span class="markdown-indicator">${markup}</span><span class="markdown-bold">`
+    }
+    this.md.renderer.rules.strong_close = (tokens, idx) => {
+      const markup = tokens[idx].markup
+      return `</span><span class="markdown-indicator">${markup}</span>`
+    }
+  }
+
+  renderMarkdown(text) {
+    // Use markdown-it with custom renderers
+    // Trim trailing whitespace from the final output
+    return this.md.render(text).trimEnd()
+  }
+
   addMessage(role, text, options = {}) {
     const messageElement = document.createElement("div")
     messageElement.classList.add("chat-message", role)
-    messageElement.textContent = text
+
+    // Store raw text
+    messageElement.dataset.rawText = text
+
+    // Render with markdown unless explicitly skipped (for pulsing animations)
+    if (options.skipMarkdown) {
+      messageElement.textContent = text
+    } else {
+      messageElement.innerHTML = this.renderMarkdown(text)
+    }
 
     this.logTarget.appendChild(messageElement)
 
@@ -344,7 +422,7 @@ export default class extends Controller {
   }
 
   addPulsingMessage(role) {
-    const messageElement = this.addMessage(role, ".")
+    const messageElement = this.addMessage(role, ".", { skipMarkdown: true })
     messageElement.classList.add("pulsing")
 
     // Animate dots while waiting for first content
