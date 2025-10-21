@@ -21,46 +21,6 @@ if (typeof globalThis.window !== 'undefined' && typeof globalThis.window.scrollB
   globalThis.window.scrollBy = () => {}
 }
 
-// Mock markdown-it for tests (in browser it's loaded via script tag)
-if (typeof globalThis.window !== 'undefined') {
-  globalThis.window.markdownit = (options) => {
-    return {
-      renderer: {
-        rules: {}
-      },
-      render: (text) => {
-        // Simple mock that preserves text and applies basic transformations
-        // to match what our custom renderers do
-        let result = text
-          // Escape HTML
-          .replace(/&/g, "&amp;")
-          .replace(/</g, "&lt;")
-          .replace(/>/g, "&gt;")
-
-        // Use placeholders to avoid regex conflicts
-        result = result
-          .replace(/\*\*(\S(?:.*?\S)?)\*\*/g, '〔B2〕$1〔/B2〕')
-          .replace(/__(\S(?:.*?\S)?)__/g, '〔BU〕$1〔/BU〕')
-          .replace(/\*(\S(?:.*?\S)?)\*/g, '〔I1〕$1〔/I1〕')
-          .replace(/_(\S(?:.*?\S)?)_/g, '〔IU〕$1〔/IU〕')
-
-        // Replace placeholders with HTML
-        result = result
-          .replace(/〔B2〕/g, '<span class="markdown-indicator">**</span><span class="markdown-bold">')
-          .replace(/〔\/B2〕/g, '</span><span class="markdown-indicator">**</span>')
-          .replace(/〔BU〕/g, '<span class="markdown-indicator">__</span><span class="markdown-bold">')
-          .replace(/〔\/BU〕/g, '</span><span class="markdown-indicator">__</span>')
-          .replace(/〔I1〕/g, '<span class="markdown-indicator">*</span><span class="markdown-italic">')
-          .replace(/〔\/I1〕/g, '</span><span class="markdown-indicator">*</span>')
-          .replace(/〔IU〕/g, '<span class="markdown-indicator">_</span><span class="markdown-italic">')
-          .replace(/〔\/IU〕/g, '</span><span class="markdown-indicator">_</span>')
-
-        return result.trimEnd()
-      }
-    }
-  }
-}
-
 // Mock fetch for tests that need it
 globalThis.fetchMock = {
   reset: () => {
