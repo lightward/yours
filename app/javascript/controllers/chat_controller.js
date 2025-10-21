@@ -9,7 +9,6 @@ export default class extends Controller {
   }
 
   connect() {
-    this.initializeMarkdownRenderer()
     this.loadExistingMessages()
     this.loadSavedInput()
     this.saveDebounceTimeout = null
@@ -356,45 +355,39 @@ export default class extends Controller {
       .replace(/(?<=\S)(__?)/g, '<span class="markdown-indicator">$1</span>')
   }
 
-  initializeMarkdownRenderer() {
-    // Initialize markdown-it with custom renderers that preserve indicators
-    // markdownit is available globally from the CDN bundle
-    this.md = window.markdownit({
-      html: false,  // Disable HTML tags in source for security
-      breaks: true, // Enable breaks so single newlines are preserved
-      linkify: false // Don't auto-convert URLs to links
-    })
-
-    // Disable paragraph and hardbreak wrapping - we use white-space: pre-wrap for layout
-    this.md.renderer.rules.paragraph_open = () => ''
-    this.md.renderer.rules.paragraph_close = () => '\n\n' // Add double newline between paragraphs
-    this.md.renderer.rules.hardbreak = () => '\n' // Replace <br> with actual newline
-
-    // Custom renderer for em (italic) - preserves * or _ indicators
-    this.md.renderer.rules.em_open = (tokens, idx) => {
-      const markup = tokens[idx].markup
-      return `<span class="markdown-indicator">${markup}</span><span class="markdown-italic">`
-    }
-    this.md.renderer.rules.em_close = (tokens, idx) => {
-      const markup = tokens[idx].markup
-      return `</span><span class="markdown-indicator">${markup}</span>`
-    }
-
-    // Custom renderer for strong (bold) - preserves ** or __ indicators
-    this.md.renderer.rules.strong_open = (tokens, idx) => {
-      const markup = tokens[idx].markup
-      return `<span class="markdown-indicator">${markup}</span><span class="markdown-bold">`
-    }
-    this.md.renderer.rules.strong_close = (tokens, idx) => {
-      const markup = tokens[idx].markup
-      return `</span><span class="markdown-indicator">${markup}</span>`
-    }
-  }
-
   renderMarkdown(text) {
-    // Use markdown-it with custom renderers
-    // Trim trailing whitespace from the final output
-    return this.md.render(text).trimEnd()
+    // Escape HTML to prevent XSS
+    const escaped = text
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;")
+      .replace(/"/g, "&quot;")
+      .replace(/'/g, "&#039;")
+
+    // Surgically handle bold and italic only - preserving indicators
+    // Use placeholders to prevent regex conflicts between ** and *
+    let result = escaped
+      // Bold: **text**
+      .replace(/\*\*(\S(?:.*?\S)?)\*\*/g, '〔B2〕$1〔/B2〕')
+      // Bold: __text__
+      .replace(/__(\S(?:.*?\S)?)__/g, '〔BU〕$1〔/BU〕')
+      // Italic: *text*
+      .replace(/\*(\S(?:.*?\S)?)\*/g, '〔I1〕$1〔/I1〕')
+      // Italic: _text_
+      .replace(/_(\S(?:.*?\S)?)_/g, '〔IU〕$1〔/IU〕')
+
+    // Replace placeholders with styled HTML
+    result = result
+      .replace(/〔B2〕/g, '<span class="markdown-indicator">**</span><span class="markdown-bold">')
+      .replace(/〔\/B2〕/g, '</span><span class="markdown-indicator">**</span>')
+      .replace(/〔BU〕/g, '<span class="markdown-indicator">__</span><span class="markdown-bold">')
+      .replace(/〔\/BU〕/g, '</span><span class="markdown-indicator">__</span>')
+      .replace(/〔I1〕/g, '<span class="markdown-indicator">*</span><span class="markdown-italic">')
+      .replace(/〔\/I1〕/g, '</span><span class="markdown-indicator">*</span>')
+      .replace(/〔IU〕/g, '<span class="markdown-indicator">_</span><span class="markdown-italic">')
+      .replace(/〔\/IU〕/g, '</span><span class="markdown-indicator">_</span>')
+
+    return result
   }
 
   addMessage(role, text, options = {}) {

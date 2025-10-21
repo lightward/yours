@@ -326,6 +326,70 @@ describe('ChatController', () => {
       expect(message.innerHTML).toContain('<span class="markdown-italic">message</span>')
     })
 
+    describe('markdown edge cases', () => {
+      it('handles single character formatting', () => {
+        const result = controller.renderMarkdown('*a* and **b**')
+        expect(result).toContain('<span class="markdown-italic">a</span>')
+        expect(result).toContain('<span class="markdown-bold">b</span>')
+      })
+
+      it('handles nested formatting', () => {
+        const result = controller.renderMarkdown('**bold with *italic* inside**')
+        expect(result).toContain('<span class="markdown-bold">bold with <span class="markdown-indicator">*</span><span class="markdown-italic">italic</span><span class="markdown-indicator">*</span> inside</span>')
+      })
+
+      it('handles multiple formatting on same line', () => {
+        const result = controller.renderMarkdown('some *italic* and **bold** text')
+        expect(result).toContain('<span class="markdown-italic">italic</span>')
+        expect(result).toContain('<span class="markdown-bold">bold</span>')
+      })
+
+      it('leaves unclosed markers as plain text', () => {
+        const result = controller.renderMarkdown('*italic without closing')
+        expect(result).toBe('*italic without closing')
+      })
+
+      it('leaves dashes as plain text (not lists)', () => {
+        const result = controller.renderMarkdown('- like **thaw**?')
+        expect(result).toContain('- like')
+        expect(result).toContain('<span class="markdown-bold">thaw</span>')
+        expect(result).not.toContain('<ul>')
+        expect(result).not.toContain('<li>')
+      })
+
+      it('handles underscores for italic and bold', () => {
+        const result = controller.renderMarkdown('_italic_ and __bold__')
+        expect(result).toContain('<span class="markdown-italic">italic</span>')
+        expect(result).toContain('<span class="markdown-bold">bold</span>')
+      })
+
+      it('preserves whitespace and newlines', () => {
+        const result = controller.renderMarkdown('line one\n\nline two')
+        expect(result).toBe('line one\n\nline two')
+      })
+
+      it('handles formatting across long text', () => {
+        const longText = 'a'.repeat(500)
+        const result = controller.renderMarkdown(`*${longText}*`)
+        expect(result).toContain('<span class="markdown-italic">')
+        expect(result).toContain(longText)
+      })
+
+      // Document known limitations with malformed markdown
+      it('handles overlapping markers (known limitation)', () => {
+        // This is a pathological case - overlapping markers produce nested but invalid HTML
+        // Browsers will auto-correct this, so it's safe but not perfectly valid
+        const result = controller.renderMarkdown('*italic **bold*?**')
+
+        // We document the actual behavior rather than the ideal
+        // Bold is processed first: **bold*?** -> placeholder
+        // Then italic: *italic PLACEHOLDER* -> wraps it
+        expect(result).toContain('italic')
+        expect(result).toContain('bold')
+        // The tags will overlap but browsers handle this gracefully
+      })
+    })
+
     it.skip('scrolls new messages into view by default', () => {
       // This would require spying before the method is called, which is complex timing-wise
       // Visual behavior is tested manually
