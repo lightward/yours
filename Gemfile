@@ -1,6 +1,6 @@
 source "https://rubygems.org"
 
-gem "rails", "~> 8.1.0"
+gem "rails", "~> 8.1.1"
 gem "propshaft"
 gem "tzinfo-data"
 gem "pg", "~> 1.1"
