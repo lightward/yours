@@ -161,6 +161,31 @@ RSpec.describe StripeSubscription do
         )
       }.to raise_error(ArgumentError, /Invalid tier/)
     end
+
+    it "raises StandardError when user already has active subscription" do
+      resonance.stripe_customer_id = customer_id
+      resonance.save!
+
+      # Mock an active subscription
+      subscriptions = double("Stripe::ListObject",
+        data: [
+          double(
+            items: double(data: [
+              double(price: double(id: price_id))
+            ])
+          )
+        ]
+      )
+      allow(Stripe::Subscription).to receive(:list).and_return(subscriptions)
+
+      expect {
+        resonance.create_checkout_session(
+          tier: tier,
+          success_url: success_url,
+          cancel_url: cancel_url
+        )
+      }.to raise_error(StandardError, /already have an active subscription/)
+    end
   end
 
   describe "#subscription_details" do

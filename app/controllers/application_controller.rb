@@ -227,6 +227,11 @@ class ApplicationController < ActionController::Base
   def create_subscription
     return redirect_to root_path, alert: "Please sign in" unless current_resonance
 
+    # Prevent duplicate subscriptions
+    if current_resonance.active_subscription?
+      return redirect_to account_path, alert: "You already have an active subscription"
+    end
+
     tier = params[:tier]
 
     session = current_resonance.create_checkout_session(
