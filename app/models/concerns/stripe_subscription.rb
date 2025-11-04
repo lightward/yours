@@ -86,6 +86,11 @@ module StripeSubscription
     price_id = STRIPE_PRICE_IDS[tier.to_sym]
     raise ArgumentError, "Invalid tier: #{tier}" unless price_id
 
+    # Prevent duplicate subscriptions
+    if active_subscription?
+      raise StandardError, "You already have an active subscription"
+    end
+
     # Create or retrieve Stripe customer
     customer_id = stripe_customer_id || create_stripe_customer
 

@@ -671,6 +671,16 @@ RSpec.describe ApplicationController, type: :request do
         follow_redirect!
         expect(response.body).to include("Invalid tier")
       end
+
+      it "redirects to account with alert when user already has active subscription" do
+        # Mock an active subscription
+        allow_any_instance_of(Resonance).to receive(:active_subscription?).and_return(true)
+
+        post subscription_path, params: { tier: tier }
+
+        expect(response).to redirect_to(account_path)
+        expect(flash[:alert]).to eq("You already have an active subscription")
+      end
     end
   end
 
