@@ -53,9 +53,9 @@ Rollbar.configure do |config|
     if request
       # Whitelist: preserve only these safe request fields
       safe_request = {
-        url: request[:url]&.split('?')&.first, # URL without query params
+        url: request[:url]&.split("?")&.first, # URL without query params
         method: request[:method],               # GET, POST, etc.
-        route: request[:route],                 # Rails route pattern
+        route: request[:route]                 # Rails route pattern
         # Everything else (params, body, POST, session) is omitted
       }
 
@@ -88,13 +88,13 @@ Rollbar.configure do |config|
   # CSRF token errors on authenticated routes are usually stale sessions or browser issues,
   # not actual attacks (since auth is required). Track them but don't treat as critical.
   config.exception_level_filters.merge!(
-    'ActionController::InvalidAuthenticityToken' => lambda do |exception|
+    "ActionController::InvalidAuthenticityToken" => lambda do |exception|
       # Check if this is from one of our sensitive routes
       # These are already protected by authentication, so CSRF errors are typically noise
       if exception.backtrace&.any? { |line| line.match?(/stream|save_textarea/) }
-        'warning'  # Track for pattern analysis but don't alert
+        "warning"  # Track for pattern analysis but don't alert
       else
-        'error'    # Other CSRF errors might be more significant
+        "error"    # Other CSRF errors might be more significant
       end
     end
   )
