@@ -44,16 +44,60 @@ Rollbar.configure do |config|
     }
   }
 
+  # Privacy-first approach: Redact ALL request data by default, only preserve safe metadata
+  # This protects conversation content and any future fields automatically
+  config.transform << proc do |options|
+    request = options[:request]
+    trace = options[:trace]
+
+    if request
+      # Whitelist: preserve only these safe request fields
+      safe_request = {
+        url: request[:url]&.split('?')&.first, # URL without query params
+        method: request[:method],               # GET, POST, etc.
+        route: request[:route],                 # Rails route pattern
+        # Everything else (params, body, POST, session) is omitted
+      }
+
+      # Preserve only safe headers (user agent for debugging)
+      if request[:headers] && request[:headers]["User-Agent"]
+        safe_request[:user_agent] = request[:headers]["User-Agent"]
+      end
+
+      # Replace entire request payload with safe subset
+      options[:request] = safe_request
+    end
+
+    # Remove any conversation data that might appear in trace extra
+    if trace && trace[:extra]
+      # Rather than listing fields to delete, just clear it entirely
+      # The custom_data_method below provides the safe metadata we want
+      trace[:extra] = {}
+    end
+
+    options
+  end
+
   # Add exception class names to the exception_level_filters hash to
   # change the level that exception is reported at. Note that if an exception
   # has already been reported and logged the level will need to be changed
   # via the rollbar interface.
   # Valid levels: 'critical', 'error', 'warning', 'info', 'debug', 'ignore'
   # 'ignore' will cause the exception to not be reported at all.
-  # config.exception_level_filters.merge!({})
 
-  # You can also specify a callable, which will be called with the exception instance.
-  # config.exception_level_filters.merge!('MyCriticalException' => lambda { |e| 'critical' })
+  # CSRF token errors on authenticated routes are usually stale sessions or browser issues,
+  # not actual attacks (since auth is required). Track them but don't treat as critical.
+  config.exception_level_filters.merge!(
+    'ActionController::InvalidAuthenticityToken' => lambda do |exception|
+      # Check if this is from one of our sensitive routes
+      # These are already protected by authentication, so CSRF errors are typically noise
+      if exception.backtrace&.any? { |line| line.match?(/stream|save_textarea/) }
+        'warning'  # Track for pattern analysis but don't alert
+      else
+        'error'    # Other CSRF errors might be more significant
+      end
+    end
+  )
 
   # Send errors to rollbar in a background thread.
   config.use_thread

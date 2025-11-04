@@ -50,6 +50,19 @@ When you add features, consider: what's the invariant this protects? Write specs
 
 This codebase only defines load-bearing behavior, which means all behavior deserves tests. When you touch code, touch its tests. When you can't test something without breaking what you're trying to protect, mark it skipped and document why. The test suite makes evolution safe—both the surgical kind and the emergent kind.
 
+#### The recursive invariant: test invariants, not implementations
+
+This is itself an invariant worth protecting: **specs should test what must remain true, not what the code currently does**.
+
+Examples of this pattern in the codebase:
+- `spec/documentation/readme_spec.rb` - Tests that load-bearing phrases stay stable, not that the README has X words
+- `spec/views/harmonic_privacy_spec.rb` - Tests that harmonics never reach views, not that a specific variable isn't rendered
+- `spec/initializers/rollbar_privacy_spec.rb` - Tests that conversation data never reaches error tracking, not that specific fields are scrubbed
+
+The pattern: **whitelist the safe, not blacklist the dangerous**. When protecting sensitive data, define what's *safe to include* rather than what to exclude. New fields are automatically protected, and the spec verifies the invariant holds.
+
+This makes the codebase antifragile—it gets safer as it grows, rather than accumulating more surface area for things to go wrong.
+
 ### On sensing misalignment
 
 When something "doesn't feel right," that's information. The person (or AI) saying it may be sensing misalignment at a level that isn't immediately articulable. Trust that, even (especially) when you don't understand it yet.
