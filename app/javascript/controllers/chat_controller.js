@@ -112,7 +112,7 @@ export default class extends Controller {
         // Could show a subtle notice here if desired
       } else if (response.status === 422) {
         // CSRF token invalid - session likely expired
-        this.handleSessionExpired("Your session has expired. Refresh to continue (your draft is saved locally).")
+        this.handleSessionExpired("Your session has expired. Refresh to continue.")
       } else if (!response.ok) {
         console.error("Failed to save textarea:", response.status)
       } else {
@@ -465,9 +465,15 @@ export default class extends Controller {
   }
 
   handleSessionExpired(message) {
+    // Only show one session expired notice, even if multiple requests fail
+    const existingNotice = this.logTarget.querySelector(".session-expired-notice")
+    if (existingNotice) {
+      return // Already showing the notice
+    }
+
     // Create a gentle notice that the session has expired
     const noticeElement = document.createElement("div")
-    noticeElement.classList.add("continuity-notice")
+    noticeElement.classList.add("continuity-notice", "session-expired-notice")
 
     noticeElement.innerHTML = `
       <div style="margin-bottom: 1rem;">${message}</div>
