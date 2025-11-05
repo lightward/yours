@@ -457,4 +457,84 @@ describe('ChatController', () => {
       expect(notice.querySelector('button')).toBeTruthy()
     })
   })
+
+  describe('session expiration handling', () => {
+    it('displays session expired notice', () => {
+      controller.handleSessionExpired('Your session has expired. Refresh to continue.')
+
+      const notice = fixture.element.querySelector('.session-expired-notice')
+      expect(notice).toBeTruthy()
+      expect(notice.classList.contains('continuity-notice')).toBe(true)
+      expect(notice.textContent).toContain('Your session has expired')
+      expect(notice.querySelector('button')).toBeTruthy()
+    })
+
+    it('only shows one notice even if called multiple times (idempotency)', () => {
+      // Call handleSessionExpired multiple times (simulating both textarea save and stream failing with 422)
+      controller.handleSessionExpired('Your session has expired. Refresh to continue.')
+      controller.handleSessionExpired('Your session has expired. Refresh to continue.')
+      controller.handleSessionExpired('Your session has expired. Refresh to continue.')
+
+      // Should only have one notice
+      const notices = fixture.element.querySelectorAll('.session-expired-notice')
+      expect(notices.length).toBe(1)
+    })
+
+    it('handles 422 response in saveToServer', async () => {
+      globalThis.fetch = vi.fn().mockResolvedValue({
+        ok: false,
+        status: 422,
+        json: () => Promise.resolve({})
+      })
+
+      const handleExpiredSpy = vi.spyOn(controller, 'handleSessionExpired')
+
+      await controller.saveToServer('test content')
+
+      expect(handleExpiredSpy).toHaveBeenCalledWith('Your session has expired. Refresh to continue.')
+    })
+
+    it('handles 422 response in streamResponse', async () => {
+      globalThis.fetch = vi.fn().mockResolvedValue({
+        ok: false,
+        status: 422,
+        json: () => Promise.resolve({})
+      })
+
+      const handleExpiredSpy = vi.spyOn(controller, 'handleSessionExpired')
+      const message = {
+        role: 'user',
+        content: [{ type: 'text', text: 'Test' }]
+      }
+
+      await controller.streamResponse(message)
+
+      expect(handleExpiredSpy).toHaveBeenCalledWith('Your session has expired. Refresh to continue.')
+    })
+
+    it('cleans up UI state after 422 in streamResponse', async () => {
+      globalThis.fetch = vi.fn().mockResolvedValue({
+        ok: false,
+        status: 422,
+        json: () => Promise.resolve({})
+      })
+
+      // Add a user message and simulate sending
+      const textarea = controller.inputTarget
+      textarea.value = 'Test message'
+      textarea.disabled = true
+      controller.actionsTarget.classList.add('waiting')
+
+      const message = {
+        role: 'user',
+        content: [{ type: 'text', text: 'Test message' }]
+      }
+
+      await controller.streamResponse(message)
+
+      // Should re-enable input and remove waiting state
+      expect(textarea.disabled).toBe(false)
+      expect(controller.actionsTarget.classList.contains('waiting')).toBe(false)
+    })
+  })
 })

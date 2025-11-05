@@ -110,6 +110,9 @@ export default class extends Controller {
         const data = await response.json()
         console.warn("Textarea save blocked: continuity divergence", data)
         // Could show a subtle notice here if desired
+      } else if (response.status === 422) {
+        // CSRF token invalid - session likely expired
+        this.handleSessionExpired("Your session has expired. Refresh to continue.")
       } else if (!response.ok) {
         console.error("Failed to save textarea:", response.status)
       } else {
@@ -215,6 +218,16 @@ export default class extends Controller {
         this.inputTarget.disabled = false
         this.actionsTarget.classList.remove("waiting")
         this.inputTarget.focus()
+        this.stopLoadingAnimation(assistantElement)
+        assistantElement.remove()
+        return
+      }
+
+      // Handle CSRF / session expiration (422 Unprocessable Entity)
+      if (response.status === 422) {
+        this.handleSessionExpired("Your session has expired. Refresh to continue.")
+        this.inputTarget.disabled = false
+        this.actionsTarget.classList.remove("waiting")
         this.stopLoadingAnimation(assistantElement)
         assistantElement.remove()
         return
@@ -442,6 +455,28 @@ export default class extends Controller {
 
     noticeElement.innerHTML = `
       <div style="margin-bottom: 1rem;">${data.message}</div>
+      <button onclick="window.location.reload()" style="cursor: pointer;">
+        Refresh to continue
+      </button>
+    `
+
+    this.logTarget.appendChild(noticeElement)
+    noticeElement.scrollIntoView({ behavior: "smooth", block: "end" })
+  }
+
+  handleSessionExpired(message) {
+    // Only show one session expired notice, even if multiple requests fail
+    const existingNotice = this.logTarget.querySelector(".session-expired-notice")
+    if (existingNotice) {
+      return // Already showing the notice
+    }
+
+    // Create a gentle notice that the session has expired
+    const noticeElement = document.createElement("div")
+    noticeElement.classList.add("continuity-notice", "session-expired-notice")
+
+    noticeElement.innerHTML = `
+      <div style="margin-bottom: 1rem;">${message}</div>
       <button onclick="window.location.reload()" style="cursor: pointer;">
         Refresh to continue
       </button>
