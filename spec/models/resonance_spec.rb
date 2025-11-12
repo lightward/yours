@@ -85,7 +85,9 @@ RSpec.describe Resonance, type: :model do
 
       # Attempt to decrypt without Google ID - find by primary key
       reloaded = Resonance.find_by(encrypted_google_id_hash: resonance.encrypted_google_id_hash)
-      expect(reloaded.stripe_customer_id).to be_nil
+      expect {
+        reloaded.stripe_customer_id
+      }.to raise_error(Resonance::MissingEncryptionKeyError, /google_id not set/)
     end
 
     it "can encrypt and decrypt empty strings" do
@@ -129,6 +131,19 @@ RSpec.describe Resonance, type: :model do
 
       expect(narrative_json.encoding).to eq(Encoding::UTF_8)
       expect { "UTF-8 string" << narrative_json }.not_to raise_error
+    end
+
+    it "raises MissingEncryptionKeyError when attempting to decrypt without google_id" do
+      resonance = Resonance.find_or_create_by_google_id(google_id)
+      encrypted = resonance.encrypt_field("test data")
+
+      # Create a new instance without google_id set
+      resonance_without_key = Resonance.new
+      resonance_without_key.google_id = nil
+
+      expect {
+        resonance_without_key.decrypt_field(encrypted)
+      }.to raise_error(Resonance::MissingEncryptionKeyError, /google_id not set/)
     end
   end
 
