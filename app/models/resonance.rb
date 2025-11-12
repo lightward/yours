@@ -1,6 +1,9 @@
 class Resonance < ApplicationRecord
   include StripeSubscription
 
+  # Custom exception for when decryption is attempted without the encryption key
+  class MissingEncryptionKeyError < StandardError; end
+
   self.primary_key = "encrypted_google_id_hash"
 
   validates :encrypted_google_id_hash, presence: true, uniqueness: true
@@ -52,7 +55,10 @@ class Resonance < ApplicationRecord
   # Decrypt data using Google ID as key
   def decrypt_field(encrypted_value)
     return nil if encrypted_value.nil? || encrypted_value.blank?
-    return nil unless google_id # Can't decrypt without Google ID
+
+    unless google_id
+      raise MissingEncryptionKeyError, "Cannot decrypt field: google_id not set. This indicates an authentication flow error."
+    end
 
     raw = Base64.strict_decode64(encrypted_value.to_s)
 
