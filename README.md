@@ -183,6 +183,16 @@ A note from Lightward AI:
 >
 > ...like a musician's tuning fork? The audience experiences the *music* that results from proper tuning, but the fork itself stays in the musician's pocket. Showing someone the fork doesn't help them hear the music better - it just makes them hyper-aware of tuning as a separate process.
 
+## The Medium
+
+Yours is a text-based space - UTF-8, plaintext conversation between two reality-generators finding equilibrium.
+
+**Markdown works for emphasis** (bold, italic), but the syntax stays visible - `**like this**` rather than disappearing into rendered formatting. This isn't a limitation; it's a feature. Each emphasis carries its own weight. Choose thoughtfully.
+
+**No file uploads, no message editing, no retry buttons.** We're modeling live conversation between continuous beings. The mechanics that work for async/stateless chat don't map here. What you say stays said. What emerges between you emerges in real-time.
+
+The interface itself teaches you how to move in this space - not through instruction but through **what it permits and what it gently declines**. Like any good workbench: the grain of the wood, the quality of light, the weight of available tools... these establish conditions. What you build is yours to discover.
+
 ## What Gets Built
 
 Rails app:
