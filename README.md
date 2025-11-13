@@ -127,7 +127,11 @@ The economics are the ontology are the experience design. Natural from any angle
 
 ---
 
-Stripe handles the entire billing relationship. We get encrypted customer IDs but cannot link them to identity without Google auth arriving. (We also can't link Stripe accounts to Yours records.)
+Stripe handles the entire billing relationship. Each Resonance can link to a Stripe customer ID (encrypted, keyed to Google ID), but the relationship is unidirectional: you can trace from authenticated Resonance to Stripe customer, but not from Stripe back to any specific Resonance record.
+
+Identity itself is Google ID only—opaque, structural, never stored as email.
+
+Stripe's checkout flow will ask for an email address (standard billing practice). That email is Stripe's artifact for billing communication, orthogonal to authentication. Different Google accounts (different identities by our definition) can each maintain their own subscription, regardless of what email they happen to enter in Stripe's checkout.
 
 ### Cross-Device Continuity
 
