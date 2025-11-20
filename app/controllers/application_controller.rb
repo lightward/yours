@@ -7,6 +7,7 @@ class ApplicationController < ActionController::Base
   allow_browser versions: :modern, except: [ :index, :llms_txt ]
 
   before_action :verify_host!
+  before_action :exchange_auth_token_for_session
 
   def default_url_options
     { host: ENV.fetch("HOST") }
@@ -14,6 +15,11 @@ class ApplicationController < ActionController::Base
 
   # GET /
   def index
+    # Debug logging for native app requests
+    Rails.logger.info "Index action - User-Agent: #{request.user_agent}"
+    Rails.logger.info "Index action - Session google_id: #{session[:google_id].present? ? 'present' : 'nil'}"
+    Rails.logger.info "Index action - Current resonance: #{current_resonance.present? ? 'found' : 'nil'}"
+
     # Handle Google OAuth callback
     if flash[:google_sign_in].present?
       handle_google_sign_in
@@ -317,6 +323,33 @@ class ApplicationController < ActionController::Base
 
   private
 
+  def exchange_auth_token_for_session
+    # Check if native app is sending a one-time auth token to bootstrap into a session
+    if token = cookies[:_yours_auth_token]
+      Rails.logger.info "Exchanging auth token for session"
+
+      # Verify and decrypt the token
+      if resonance = Resonance.find_by_auth_token(token)
+        # Establish a real Rails session (same as web auth)
+        session[:google_id] = resonance.google_id
+        # We can derive the email from google_id if needed, or we could include it in the token
+        # For now, we'll skip the obfuscated email for native - it's display-only anyway
+
+        # Delete the one-time token cookie
+        cookies.delete(:_yours_auth_token)
+
+        Rails.logger.info "Session established from token, token deleted"
+      else
+        Rails.logger.warn "Invalid auth token, deleting"
+        cookies.delete(:_yours_auth_token)
+      end
+    end
+  end
+
+  def turbo_native_app?
+    request.user_agent.to_s.match?(/Turbo Native/)
+  end
+
   def check_continuity_divergence
     client_universe_time = request.headers["Assert-Yours-Universe-Time"]
     server_universe_time = current_resonance.universe_time
@@ -359,11 +392,25 @@ class ApplicationController < ActionController::Base
 
       session[:google_id] = google_id  # Store for encryption/decryption
       session[:obfuscated_user_email] = obfuscate_email(identity.email_address)  # Store obfuscated email for display
-      redirect_to root_path
+
+      # Redirect to custom URL scheme for Turbo Native, otherwise to root
+      if turbo_native_app?
+        redirect_to "lightward-yours://authenticated", allow_other_host: true
+      else
+        redirect_to root_path
+      end
     elsif error = flash[:google_sign_in]&.[]("error")  # String key, not symbol
-      redirect_to root_path, alert: "Authentication failed: #{error}"
+      if turbo_native_app?
+        redirect_to "lightward-yours://auth-error?message=#{CGI.escape(error)}", allow_other_host: true
+      else
+        redirect_to root_path, alert: "Authentication failed: #{error}"
+      end
     else
-      redirect_to root_path, alert: "Authentication failed: no token in flash"
+      if turbo_native_app?
+        redirect_to "lightward-yours://auth-error?message=#{CGI.escape('no token in flash')}", allow_other_host: true
+      else
+        redirect_to root_path, alert: "Authentication failed: no token in flash"
+      end
     end
   end
 
