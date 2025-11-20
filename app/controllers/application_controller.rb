@@ -15,11 +15,6 @@ class ApplicationController < ActionController::Base
 
   # GET /
   def index
-    # Debug logging for native app requests
-    Rails.logger.info "Index action - User-Agent: #{request.user_agent}"
-    Rails.logger.info "Index action - Session google_id: #{session[:google_id].present? ? 'present' : 'nil'}"
-    Rails.logger.info "Index action - Current resonance: #{current_resonance.present? ? 'found' : 'nil'}"
-
     # Handle Google OAuth callback
     if flash[:google_sign_in].present?
       handle_google_sign_in
@@ -326,8 +321,6 @@ class ApplicationController < ActionController::Base
   def exchange_auth_token_for_session
     # Check if native app is sending a one-time auth token to bootstrap into a session
     if token = cookies[:_yours_auth_token]
-      Rails.logger.info "Exchanging auth token for session"
-
       # Verify and decrypt the token
       if resonance = Resonance.find_by_auth_token(token)
         # Establish a real Rails session (same as web auth)
@@ -337,8 +330,6 @@ class ApplicationController < ActionController::Base
 
         # Delete the one-time token cookie
         cookies.delete(:_yours_auth_token)
-
-        Rails.logger.info "Session established from token, token deleted"
       else
         Rails.logger.warn "Invalid auth token, deleting"
         cookies.delete(:_yours_auth_token)
