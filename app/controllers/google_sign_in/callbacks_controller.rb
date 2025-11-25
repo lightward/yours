@@ -18,8 +18,8 @@ class GoogleSignIn::CallbacksController < GoogleSignIn::BaseController
           identity = GoogleSignIn::Identity.new(id_token_value)
           google_id = identity.user_id
 
-          # Create or find resonance
-          resonance = Resonance.find_or_create_by_google_id(google_id)
+          # Create or find resonance (for side effect)
+          Resonance.find_or_create_by_google_id(google_id)
 
           # Generate a stateless auth token (no storage needed)
           auth_token = Resonance.generate_auth_token(google_id)

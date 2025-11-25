@@ -74,6 +74,8 @@ class Resonance < ApplicationRecord
 
     # Decrypt google_id from token
     raw = Base64.urlsafe_decode64(encrypted_google_id)
+    return nil if raw.bytesize < 28 # Need at least IV (12) + auth_tag (16)
+
     iv = raw[0, 12]
     auth_tag = raw[12, 16]
     encrypted = raw[28..-1]

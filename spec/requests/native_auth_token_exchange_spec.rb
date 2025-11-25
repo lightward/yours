@@ -91,7 +91,7 @@ RSpec.describe "Native auth token exchange", type: :request do
       # and sets it as a cookie. This tests that contract.
 
       token_parts = auth_token.split(".")
-      expect(token_parts.length).to eq(3), "Token format should be hash.encrypted.signature"
+      expect(token_parts.length).to eq(3) # Token format: hash.encrypted.signature
 
       # Token should be URL-safe (no special encoding needed)
       expect(auth_token).not_to match(%r{[+/= ]})
