@@ -187,6 +187,7 @@ GEM
     oj (3.16.13)
       bigdecimal (>= 3.0)
       ostruct (>= 0.2)
+    openssl (3.3.2)
     ostruct (0.6.3)
     parallel (1.27.0)
     parser (3.3.9.0)
@@ -363,6 +364,7 @@ DEPENDENCIES
   google_sign_in
   importmap-rails
   oj
+  openssl (~> 3.3, >= 3.3.1)
   pg (~> 1.1)
   propshaft
   puma (>= 5.0)
