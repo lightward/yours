@@ -19,7 +19,7 @@ gem "rollbar"
 gem "oj" # per rollbar recommendation
 
 # https://github.com/ruby/openssl/issues/949#issuecomment-3614908180
-gem 'openssl', '~> 3.3', '>= 3.3.1'
+gem "openssl", "~> 3.3", ">= 3.3.1"
 
 group :development, :test do
   # See https://guides.rubyonrails.org/debugging_rails_applications.html#debugging-with-the-debug-gem
