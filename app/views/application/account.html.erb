@@ -1,5 +1,20 @@
 <h1>Account</h1>
 
+<div class="section-divider flex-col gap-sm" data-controller="theme">
+  <h2>Display</h2>
+
+  <dl>
+    <dt>Theme:</dt>
+    <dd>
+      <div class="flex-row gap-md">
+        <button data-theme-target="option" data-action="click->theme#select" data-theme-value-param="dark">Dark</button>
+        <button data-theme-target="option" data-action="click->theme#select" data-theme-value-param="light">Light</button>
+        <button data-theme-target="option" data-action="click->theme#select" data-theme-value-param="auto">Auto</button>
+      </div>
+    </dd>
+  </dl>
+</div>
+
 <div class="section-divider flex-col gap-sm">
   <h2>Subscription</h2>
 

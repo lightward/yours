@@ -9,9 +9,11 @@
  * Consider organizing styles into separate files for maintainability.
  */
 
+/* Dark theme (default) */
 :root {
   --background: #0a0a0f;
   --foreground: #b7b3ac;
+  --foreground-heading: #cfccc6;
   --border: #1a1a2e;
   --border-light: #2a2a3e;
   --accent: #00e5ff;
@@ -23,6 +25,50 @@
   --user-message-bg: #1a1a3e;
   --assistant-message-bg: #0f0f1f;
   --message-border: #00e5ff;
+  --header-gradient-start: rgba(10, 10, 15, 0.8);
+  --header-gradient-end: rgba(10, 10, 15, 0);
+}
+
+/* Light theme */
+[data-theme="light"] {
+  --background: #f5f5f0;
+  --foreground: #3d3d3d;
+  --foreground-heading: #1a1a1a;
+  --border: #e0e0d8;
+  --border-light: #d0d0c8;
+  --accent: #0088aa;
+  --accent-hover: #006688;
+  --accent-active: #cc44cc;
+  --success: #00aa77;
+  --warning: #cc9900;
+  --error: #cc0066;
+  --user-message-bg: #e8e8e0;
+  --assistant-message-bg: #f0f0e8;
+  --message-border: #0088aa;
+  --header-gradient-start: rgba(245, 245, 240, 0.8);
+  --header-gradient-end: rgba(245, 245, 240, 0);
+}
+
+/* Auto theme - follows system preference */
+@media (prefers-color-scheme: light) {
+  [data-theme="auto"] {
+    --background: #f5f5f0;
+    --foreground: #3d3d3d;
+    --foreground-heading: #1a1a1a;
+    --border: #e0e0d8;
+    --border-light: #d0d0c8;
+    --accent: #0088aa;
+    --accent-hover: #006688;
+    --accent-active: #cc44cc;
+    --success: #00aa77;
+    --warning: #cc9900;
+    --error: #cc0066;
+    --user-message-bg: #e8e8e0;
+    --assistant-message-bg: #f0f0e8;
+    --message-border: #0088aa;
+    --header-gradient-start: rgba(245, 245, 240, 0.8);
+    --header-gradient-end: rgba(245, 245, 240, 0);
+  }
 }
 
 * {
@@ -84,7 +130,7 @@ h1, h2, h3, h4, h5, h6 {
   text-transform: uppercase;
   line-height: 1.2;
   margin: 0;
-  color: #cfccc6;
+  color: var(--foreground-heading);
 }
 
 a {
@@ -116,7 +162,7 @@ button:hover, input[type="submit"]:hover {
 }
 
 button.secondary {
-  background: var(--background);
+  background: var(--border);
   color: var(--foreground);
   border-left-color: var(--border-light);
 }
@@ -217,6 +263,7 @@ input:focus {
 dl {
   display: grid;
   grid-template-columns: auto 1fr;
+  align-items: baseline;
   gap: 0.75rem 1.5rem;
   margin: 1.5rem 0;
 }
@@ -520,7 +567,7 @@ dd, p {
 header {
   position: sticky;
   top: 0;
-  background: linear-gradient(to bottom, rgba(10, 10, 15, 0.8) 25%, rgba(10, 10, 15, 0));
+  background: linear-gradient(to bottom, var(--header-gradient-start) 25%, var(--header-gradient-end));
   z-index: 10;
   padding: 1rem;
 }

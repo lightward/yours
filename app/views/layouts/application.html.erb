@@ -39,6 +39,14 @@
     <link rel="stylesheet" href="https://fonts.lightward.io/lightward-favorit-mono.css">
     <link rel="stylesheet" href="https://fonts.lightward.io/lightward-favorit-expanded.css">
 
+    <script>
+      // Apply theme immediately to prevent flash
+      (function() {
+        var theme = localStorage.getItem("yours-theme") || "dark";
+        document.documentElement.setAttribute("data-theme", theme);
+      })();
+    </script>
+
     <%# Includes all stylesheet files in app/assets/stylesheets %>
     <%= stylesheet_link_tag :app %>
     <script src="https://aura.lightward.io/dist/aura.js" defer></script>
