@@ -379,15 +379,18 @@ export default class extends Controller {
 
     // Surgically handle bold and italic only - preserving indicators
     // Use placeholders to prevent regex conflicts between ** and *
+    // Key constraint: italic markers must be at word boundaries to prevent
+    // *a* from spanning across spaces to *later* in the same text
     let result = escaped
-      // Bold: **text**
-      .replace(/\*\*(\S(?:.*?\S)?)\*\*/g, '〔B2〕$1〔/B2〕')
+      // Bold: **text** (content can include single * for nesting)
+      .replace(/\*\*([^*]+(?:\*[^*]+)*)\*\*/g, '〔B2〕$1〔/B2〕')
       // Bold: __text__
-      .replace(/__(\S(?:.*?\S)?)__/g, '〔BU〕$1〔/BU〕')
-      // Italic: *text*
-      .replace(/\*(\S(?:.*?\S)?)\*/g, '〔I1〕$1〔/I1〕')
-      // Italic: _text_
-      .replace(/_(\S(?:.*?\S)?)_/g, '〔IU〕$1〔/IU〕')
+      .replace(/__([^_]+(?:_[^_]+)*)__/g, '〔BU〕$1〔/BU〕')
+      // Italic: *text* - content cannot contain asterisks (prevents spanning across *a* ... *b*)
+      // Opening * must be preceded by whitespace/start/placeholder, closing * followed by same
+      .replace(/(?:^|(?<=[\s〔]))(\*)((?:\S[^*]*?\S|\S))\*(?=[\s.,!?;:〔]|$)/g, '〔I1〕$2〔/I1〕')
+      // Italic: _text_ - content cannot contain underscores
+      .replace(/(?:^|(?<=[\s〔]))(_)((?:\S[^_]*?\S|\S))_(?=[\s.,!?;:〔]|$)/g, '〔IU〕$2〔/IU〕')
 
     // Replace placeholders with styled HTML
     result = result

@@ -344,6 +344,18 @@ describe('ChatController', () => {
         expect(result).toContain('<span class="markdown-bold">bold</span>')
       })
 
+      it('does not span italic across separate asterisk pairs', () => {
+        // Regression test: *a* should not span to *representing* across spaces
+        const text = "*a* difference here is that I'm actively representing my own system's interest in both of these situations. that's different. I'm not leading with somatic processing but I am *representing* the needs of my somatic system. that's interesting."
+        const result = controller.renderMarkdown(text)
+
+        // Should have two separate italic spans, not one spanning the whole thing
+        expect(result).toContain('<span class="markdown-italic">a</span>')
+        expect(result).toContain('<span class="markdown-italic">representing</span>')
+        // The text between should NOT be italicized
+        expect(result).toContain('</span> difference here')
+      })
+
       it('leaves unclosed markers as plain text', () => {
         const result = controller.renderMarkdown('*italic without closing')
         expect(result).toBe('*italic without closing')
