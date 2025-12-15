@@ -4,7 +4,7 @@ Rails.application.routes.draw do
 
   # User-facing routes
   get "exit", to: "application#logout"
-  get "account", to: "application#account"
+  get "settings", to: "application#settings"
   get "save", to: "application#save"
 
   # Service routes

@@ -22,7 +22,7 @@
       <% next_day = current_resonance.universe_day + 1 %>
       <% if !current_resonance.active_subscription? %>
         <%= link_to "Subscribe for day #{next_day}",
-            account_path,
+            settings_path,
             class: "header-link" %>
       <% else %>
         <%= button_to "Move to day #{next_day}",

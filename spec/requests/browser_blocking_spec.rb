@@ -52,14 +52,14 @@ RSpec.describe "Browser blocking", type: :request do
       end
     end
 
-    describe "GET /account" do
+    describe "GET /settings" do
       it "allows modern browsers (redirects to root because not authenticated)" do
-        get account_path, headers: { "HTTP_USER_AGENT" => modern_user_agent }
+        get settings_path, headers: { "HTTP_USER_AGENT" => modern_user_agent }
         expect(response).to redirect_to(root_path)
       end
 
       it "blocks non-modern browsers" do
-        get account_path, headers: { "HTTP_USER_AGENT" => old_user_agent }
+        get settings_path, headers: { "HTTP_USER_AGENT" => old_user_agent }
         expect(response).to have_http_status(:not_acceptable)
       end
     end

@@ -33,8 +33,8 @@ class ApplicationController < ActionController::Base
         @narrative = current_resonance.narrative_accumulation_by_day
         render "application/chat"
       else
-        # Day 2+ requires subscription - redirect to account to handle it
-        redirect_to account_path, alert: "Subscribe to continue with #{universe_day_with_units(current_resonance.universe_day)}.", status: :see_other
+        # Day 2+ requires subscription - redirect to settings to handle it
+        redirect_to settings_path, alert: "Subscribe to continue with #{universe_day_with_units(current_resonance.universe_day)}.", status: :see_other
       end
     else
       # Show landing page
@@ -49,12 +49,12 @@ class ApplicationController < ActionController::Base
     redirect_to root_path
   end
 
-  # GET /account
-  def account
+  # GET /settings
+  def settings
     return redirect_to root_path, alert: "Please sign in" unless current_resonance
 
     @subscription = current_resonance.subscription_details
-    render "application/account"
+    render "application/settings"
   end
 
   # POST /stream
@@ -229,20 +229,20 @@ class ApplicationController < ActionController::Base
 
     # Prevent duplicate subscriptions
     if current_resonance.active_subscription?
-      return redirect_to account_path, alert: "You already have an active subscription"
+      return redirect_to settings_path, alert: "You already have an active subscription"
     end
 
     tier = params[:tier]
 
     session = current_resonance.create_checkout_session(
       tier: tier,
-      success_url: account_url,
-      cancel_url: account_url
+      success_url: settings_url,
+      cancel_url: settings_url
     )
 
     redirect_to session.url, allow_other_host: true
   rescue ArgumentError => e
-    redirect_to account_path, alert: e.message
+    redirect_to settings_path, alert: e.message
   end
 
   # DELETE /subscription
@@ -254,12 +254,12 @@ class ApplicationController < ActionController::Base
 
     if current_resonance.cancel_subscription(immediately: immediately)
       if immediately
-        redirect_to account_path, notice: "Subscription canceled immediately."
+        redirect_to settings_path, notice: "Subscription canceled immediately."
       else
-        redirect_to account_path, notice: "Subscription canceled. You'll have access until the end of your billing period."
+        redirect_to settings_path, notice: "Subscription canceled. You'll have access until the end of your billing period."
       end
     else
-      redirect_to account_path, alert: "Unable to cancel subscription. Please try again."
+      redirect_to settings_path, alert: "Unable to cancel subscription. Please try again."
     end
   end
 
