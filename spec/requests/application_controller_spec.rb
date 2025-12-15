@@ -120,9 +120,9 @@ RSpec.describe ApplicationController, type: :request do
           resonance.save!
         end
 
-        it "redirects to account page" do
+        it "redirects to settings page" do
           get root_path
-          expect(response).to redirect_to(account_path)
+          expect(response).to redirect_to(settings_path)
         end
       end
     end
@@ -205,10 +205,10 @@ RSpec.describe ApplicationController, type: :request do
     end
   end
 
-  describe "GET /account" do
+  describe "GET /settings" do
     context "when not authenticated" do
       it "redirects to root with alert" do
-        get account_path
+        get settings_path
         expect(response).to redirect_to(root_path)
         expect(flash[:alert]).to eq("Please sign in")
       end
@@ -221,8 +221,8 @@ RSpec.describe ApplicationController, type: :request do
         resonance.save!
       end
 
-      it "shows account page with subscription options" do
-        get account_path
+      it "shows settings page with subscription options" do
+        get settings_path
         expect(response).to have_http_status(:success)
         expect(response.body).to include("What feels right?")
         expect(response.body).to include("$1/month")
@@ -241,7 +241,7 @@ RSpec.describe ApplicationController, type: :request do
           allow_any_instance_of(Resonance).to receive(:active_subscription?).and_return(true)
         end
 
-        it "shows account details" do
+        it "shows settings details" do
           details = {
             id: "sub_test123",
             status: "active",
@@ -253,10 +253,10 @@ RSpec.describe ApplicationController, type: :request do
 
           allow_any_instance_of(Resonance).to receive(:subscription_details).and_return(details)
 
-          get account_path
+          get settings_path
 
           expect(response).to have_http_status(:success)
-          expect(response.body).to include("Account")
+          expect(response.body).to include("Settings")
         end
 
         it "shows 'Cancel renewal' button when subscription is active" do
@@ -271,7 +271,7 @@ RSpec.describe ApplicationController, type: :request do
           }
           allow_any_instance_of(Resonance).to receive(:subscription_details).and_return(details)
 
-          get account_path
+          get settings_path
 
           expect(response).to have_http_status(:success)
           expect(response.body).to include("Cancel renewal")
@@ -290,7 +290,7 @@ RSpec.describe ApplicationController, type: :request do
           }
           allow_any_instance_of(Resonance).to receive(:subscription_details).and_return(details)
 
-          get account_path
+          get settings_path
 
           expect(response).to have_http_status(:success)
           expect(response.body).to include("Cancel immediately")
@@ -307,7 +307,7 @@ RSpec.describe ApplicationController, type: :request do
           }
           allow_any_instance_of(Resonance).to receive(:subscription_details).and_return(details)
 
-          get account_path
+          get settings_path
 
           expect(response).to have_http_status(:success)
           expect(response.body).to include("Start over")
@@ -322,8 +322,8 @@ RSpec.describe ApplicationController, type: :request do
           allow_any_instance_of(Resonance).to receive(:active_subscription?).and_return(false)
         end
 
-        it "shows account page with subscription buttons" do
-          get account_path
+        it "shows settings page with subscription buttons" do
+          get settings_path
 
           expect(response).to have_http_status(:success)
           expect(response.body).to include("What feels right?")
@@ -334,7 +334,7 @@ RSpec.describe ApplicationController, type: :request do
         it "shows disabled 'start over' button with explanatory text" do
           allow_any_instance_of(Resonance).to receive(:subscription_details).and_return(nil)
 
-          get account_path
+          get settings_path
 
           expect(response).to have_http_status(:success)
           expect(response.body).to include("Start over")
@@ -461,8 +461,8 @@ RSpec.describe ApplicationController, type: :request do
         it "redirects to root with alert" do
           post stream_path, params: { message: message }
           expect(response).to redirect_to(root_path)
-          # Following the redirect would hit the index action again, which redirects to account
-          # The flash message is set and will be displayed on the account page
+          # Following the redirect would hit the index action again, which redirects to settings
+          # The flash message is set and will be displayed on the settings page
         end
       end
     end
@@ -568,8 +568,8 @@ RSpec.describe ApplicationController, type: :request do
         it "redirects to root with alert" do
           post sleep_path
           expect(response).to redirect_to(root_path)
-          # Following the redirect would hit the index action again, which redirects to account
-          # The flash message is set and will be displayed on the account page
+          # Following the redirect would hit the index action again, which redirects to settings
+          # The flash message is set and will be displayed on the settings page
         end
       end
     end
@@ -667,18 +667,18 @@ RSpec.describe ApplicationController, type: :request do
       it "redirects back with error for invalid tier" do
         post subscription_path, params: { tier: "invalid" }
 
-        expect(response).to redirect_to(account_path)
+        expect(response).to redirect_to(settings_path)
         follow_redirect!
         expect(response.body).to include("Invalid tier")
       end
 
-      it "redirects to account with alert when user already has active subscription" do
+      it "redirects to settings with alert when user already has active subscription" do
         # Mock an active subscription
         allow_any_instance_of(Resonance).to receive(:active_subscription?).and_return(true)
 
         post subscription_path, params: { tier: tier }
 
-        expect(response).to redirect_to(account_path)
+        expect(response).to redirect_to(settings_path)
         expect(flash[:alert]).to eq("You already have an active subscription")
       end
     end
@@ -701,8 +701,8 @@ RSpec.describe ApplicationController, type: :request do
       end
 
       context "when canceling immediately" do
-        it "cancels subscription and redirects to account" do
-          # Mock subscription details for the account page
+        it "cancels subscription and redirects to settings" do
+          # Mock subscription details for the settings page
           details = {
             id: "sub_test123",
             status: "active",
@@ -718,15 +718,15 @@ RSpec.describe ApplicationController, type: :request do
 
           delete subscription_path, params: { immediately: true }
 
-          expect(response).to redirect_to(account_path)
+          expect(response).to redirect_to(settings_path)
           follow_redirect!
           expect(response.body).to include("canceled immediately")
         end
       end
 
       context "when canceling at period end" do
-        it "cancels subscription and redirects to account" do
-          # Mock subscription details for the account page
+        it "cancels subscription and redirects to settings" do
+          # Mock subscription details for the settings page
           details = {
             id: "sub_test123",
             status: "active",
@@ -742,14 +742,14 @@ RSpec.describe ApplicationController, type: :request do
 
           delete subscription_path
 
-          expect(response).to redirect_to(account_path)
+          expect(response).to redirect_to(settings_path)
           follow_redirect!
           expect(response.body).to include("billing period")
         end
       end
 
       it "shows error if cancellation fails" do
-        # Mock subscription details for the account page redirect
+        # Mock subscription details for the settings page redirect
         details = {
           id: "sub_test123",
           status: "active",
@@ -765,7 +765,7 @@ RSpec.describe ApplicationController, type: :request do
 
         delete subscription_path
 
-        expect(response).to redirect_to(account_path)
+        expect(response).to redirect_to(settings_path)
         expect(flash[:alert]).to eq("Unable to cancel subscription. Please try again.")
       end
     end
