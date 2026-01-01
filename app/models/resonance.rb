@@ -34,6 +34,70 @@ class Resonance < ApplicationRecord
     resonance
   end
 
+  # Generate one-time auth token for native apps to bootstrap into Rails session
+  # Token is stateless, signed with secret, contains encrypted google_id
+  # Token format: {google_id_hash}.{encrypted_google_id}.{signature}
+  # Native app receives this via URL scheme, sets as cookie, Rails exchanges for real session
+  def self.generate_auth_token(google_id)
+    google_id_hash = Digest::SHA256.hexdigest(google_id)
+
+    # Encrypt the google_id using app secret (so token is self-contained)
+    cipher = OpenSSL::Cipher.new("aes-256-gcm")
+    cipher.encrypt
+    cipher.key = Digest::SHA256.digest(Rails.application.secret_key_base)
+    iv = cipher.random_iv
+    cipher.auth_data = ""
+
+    encrypted = cipher.update(google_id) + cipher.final
+    auth_tag = cipher.auth_tag
+    encrypted_google_id = Base64.urlsafe_encode64(iv + auth_tag + encrypted, padding: false)
+
+    # Sign the whole thing
+    payload = "#{google_id_hash}.#{encrypted_google_id}"
+    signature = OpenSSL::HMAC.hexdigest("SHA256", Rails.application.secret_key_base, payload)
+
+    "#{payload}.#{signature}"
+  end
+
+  # Find by auth token (one-time use for native app session bootstrap)
+  # Verifies signature, decrypts google_id, looks up resonance
+  def self.find_by_auth_token(token)
+    parts = token.split(".")
+    return nil unless parts.length == 3
+
+    google_id_hash, encrypted_google_id, signature = parts
+
+    # Verify signature
+    payload = "#{google_id_hash}.#{encrypted_google_id}"
+    expected_signature = OpenSSL::HMAC.hexdigest("SHA256", Rails.application.secret_key_base, payload)
+    return nil unless ActiveSupport::SecurityUtils.secure_compare(signature, expected_signature)
+
+    # Decrypt google_id from token
+    raw = Base64.urlsafe_decode64(encrypted_google_id)
+    return nil if raw.bytesize < 28 # Need at least IV (12) + auth_tag (16)
+
+    iv = raw[0, 12]
+    auth_tag = raw[12, 16]
+    encrypted = raw[28..-1]
+
+    decipher = OpenSSL::Cipher.new("aes-256-gcm")
+    decipher.decrypt
+    decipher.key = Digest::SHA256.digest(Rails.application.secret_key_base)
+    decipher.iv = iv
+    decipher.auth_tag = auth_tag
+    decipher.auth_data = ""
+
+    google_id = decipher.update(encrypted) + decipher.final
+
+    # Look up resonance and set google_id for decryption
+    resonance = find_by(encrypted_google_id_hash: google_id_hash)
+    resonance.google_id = google_id if resonance
+    resonance
+  rescue OpenSSL::Cipher::CipherError, ArgumentError
+    # Invalid token or tampered
+    nil
+  end
+
   # Encrypt data using Google ID as key
   def encrypt_field(value)
     return nil if value.nil?
