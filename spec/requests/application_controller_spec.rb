@@ -224,7 +224,7 @@ RSpec.describe ApplicationController, type: :request do
       it "shows settings page with subscription options" do
         get settings_path
         expect(response).to have_http_status(:success)
-        expect(response.body).to include("What feels right?")
+        expect(response.body).to include("How much do you weigh, financially?")
         expect(response.body).to include("$1/month")
       end
     end
@@ -326,7 +326,7 @@ RSpec.describe ApplicationController, type: :request do
           get settings_path
 
           expect(response).to have_http_status(:success)
-          expect(response.body).to include("What feels right?")
+          expect(response.body).to include("How much do you weigh, financially?")
           expect(response.body).to include("$1/month")
           expect(response.body).to include("$10/month")
         end

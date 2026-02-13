@@ -32,4 +32,12 @@ RSpec.describe("README load-bearing definitions") do # rubocop:disable RSpec/Des
     expect(readme_content).to include("cancel renewal")
     expect(readme_content).to match(/cancel renewal.*retaining access through current period/i)
   end
+
+  it "frames the pricing question as diagnostic, not dialogic" do
+    expect(readme_content).to include('The interface asks: "How much do you weigh, financially?"')
+  end
+
+  it "names the pricing model as payment-neutral" do
+    expect(readme_content).to include("payment-neutral")
+  end
 end

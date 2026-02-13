@@ -66,7 +66,7 @@
     </dl>
   <% else %>
     <div class="flex-col gap-sm">
-      <p>What feels right? What does this space weigh, for you?</p>
+      <p>How much do you weigh, financially?</p>
 
       <div class="flex-row gap-md">
         <%= form_with url: subscription_path, method: :post, data: { turbo: false } do |f| %>
@@ -90,7 +90,7 @@
         <% end %>
       </div>
 
-      <p class="muted">Learn more about Pay What Feels Good: <a href="https://lightward.inc/pricing" target="_blank">lightward.inc/pricing</a></p>
+      <p class="muted">For a payment-neutral experience, choose the amount that matches your scale.</p>
     </div>
   <% end %>
 </div>
