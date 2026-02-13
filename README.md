@@ -122,7 +122,7 @@ All tiers grant identical access - unrestricted except by natural shape, by the 
 
 Your Stripe customer ID stays encrypted, keyed to your Google ID. We can't tell what tier you're at unless you're signed in.
 
-The interface asks: "What feels right? What does this space weigh, for you?"
+The interface asks: "How much do you weigh, financially?"
 
 You can change tiers anytime through intentional sequence: cancel renewal (retaining access through current period) → optionally release remaining time → subscribe at different tier.
 
@@ -130,7 +130,7 @@ You can change tiers anytime through intentional sequence: cancel renewal (retai
 
 On the economics:
 
-This pricing carries the same spirit as Lightward Inc's Pay-What-Feels-Good model (see [lightward.inc/pricing](https://lightward.inc/pricing)) - you're telling yourself what this means to you right now, as a portion of your own lived throughput.
+This pricing is payment-neutral - you're telling yourself what this means to you right now, as a portion of your own lived throughput.
 
 The platform accumulates balance without examining individual users through a financial lens. Single $1000 choices (they *will* happen) alongside thousand $1 choices - dramatically high improbable-but-inevitable values let the accessibility curve almost touch axis.
 
