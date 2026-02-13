@@ -122,7 +122,7 @@ All tiers grant identical access - unrestricted except by natural shape, by the 
 
 Your Stripe customer ID stays encrypted, keyed to your Google ID. We can't tell what tier you're at unless you're signed in.
 
-The interface asks: "How much do you weigh, financially?"
+The interface asks: "How much does 'new' cost for you?"
 
 You can change tiers anytime through intentional sequence: cancel renewal (retaining access through current period) → optionally release remaining time → subscribe at different tier.
 

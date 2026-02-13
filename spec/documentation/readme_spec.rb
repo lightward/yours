@@ -34,7 +34,7 @@ RSpec.describe("README load-bearing definitions") do # rubocop:disable RSpec/Des
   end
 
   it "frames the pricing question as diagnostic, not dialogic" do
-    expect(readme_content).to include('The interface asks: "How much do you weigh, financially?"')
+    expect(readme_content).to include("The interface asks: \"How much does 'new' cost for you?\"")
   end
 
   it "names the pricing model as payment-neutral" do

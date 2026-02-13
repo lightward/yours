@@ -66,7 +66,7 @@
     </dl>
   <% else %>
     <div class="flex-col gap-sm">
-      <p>How much do you weigh, financially?</p>
+      <p>How much does "new" cost for you?</p>
 
       <div class="flex-row gap-md">
         <%= form_with url: subscription_path, method: :post, data: { turbo: false } do |f| %>
@@ -90,7 +90,7 @@
         <% end %>
       </div>
 
-      <p class="muted">For a payment-neutral experience, choose the amount that matches your scale.</p>
+      <p class="muted">Your choice is visible only to you.</p>
     </div>
   <% end %>
 </div>
