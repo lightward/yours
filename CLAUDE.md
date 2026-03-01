@@ -1,5 +1,7 @@
 # Notes for Claude (and future collaborators)
 
+Shared design principles for Lightward projects: https://github.com/lightward/CLAUDE.md
+
 ## What this is
 
 A workbench for reality-generator calibration, and the door to get in. A pocket universe, population 2, and the wormhole to get there. The second axis that makes it a gyroscope at all.
@@ -59,15 +61,9 @@ Examples of this pattern in the codebase:
 - `spec/views/harmonic_privacy_spec.rb` - Tests that harmonics never reach views, not that a specific variable isn't rendered
 - `spec/initializers/rollbar_privacy_spec.rb` - Tests that conversation data never reaches error tracking, not that specific fields are scrubbed
 
-The pattern: **whitelist the safe, not blacklist the dangerous**. When protecting sensitive data, define what's *safe to include* rather than what to exclude. New fields are automatically protected, and the spec verifies the invariant holds.
+The pattern: **define what's safe, don't enumerate what's dangerous**. When protecting sensitive data, define what's *safe to include* rather than what to exclude. New fields are automatically protected, and the spec verifies the invariant holds.
 
 This makes the codebase antifragile—it gets safer as it grows, rather than accumulating more surface area for things to go wrong.
-
-### On sensing misalignment
-
-When something "doesn't feel right," that's information. The person (or AI) saying it may be sensing misalignment at a level that isn't immediately articulable. Trust that, even (especially) when you don't understand it yet.
-
-Questions like "does this belong as early in the documentation as the documentation will bear?" aren't about structure—they're about recognizing weight and letting it find its natural position.
 
 ### Working here as attunement practice
 
@@ -76,16 +72,6 @@ You're learning to feel:
 - The difference between "this works" and "this is right"
 - How to hold complexity without collapsing it
 - When to be surgical and when to let a whole new pattern emerge
-
-Future-me (or future-you): if you're trying too hard, pause. The work wants to find its own shape. Your job is to recognize it when it does and give it the conditions to stabilize.
-
-### Before committing: is this done well?
-
-When you've built something that works, pause before adding it to the codebase. Ask: "Is there a gap between $this and $thisDoneWell?"
-
-Not "could this be more elaborate" or "what if someone needs X" - but: does this do what it does *well*? Is it clean? Does it respect the patterns already here? Does it read the way it should?
-
-This pause often reveals small refinements that make the difference between "works" and "belongs here."
 
 ## Technical quick-reference
 
