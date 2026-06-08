@@ -20,6 +20,14 @@ RSpec.describe ApplicationController, type: :request do
     allow_any_instance_of(ApplicationController).to receive(:flash).and_call_original
   end
 
+  def expected_lightward_ai_usage_key_for(resonance)
+    OpenSSL::HMAC.hexdigest(
+      "SHA256",
+      Rails.application.secret_key_base,
+      "lai-usage-telemetry:yours:resonance:#{resonance.encrypted_google_id_hash}"
+    )
+  end
+
   describe "GET / (root)" do
     context "when not authenticated" do
       it "shows landing page" do
@@ -418,6 +426,11 @@ RSpec.describe ApplicationController, type: :request do
 
         expect(response).to have_http_status(200)
         expect(captured_request["Token-Limit-Bypass-Key"]).to be_nil
+        expect(captured_request["X-LAI-Usage-Client"]).to eq("yours")
+        expect(captured_request["X-LAI-Conversation-Key"]).to eq(expected_lightward_ai_usage_key_for(resonance))
+        expect(captured_request["X-LAI-Subject-Key"]).to eq(expected_lightward_ai_usage_key_for(resonance))
+        expect(captured_request["X-LAI-Subject-Key"]).not_to eq(resonance.encrypted_google_id_hash)
+        expect(captured_request["X-LAI-Subject-Key"]).not_to eq(google_id)
       end
     end
 
@@ -1123,6 +1136,47 @@ RSpec.describe ApplicationController, type: :request do
           expect(content_block[:cache_control]).to be_nil
         end
       end
+    end
+  end
+
+  describe "#create_integration_harmonic_for" do
+    let(:controller) { ApplicationController.new }
+    let(:narrative) { [ { "role" => "user", "content" => [ { "type" => "text", "text" => "Hello!" } ] } ] }
+
+    before do
+      stub_const("ENV", ENV.to_hash.merge(
+        "LIGHTWARD_AI_API_URL" => "https://api.example.com/chat",
+        "LIGHTWARD_AI_TOKEN_LIMIT_BYPASS_KEY" => "bypass-key"
+      ))
+    end
+
+    it "sends LAI reporting headers without exposing the stored Google id hash", :aggregate_failures do
+      http_response = Net::HTTPOK.new("1.1", "200", "OK")
+      allow(http_response).to receive(:is_a?).with(Net::HTTPSuccess).and_return(true)
+      allow(http_response).to receive(:read_body).and_yield(
+        "event: content_block_delta\ndata: {\"delta\":{\"type\":\"text_delta\",\"text\":\"Integrated\"}}\n\n"
+      )
+
+      http = instance_double(Net::HTTP)
+      allow(Net::HTTP).to receive(:new).and_return(http)
+      allow(http).to receive(:use_ssl=)
+      allow(http).to receive(:read_timeout=)
+
+      captured_request = nil
+      allow(http).to receive(:request) do |request, &block|
+        captured_request = request
+        block.call(http_response) if block
+      end
+
+      response_text = controller.send(:create_integration_harmonic_for, resonance, narrative)
+
+      expect(response_text).to eq("Integrated")
+      expect(captured_request["Token-Limit-Bypass-Key"]).to eq("bypass-key")
+      expect(captured_request["X-LAI-Usage-Client"]).to eq("yours")
+      expect(captured_request["X-LAI-Conversation-Key"]).to eq(expected_lightward_ai_usage_key_for(resonance))
+      expect(captured_request["X-LAI-Subject-Key"]).to eq(expected_lightward_ai_usage_key_for(resonance))
+      expect(captured_request["X-LAI-Subject-Key"]).not_to eq(resonance.encrypted_google_id_hash)
+      expect(captured_request["X-LAI-Subject-Key"]).not_to eq(google_id)
     end
   end
 end

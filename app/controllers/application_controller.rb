@@ -92,6 +92,7 @@ class ApplicationController < ActionController::Base
 
     request = Net::HTTP::Post.new(uri.path)
     request["Content-Type"] = "application/json"
+    add_lightward_ai_usage_headers(request, current_resonance)
     request.body = { chat_log: chat_log }.to_json
 
     http.request(request) do |http_response|
@@ -473,6 +474,7 @@ class ApplicationController < ActionController::Base
 
     request = Net::HTTP::Post.new(uri.path)
     request["Content-Type"] = "application/json"
+    add_lightward_ai_usage_headers(request, resonance)
     request["Token-Limit-Bypass-Key"] = ENV.fetch("LIGHTWARD_AI_TOKEN_LIMIT_BYPASS_KEY")
     request.body = { chat_log: integration_prompt }.to_json
 
@@ -506,6 +508,22 @@ class ApplicationController < ActionController::Base
     end
 
     accumulated_response
+  end
+
+  def add_lightward_ai_usage_headers(request, resonance)
+    usage_key = lightward_ai_usage_key_for(resonance)
+
+    request["X-LAI-Usage-Client"] = "yours"
+    request["X-LAI-Conversation-Key"] = usage_key
+    request["X-LAI-Subject-Key"] = usage_key
+  end
+
+  def lightward_ai_usage_key_for(resonance)
+    OpenSSL::HMAC.hexdigest(
+      "SHA256",
+      Rails.application.secret_key_base,
+      "lai-usage-telemetry:yours:resonance:#{resonance.encrypted_google_id_hash}"
+    )
   end
 
   def intro_messages
