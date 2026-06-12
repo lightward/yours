@@ -12,7 +12,9 @@ describe('SleepController', () => {
     shutdown: vi.fn()
   }
 
-  const MockLightwardAura = vi.fn(() => mockAura)
+  // A plain function, not an arrow: the controller calls `new LightwardAura(...)`,
+  // and vitest 4 constructs the implementation - arrows aren't constructible
+  const MockLightwardAura = vi.fn(function () { return mockAura })
   MockLightwardAura.defaultParams = {
     width: 800,
     height: 600
