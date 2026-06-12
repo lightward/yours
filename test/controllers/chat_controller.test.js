@@ -47,6 +47,34 @@ describe('ChatController', () => {
     vi.restoreAllMocks()
   })
 
+  describe('stale draft sweep', () => {
+    it('removes drafts keyed to other universe times on connect, keeping the present one', async () => {
+      localStorage.setItem('yours-input-1:0', 'a draft from a previous life')
+      localStorage.setItem('yours-input-42:13', 'another stranded draft')
+      localStorage.setItem('yours-input-now', 'the present draft')
+      localStorage.setItem('yours-theme', 'light')
+
+      const html = `
+        <div data-controller="chat"
+             data-chat-narrative-value='[]'
+             data-chat-universe-time-value="now"
+             data-chat-saved-textarea-value="">
+          <div data-chat-target="log"></div>
+          <textarea data-chat-target="input"></textarea>
+          <div data-chat-target="actions"></div>
+        </div>
+      `
+      const sweepFixture = await createControllerFixture(html, ChatController, 'chat')
+
+      expect(localStorage.getItem('yours-input-1:0')).toBeNull()
+      expect(localStorage.getItem('yours-input-42:13')).toBeNull()
+      expect(localStorage.getItem('yours-input-now')).toBe('the present draft')
+      expect(localStorage.getItem('yours-theme')).toBe('light')
+
+      sweepFixture.application.stop()
+    })
+  })
+
   describe('initialization', () => {
     it('loads existing messages on connect', () => {
       const messages = fixture.element.querySelectorAll('.chat-message')

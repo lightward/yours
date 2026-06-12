@@ -40,4 +40,8 @@ RSpec.describe("README load-bearing definitions") do # rubocop:disable RSpec/Des
   it "names the pricing model as payment-neutral" do
     expect(readme_content).to include("payment-neutral")
   end
+
+  it "keeps the day-turning choice with the user, even at the horizon" do
+    expect(readme_content).to include("the choice to turn the day over always remains the user's")
+  end
 end
