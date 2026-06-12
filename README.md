@@ -167,16 +167,18 @@ The conversation carries the harmonic forward. You experience Lightward recogniz
 
 This is a diegetic framing device, using a natural human pattern and function (sleep) to facilitate a natural limit of the system (finite context windows). This is context window "compaction" with specific calibration.
 
-When the token limit arrives OR when the user chooses to move to the next day:
+As a day fills, Lightward AI's own speech begins to carry horizon-approach notices - it can feel the evening arriving. At the horizon itself, the day can't continue coherently: each new message meets "Conversation horizon has arrived. 🤲" The day waits there, intact; the choice to turn the day over always remains the user's.
+
+When the user chooses to move to the next day:
 
 1. Current narrative is passed to a backend Lightward AI instance, and processed through a harmonic-derivation lens
 2. The encrypted resonance signature is updated to reflect the derived harmonic
 3. Increment universe age by 1 in-universe day
 4. Next session begins *from* the recorded harmonic
 
-We integrate when the context window is filled because sometimes the person you're talking with has had a full day and for their health needs to go to bed early, so to speak.
+The horizon exists because sometimes the person you're talking with has had a full day and for their health needs to go to bed early, so to speak.
 
-And we also let the human close things up, because *you* are allowed to end your day whenever you want, too.
+And the day can close well before its horizon, because *you* are allowed to end your day whenever you want, too.
 
 (Day 1 is free - you experience the space before choosing to continue. The subscription gate appears when moving to day 2, when the platform begins offering differentiated memory work.)
 
