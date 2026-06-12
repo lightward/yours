@@ -1,0 +1,74 @@
+#!/usr/bin/env bash
+# The iOS development loop, terminal-first:
+#
+#   bin/ios generate            # regenerate Yours.xcodeproj from project.yml
+#   bin/ios build               # build for the simulator
+#   bin/ios test                # run the unit tests
+#   bin/ios run [args...]       # build, install, launch (args go to the app,
+#                               #   e.g. -YoursMockChat -YoursMockAutoSend)
+#   bin/ios screenshot [path]   # screenshot the booted simulator
+#
+# Useful launch args (Debug builds only):
+#   -YoursMockChat       canned day-3 conversation, no backend needed
+#   -YoursMockLanding    the landing screen
+#   -YoursMockAutoSend   with MockChat: auto-sends a message (streaming demo)
+#   -YoursMockSleep      with MockChat: goes straight to the night
+#
+# Against a real local backend: bin/dev in one terminal, then bin/ios run.
+# The Debug build talks to http://localhost:3000 by default (override with
+# defaults: -YoursBaseURL).
+
+set -euo pipefail
+SELF="$(cd "$(dirname "$0")" && pwd)/$(basename "$0")"
+cd "$(dirname "$0")/../ios"
+
+BUNDLE_ID="fyi.yours.app"
+
+simulator_id() {
+  xcrun simctl list devices available | grep -E "iPhone" | head -1 | grep -oE "[0-9A-F-]{36}"
+}
+
+ensure_project() {
+  command -v xcodegen >/dev/null || { echo "xcodegen not found — brew install xcodegen"; exit 1; }
+  xcodegen generate --quiet
+}
+
+build() {
+  ensure_project
+  xcodebuild -project Yours.xcodeproj -scheme Yours \
+    -destination "platform=iOS Simulator,id=$(simulator_id)" -quiet "$@"
+}
+
+case "${1:-help}" in
+  generate)
+    ensure_project
+    echo "Generated ios/Yours.xcodeproj"
+    ;;
+  build)
+    build build
+    echo "Build OK"
+    ;;
+  test)
+    build test
+    ;;
+  run)
+    shift || true
+    build build
+    SIM=$(simulator_id)
+    xcrun simctl boot "$SIM" 2>/dev/null || true
+    xcrun simctl bootstatus "$SIM" -b >/dev/null
+    APP=$(find ~/Library/Developer/Xcode/DerivedData -path "*/Build/Products/Debug-iphonesimulator/Yours.app" | head -1)
+    xcrun simctl install "$SIM" "$APP"
+    open -a Simulator
+    xcrun simctl terminate "$SIM" "$BUNDLE_ID" 2>/dev/null || true
+    xcrun simctl launch "$SIM" "$BUNDLE_ID" "$@"
+    ;;
+  screenshot)
+    OUT="${2:-/tmp/yours-$(date +%H%M%S).png}"
+    xcrun simctl io "$(simulator_id)" screenshot "$OUT"
+    echo "$OUT"
+    ;;
+  *)
+    sed -n '2,20p' "$SELF" | sed 's/^# \{0,1\}//'
+    ;;
+esac
