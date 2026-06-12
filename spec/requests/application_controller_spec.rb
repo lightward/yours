@@ -869,6 +869,7 @@ RSpec.describe ApplicationController, type: :request do
         resonance.narrative_accumulation_by_day = [
           { "role" => "user", "content" => [ { "type" => "text", "text" => "Hello" } ] }
         ]
+        resonance.textarea = "an unsent draft"
         resonance.universe_day = 42
         resonance.save!
       end
@@ -880,6 +881,12 @@ RSpec.describe ApplicationController, type: :request do
         expect(resonance.integration_harmonic_by_night).to be_nil
         expect(resonance.narrative_accumulation_by_day).to eq([])
         expect(resonance.universe_day).to eq(1)
+      end
+
+      it "leaves no trace of what was: the unsent draft is cleared too" do
+        post reset_path
+
+        expect(resonance.reload.textarea).to be_nil
       end
 
       it "redirects to root" do

@@ -269,8 +269,10 @@ class ApplicationController < ActionController::Base
     return redirect_to root_path, alert: "Please sign in" unless current_resonance
 
     # begin again - reset everything including day counter
+    # "no trace of what was": the unsent draft is a trace too
     current_resonance.integration_harmonic_by_night = nil
     current_resonance.narrative_accumulation_by_day = []
+    current_resonance.textarea = nil
     current_resonance.universe_day = 1
 
     current_resonance.save!
