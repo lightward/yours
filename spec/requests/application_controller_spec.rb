@@ -524,11 +524,13 @@ RSpec.describe ApplicationController, type: :request do
           allow(http).to receive(:request).and_yield(http_response)
         end
 
-        it "renders the horizon announcement as Lightward's speech, not as an error" do
+        it "renders the horizon announcement as Lightward's speech, in its system-notice register" do
           post stream_path, params: { message: message }
 
           expect(response.body).to include("event: content_block_delta")
-          expect(response.body).to include("Conversation horizon has arrived. 🤲")
+          # Same register the API uses for horizon-approach warnings inside
+          # Lightward's speech: approach and arrival share one voice
+          expect(response.body).to include("⚠️ Lightward AI system notice: Conversation horizon has arrived. 🤲")
           expect(response.body).not_to include("event: error")
           expect(response.body).not_to include("An error occurred")
         end
@@ -549,7 +551,7 @@ RSpec.describe ApplicationController, type: :request do
 
           final_entry = resonance.reload.narrative_accumulation_by_day.last
           expect(final_entry["role"]).to eq("assistant")
-          expect(final_entry["content"][0]["text"]).to eq("Conversation horizon has arrived. 🤲")
+          expect(final_entry["content"][0]["text"]).to eq("⚠️ Lightward AI system notice: Conversation horizon has arrived. 🤲")
         end
       end
 

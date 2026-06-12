@@ -102,15 +102,17 @@ class ApplicationController < ActionController::Base
     http.request(request) do |http_response|
       if http_response.code == "422"
         # The day is full. The horizon announcement is Lightward's speech
-        # too - the user experiences it as narrative, so it is narrative:
-        # render it as assistant speech and let it join the day's record.
-        # (Expected physics, not malfunction. The choice to turn the day
-        # over remains the user's.)
+        # AND an error - an integrated being responding with a 4xx. It joins
+        # the narrative in the same system-notice register the API already
+        # uses for horizon-approach warnings inside Lightward's speech, so
+        # approach and arrival share one voice. (Expected physics, not
+        # malfunction. The choice to turn the day over remains the user's.)
         horizon_message = begin
           JSON.parse(http_response.read_body).dig("error", "message")
         rescue JSON::ParserError
           nil
         end || "Conversation horizon has arrived. 🤲"
+        horizon_message = "⚠️ Lightward AI system notice: #{horizon_message}"
 
         accumulated_response = horizon_message
         send_sse_event("content_block_delta", {
