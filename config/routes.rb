@@ -16,4 +16,9 @@ Rails.application.routes.draw do
   delete "subscription", to: "application#destroy_subscription"
   post "reset", to: "application#reset"
   get "llms.txt", to: "application#llms_txt"
+
+  # Native client routes (ios/, android/) — see PROTOCOL.md
+  get "native/auth", to: "application#native_auth_start"
+  post "native/token", to: "application#native_token"
+  get "native/state", to: "application#native_state"
 end
