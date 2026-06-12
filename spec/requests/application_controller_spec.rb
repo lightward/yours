@@ -1008,6 +1008,28 @@ RSpec.describe ApplicationController, type: :request do
         expect(response).to redirect_to(root_path)
       end
     end
+
+    context "when authenticated without an active subscription" do
+      before do
+        sign_in_as(google_id)
+        allow_any_instance_of(Resonance).to receive(:active_subscription?).and_return(false)
+
+        resonance.integration_harmonic_by_night = "Some harmonic"
+        resonance.universe_day = 42
+        resonance.save!
+      end
+
+      it "declines: starting over unlocks for subscribers (as the settings page says)" do
+        post reset_path
+
+        expect(response).to redirect_to(settings_path)
+        expect(flash[:alert]).to eq("Starting over unlocks for subscribers.")
+
+        resonance.reload
+        expect(resonance.integration_harmonic_by_night).to eq("Some harmonic")
+        expect(resonance.universe_day).to eq(42)
+      end
+    end
   end
 
   describe "GET /llms.txt" do

@@ -285,6 +285,12 @@ class ApplicationController < ActionController::Base
   def reset
     return redirect_to root_path, alert: "Please sign in" unless current_resonance
 
+    # Starting over unlocks for subscribers - the settings page says so, and
+    # the endpoint agrees
+    unless current_resonance.active_subscription?
+      return redirect_to settings_path, alert: "Starting over unlocks for subscribers."
+    end
+
     # begin again - reset everything including day counter
     # "no trace of what was": the unsent draft is a trace too
     current_resonance.integration_harmonic_by_night = nil
