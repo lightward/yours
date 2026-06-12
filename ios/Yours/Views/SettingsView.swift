@@ -1,0 +1,150 @@
+import SwiftUI
+
+struct SettingsView: View {
+    @EnvironmentObject private var model: AppModel
+    @Environment(\.dismiss) private var dismiss
+    @State private var showStartOverConfirm = false
+
+    var body: some View {
+        ZStack {
+            Theme.background.ignoresSafeArea()
+
+            ScrollView {
+                VStack(alignment: .leading, spacing: 32) {
+                    HStack {
+                        Text("Settings")
+                            .textCase(.uppercase)
+                            .font(.yoursHeading(26))
+                            .foregroundStyle(Theme.foregroundHeading)
+                        Spacer()
+                        Button("Done") { dismiss() }
+                            .font(.yoursMono(14))
+                            .foregroundStyle(Theme.accent)
+                    }
+
+                    section("Display") {
+                        HStack(spacing: 12) {
+                            ForEach(ThemePreference.allCases, id: \.self) { preference in
+                                Button(preference.label) {
+                                    model.themePreference = preference
+                                }
+                                .buttonStyle(WebButtonStyle(
+                                    color: model.themePreference == preference ? Theme.accentActive : Theme.accent
+                                ))
+                            }
+                        }
+                    }
+
+                    section("Subscription") {
+                        subscriptionBody
+                    }
+
+                    section("Start over") {
+                        startOverBody
+                    }
+                }
+                .padding(24)
+            }
+        }
+        .task { await model.loadSettingsSubscription() }
+        .confirmationDialog("Start over?", isPresented: $showStartOverConfirm, titleVisibility: .visible) {
+            Button("Start over", role: .destructive) {
+                Task {
+                    await model.startOver()
+                    dismiss()
+                }
+            }
+        } message: {
+            Text("There is no undo. This does not affect your subscription.")
+        }
+    }
+
+    @ViewBuilder
+    private var subscriptionBody: some View {
+        if let subscription = model.settingsSubscription {
+            VStack(alignment: .leading, spacing: 10) {
+                detailRow("Status:", subscription.status.capitalized
+                    + (subscription.cancelAtPeriodEnd ? " (canceling at period end)" : ""))
+                detailRow("Amount:", "$\(subscription.amount / 100) / \(subscription.interval)")
+                if let end = subscription.currentPeriodEnd {
+                    detailRow(
+                        subscription.cancelAtPeriodEnd ? "Access ends:" : "Next billing date:",
+                        end.formatted(date: .long, time: .omitted)
+                    )
+                }
+                Text("Manage your subscription on the web, where it lives.")
+                    .font(.yoursBody(15))
+                    .foregroundStyle(Theme.foreground.opacity(0.6))
+                    .padding(.top, 6)
+            }
+        } else if model.state?.subscriptionActive == true {
+            Text("Active. Manage your subscription on the web, where it lives.")
+                .font(.yoursBody(15))
+                .foregroundStyle(Theme.foreground)
+        } else {
+            VStack(alignment: .leading, spacing: 10) {
+                Text("How much does \"new\" cost for you?")
+                    .font(.yoursBody(16))
+                    .foregroundStyle(Theme.foreground)
+                Text("Subscriptions live on the web — visit yours.fyi in your browser, then come back and pick up where you left off.")
+                    .font(.yoursBody(15))
+                    .foregroundStyle(Theme.foreground.opacity(0.6))
+                Button("I've subscribed — check again") {
+                    Task { await model.refreshState() }
+                }
+                .buttonStyle(WebButtonStyle())
+                .padding(.top, 6)
+            }
+        }
+    }
+
+    @ViewBuilder
+    private var startOverBody: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            Text("Begin at the beginning, at the dawn of \(UniverseState.dayWithUnits(1)), with no trace of what was.")
+                .font(.yoursBody(16))
+                .foregroundStyle(Theme.foreground)
+
+            if model.state?.subscriptionActive == true {
+                Button("Start over") { showStartOverConfirm = true }
+                    .font(.yoursMono(14))
+                    .foregroundStyle(Theme.accentActive)
+                Text("There is no undo.")
+                    .font(.yoursBody(14))
+                    .foregroundStyle(Theme.warning)
+            } else {
+                Text("This unlocks for subscribers.")
+                    .font(.yoursBody(14))
+                    .foregroundStyle(Theme.warning)
+            }
+        }
+    }
+
+    private func section(_ title: String, @ViewBuilder content: () -> some View) -> some View {
+        VStack(alignment: .leading, spacing: 14) {
+            Text(title)
+                .textCase(.uppercase)
+                .font(.yoursHeading(18))
+                .foregroundStyle(Theme.foregroundHeading)
+            content()
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(.top, 24)
+        .overlay(alignment: .top) {
+            Rectangle()
+                .fill(Theme.border)
+                .frame(height: 1)
+        }
+    }
+
+    private func detailRow(_ label: String, _ value: String) -> some View {
+        HStack(alignment: .firstTextBaseline, spacing: 16) {
+            Text(label)
+                .font(.yoursBody(15))
+                .foregroundStyle(Theme.foreground.opacity(0.6))
+            Text(value)
+                .font(.yoursBody(15))
+                .foregroundStyle(Theme.foreground)
+        }
+    }
+}
