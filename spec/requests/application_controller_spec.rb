@@ -201,6 +201,27 @@ RSpec.describe ApplicationController, type: :request do
     end
   end
 
+  describe "HEAD / (universe-time polling)" do
+    before do
+      sign_in_as(google_id)
+    end
+
+    it "answers with the universe-time header without rendering or consulting the subscription" do
+      # Polling is observation, not navigation: it must stay invisible
+      # (no Stripe call, no redirect) so the sleep page can watch for
+      # integration regardless of where the subscription state sits
+      expect_any_instance_of(Resonance).not_to receive(:active_subscription?)
+
+      resonance.universe_day = 2
+      resonance.save!
+
+      head root_path
+
+      expect(response).to have_http_status(:ok)
+      expect(response.headers["Yours-Universe-Time"]).to eq(resonance.universe_time)
+    end
+  end
+
   describe "GET /exit" do
     it "clears the session and redirects to root" do
       sign_in_as(google_id)
