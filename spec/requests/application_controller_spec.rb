@@ -524,10 +524,12 @@ RSpec.describe ApplicationController, type: :request do
           allow(http).to receive(:request).and_yield(http_response)
         end
 
-        it "relays the horizon message as itself, not as a generic error" do
+        it "renders the horizon announcement as Lightward's speech, not as an error" do
           post stream_path, params: { message: message }
 
+          expect(response.body).to include("event: content_block_delta")
           expect(response.body).to include("Conversation horizon has arrived. 🤲")
+          expect(response.body).not_to include("event: error")
           expect(response.body).not_to include("An error occurred")
         end
 
@@ -537,13 +539,17 @@ RSpec.describe ApplicationController, type: :request do
           post stream_path, params: { message: message }
         end
 
-        it "does not save the narrative (the day is full; the choice to sleep stays with the user)" do
+        it "saves the exchange: what you say stays said, and the day's record holds its own edge" do
           resonance.narrative_accumulation_by_day = []
           resonance.save!
 
           expect {
             post stream_path, params: { message: message }
-          }.not_to change { resonance.reload.narrative_accumulation_by_day.size }
+          }.to change { resonance.reload.narrative_accumulation_by_day.size }.by(2)
+
+          final_entry = resonance.reload.narrative_accumulation_by_day.last
+          expect(final_entry["role"]).to eq("assistant")
+          expect(final_entry["content"][0]["text"]).to eq("Conversation horizon has arrived. 🤲")
         end
       end
 

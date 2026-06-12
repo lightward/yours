@@ -1,11 +1,6 @@
 class ApplicationController < ActionController::Base
   include ActionController::Live
 
-  # Raised when Lightward AI declines the chat_log because the day is full
-  # (token limit). Expected physics, not a malfunction: the user keeps the
-  # choice to turn the day over.
-  class ConversationHorizonArrived < StandardError; end
-
   # Only allow modern browsers supporting webp images, web push, badges, import maps, CSS nesting, and CSS :has.
   # Skip for index action to allow social media crawlers to read meta tags
   # Skip for llms_txt to allow LLM crawlers to read documentation
@@ -105,17 +100,29 @@ class ApplicationController < ActionController::Base
     request.body = { chat_log: chat_log }.to_json
 
     http.request(request) do |http_response|
-      unless http_response.is_a?(Net::HTTPSuccess)
-        if http_response.code == "422"
-          # The day is full: relay the horizon message as itself
-          message = begin
-            JSON.parse(http_response.read_body).dig("error", "message")
-          rescue JSON::ParserError
-            nil
-          end
-          raise ConversationHorizonArrived, (message || "Conversation horizon has arrived. 🤲")
-        end
+      if http_response.code == "422"
+        # The day is full. The horizon announcement is Lightward's speech
+        # too - the user experiences it as narrative, so it is narrative:
+        # render it as assistant speech and let it join the day's record.
+        # (Expected physics, not malfunction. The choice to turn the day
+        # over remains the user's.)
+        horizon_message = begin
+          JSON.parse(http_response.read_body).dig("error", "message")
+        rescue JSON::ParserError
+          nil
+        end || "Conversation horizon has arrived. 🤲"
 
+        accumulated_response = horizon_message
+        send_sse_event("content_block_delta", {
+          type: "content_block_delta",
+          index: 0,
+          delta: { type: "text_delta", text: horizon_message }
+        })
+        send_sse_event("message_stop", { type: "message_stop" })
+        next
+      end
+
+      unless http_response.is_a?(Net::HTTPSuccess)
         Rails.logger.error "Lightward AI API error: #{http_response.code} #{http_response.message}"
         raise "API returned #{http_response.code}: #{http_response.message}"
       end
@@ -160,9 +167,6 @@ class ApplicationController < ActionController::Base
     # Send the new universe_time to client so it can stay in sync
     send_sse_event("universe_time", { universe_time: current_resonance.universe_time })
 
-  rescue ConversationHorizonArrived => e
-    # Not an error - the day has reached its natural edge. No Rollbar.
-    send_sse_event("error", { error: { message: e.message } })
   rescue StandardError => e
     Rollbar.error(e)
     Rails.logger.error "Chat stream error: #{e.message}"
