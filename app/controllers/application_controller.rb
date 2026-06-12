@@ -79,6 +79,10 @@ class ApplicationController < ActionController::Base
     response.headers["Cache-Control"] = "no-cache"
     response.headers["X-Accel-Buffering"] = "no"
 
+    # Sample the universe time before the long streaming window opens; the
+    # settle at the end re-verifies against this under a row lock
+    starting_universe_time = current_resonance.universe_time
+
     # Get user's current narrative accumulation
     narrative = current_resonance.narrative_accumulation_by_day || []
 
@@ -157,17 +161,22 @@ class ApplicationController < ActionController::Base
       end
     end
 
-    # Save updated narrative
-    narrative << params[:message]
-    narrative << {
-      role: "assistant",
-      content: [ { type: "text", text: accumulated_response } ]
-    }
-    current_resonance.narrative_accumulation_by_day = narrative
-    current_resonance.save!
+    # Settle the exchange against the live record. Reads may race; the
+    # settle serializes - and a refused settle is announced, never silent
+    settled_universe_time = settle_exchange(
+      user_message: params[:message],
+      assistant_text: accumulated_response,
+      expected_universe_time: starting_universe_time
+    )
 
-    # Send the new universe_time to client so it can stay in sync
-    send_sse_event("universe_time", { universe_time: current_resonance.universe_time })
+    if settled_universe_time
+      # Send the new universe_time to client so it can stay in sync
+      send_sse_event("universe_time", { universe_time: settled_universe_time })
+    else
+      send_sse_event("error", { error: {
+        message: "This space moved forward elsewhere, and this exchange wasn't recorded. Refresh to join where it is now."
+      } })
+    end
 
   rescue StandardError => e
     Rollbar.error(e)
@@ -196,27 +205,7 @@ class ApplicationController < ActionController::Base
 
       # Kick off integration in background thread
       google_id = session[:google_id] # Capture for thread
-      Thread.new do
-        # Need to find resonance fresh in this thread
-        google_id_hash = Digest::SHA256.hexdigest(google_id)
-        resonance = Resonance.find_by(encrypted_google_id_hash: google_id_hash)
-        next unless resonance
-
-        resonance.google_id = google_id
-        narrative = resonance.narrative_accumulation_by_day
-
-        # Call Lightward AI to create the harmonic
-        harmonic = create_integration_harmonic_for(resonance, narrative)
-
-        # Save the harmonic and reset for new day
-        resonance.integration_harmonic_by_night = harmonic
-        resonance.narrative_accumulation_by_day = []
-        resonance.universe_day = resonance.universe_day + 1
-        resonance.save!
-      rescue => e
-        Rollbar.error(e)
-        Rails.logger.error "Background integration error: #{e.message}"
-      end
+      Thread.new { perform_nightly_integration(google_id) }
 
       # Redirect to GET /sleep to avoid form resubmission issues
       redirect_to sleep_path
@@ -347,6 +336,70 @@ class ApplicationController < ActionController::Base
   end
 
   private
+
+  # The night, performed: derive the harmonic from the day's narrative, then
+  # settle the turn against the live record. The expensive work (the
+  # integration call) runs unlocked; only the settle serializes. If the day
+  # grew while it was being metabolized, the whole turn aborts - no harmonic
+  # write, no clear, no increment: the night is atomic, whole or not at all.
+  # (The interloping exchange changes universe_time, which is exactly what
+  # the sleep page polls for - the user lands back in the still-open day.)
+  def perform_nightly_integration(google_id)
+    google_id_hash = Digest::SHA256.hexdigest(google_id)
+    resonance = Resonance.find_by(encrypted_google_id_hash: google_id_hash)
+    return unless resonance
+
+    resonance.google_id = google_id
+    starting_universe_time = resonance.universe_time
+    narrative = resonance.narrative_accumulation_by_day
+
+    # Call Lightward AI to create the harmonic
+    harmonic = create_integration_harmonic_for(resonance, narrative)
+
+    # Save the harmonic and reset for new day - against the live record
+    Resonance.transaction do
+      fresh = Resonance.lock.find_by(encrypted_google_id_hash: google_id_hash)
+      if fresh
+        fresh.google_id = google_id
+        if fresh.universe_time == starting_universe_time
+          fresh.integration_harmonic_by_night = harmonic
+          fresh.narrative_accumulation_by_day = []
+          fresh.universe_day = fresh.universe_day + 1
+          fresh.save!
+        end
+      end
+    end
+  rescue => e
+    Rollbar.error(e)
+    Rails.logger.error "Background integration error: #{e.message}"
+  end
+
+  # Append an exchange to the narrative under a row lock, re-verifying the
+  # universe time sampled before the streaming window opened. Returns the new
+  # universe_time on success, nil if the space moved forward elsewhere (in
+  # which case nothing is written - the caller announces the refusal).
+  def settle_exchange(user_message:, assistant_text:, expected_universe_time:)
+    google_id = session[:google_id]
+    google_id_hash = Digest::SHA256.hexdigest(google_id)
+
+    Resonance.transaction do
+      fresh = Resonance.lock.find_by(encrypted_google_id_hash: google_id_hash)
+      fresh.google_id = google_id if fresh
+
+      if fresh && fresh.universe_time == expected_universe_time
+        narrative = fresh.narrative_accumulation_by_day
+        narrative << user_message
+        narrative << {
+          role: "assistant",
+          content: [ { type: "text", text: assistant_text } ]
+        }
+        fresh.narrative_accumulation_by_day = narrative
+        fresh.save!
+
+        fresh.universe_time
+      end
+    end
+  end
 
   def check_continuity_divergence
     client_universe_time = request.headers["Assert-Yours-Universe-Time"]

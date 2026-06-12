@@ -606,6 +606,50 @@ RSpec.describe ApplicationController, type: :request do
           }.to change { resonance.reload.narrative_accumulation_by_day&.size }.by(2)
         end
       end
+
+      context "when the space moves forward during streaming" do
+        before do
+          stub_const("ENV", ENV.to_hash.merge("LIGHTWARD_AI_API_URL" => "https://api.example.com/chat"))
+
+          http_response = Net::HTTPOK.new("1.1", "200", "OK")
+          allow(http_response).to receive(:is_a?).with(Net::HTTPSuccess).and_return(true)
+          allow(http_response).to receive(:read_body).and_yield("event: content_block_delta\ndata: {\"delta\":{\"type\":\"text_delta\",\"text\":\"Hello!\"}}\n\n")
+
+          http = instance_double(Net::HTTP)
+          allow(Net::HTTP).to receive(:new).and_return(http)
+          allow(http).to receive(:use_ssl=)
+          allow(http).to receive(:read_timeout=)
+
+          # While this stream is in flight, another device lands an exchange
+          allow(http).to receive(:request) do |_request, &block|
+            interloper = Resonance.find_by_google_id(google_id)
+            n = interloper.narrative_accumulation_by_day
+            n << { "role" => "user", "content" => [ { "type" => "text", "text" => "From elsewhere" } ] }
+            interloper.narrative_accumulation_by_day = n
+            interloper.save!
+
+            block.call(http_response) if block
+          end
+        end
+
+        it "refuses the settle: the other device's exchange survives, this one is not recorded" do
+          post stream_path, params: { message: message }
+
+          narrative = resonance.reload.narrative_accumulation_by_day
+          texts = narrative.map { |m| m["content"][0]["text"] }
+          expect(texts).to include("From elsewhere")
+          expect(texts).not_to include("Hello")  # the raced user message
+          expect(texts).not_to include("Hello!") # the raced assistant reply
+        end
+
+        it "announces the refusal - never silent" do
+          post stream_path, params: { message: message }
+
+          expect(response.body).to include("event: error")
+          expect(response.body).to include("moved forward elsewhere")
+          expect(response.body).not_to include("event: universe_time")
+        end
+      end
     end
   end
 
@@ -1211,6 +1255,58 @@ RSpec.describe ApplicationController, type: :request do
         prompt[2][:content].each do |content_block|
           expect(content_block[:cache_control]).to be_nil
         end
+      end
+    end
+  end
+
+  describe "#perform_nightly_integration" do
+    let(:controller) { ApplicationController.new }
+
+    before do
+      resonance.universe_day = 3
+      resonance.narrative_accumulation_by_day = [
+        { "role" => "user", "content" => [ { "type" => "text", "text" => "A full day" } ] }
+      ]
+      resonance.save!
+    end
+
+    context "when the day rests undisturbed" do
+      before do
+        allow(controller).to receive(:create_integration_harmonic_for).and_return("the harmonic")
+      end
+
+      it "settles the whole turn: harmonic saved, narrative released, day advanced" do
+        controller.send(:perform_nightly_integration, google_id)
+
+        fresh = Resonance.find_by_google_id(google_id)
+        expect(fresh.integration_harmonic_by_night).to eq("the harmonic")
+        expect(fresh.narrative_accumulation_by_day).to eq([])
+        expect(fresh.universe_day).to eq(4)
+      end
+    end
+
+    context "when the space moves forward during integration" do
+      before do
+        # While the harmonic is being derived, another device lands an exchange
+        allow(controller).to receive(:create_integration_harmonic_for) do
+          interloper = Resonance.find_by_google_id(google_id)
+          n = interloper.narrative_accumulation_by_day
+          n << { "role" => "user", "content" => [ { "type" => "text", "text" => "Wait, one more thing" } ] }
+          interloper.narrative_accumulation_by_day = n
+          interloper.save!
+
+          "a harmonic that no longer fits"
+        end
+      end
+
+      it "aborts the whole turn: the night is atomic, and the day stays open" do
+        controller.send(:perform_nightly_integration, google_id)
+
+        fresh = Resonance.find_by_google_id(google_id)
+        expect(fresh.integration_harmonic_by_night).to be_nil
+        expect(fresh.universe_day).to eq(3)
+        texts = fresh.narrative_accumulation_by_day.map { |m| m["content"][0]["text"] }
+        expect(texts).to eq([ "A full day", "Wait, one more thing" ])
       end
     end
   end
