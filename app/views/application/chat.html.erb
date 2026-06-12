@@ -1,3 +1,11 @@
+<%# The log is hydrated client-side from data-chat-narrative-value, which goes
+    stale as soon as an exchange streams. A Turbo snapshot would restore an
+    already-populated log and hydrate it again (doubling it) - and would hold
+    the decrypted narrative in the page cache after navigating away. %>
+<% content_for :head do %>
+  <meta name="turbo-cache-control" content="no-cache">
+<% end %>
+
 <div data-controller="chat" data-chat-narrative-value="<%= @narrative.to_json %>" data-chat-universe-time-value="<%= current_resonance.universe_time %>" data-chat-saved-textarea-value="<%= h(current_resonance.textarea || "") %>" class="chat-container">
   <div id="chat-log" data-chat-target="log" class="chat-log">
     <!-- Messages will appear here -->

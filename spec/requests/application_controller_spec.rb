@@ -153,6 +153,15 @@ RSpec.describe ApplicationController, type: :request do
         expect(response.body).to include("https://github.com/lightward/yours/blob/main/README.md")
       end
 
+      it "opts the chat page out of Turbo's snapshot cache" do
+        # The chat log is hydrated client-side from a narrative value that goes
+        # stale as soon as an exchange streams. Restoring a snapshot would
+        # hydrate over an already-populated log (doubling it), and would keep
+        # the decrypted narrative in the page cache after navigating away.
+        get root_path
+        expect(response.body).to include('<meta name="turbo-cache-control" content="no-cache">')
+      end
+
       it "shows 'day X' format for day 2+" do
         resonance.universe_day = 5
         resonance.save!
