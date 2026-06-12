@@ -325,6 +325,24 @@ RSpec.describe ApplicationController, type: :request do
           expect(response.body).to include("Cancel immediately")
         end
 
+        it "wires the start-over form to clear locally-held drafts on submit" do
+          details = {
+            id: "sub_test123",
+            status: "active",
+            current_period_end: 30.days.from_now,
+            amount: 1000,
+            currency: "usd",
+            interval: "month"
+          }
+          allow_any_instance_of(Resonance).to receive(:subscription_details).and_return(details)
+
+          get settings_path
+
+          # turbo:submit-start fires only once the confirm is accepted -
+          # "no trace of what was" includes the drafts this device holds
+          expect(response.body).to include("turbo:submit-start-&gt;drafts#clearAll")
+        end
+
         it "shows enabled 'start over' button" do
           details = {
             id: "sub_test123",

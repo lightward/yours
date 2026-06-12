@@ -9,6 +9,7 @@ export default class extends Controller {
   }
 
   connect() {
+    this.sweepStaleDrafts()
     this.loadExistingMessages()
     this.loadSavedInput()
     this.saveDebounceTimeout = null
@@ -71,6 +72,20 @@ export default class extends Controller {
     // Debounced save to server (unless this is a programmatic event from loadSavedInput)
     if (!event.skipServerSave) {
       this.debouncedSaveToServer(textarea.value)
+    }
+  }
+
+  sweepStaleDrafts() {
+    // Drafts are keyed by universe_time, so every tick of the universe can
+    // strand a key. Anything not keyed to the present is unreachable by the
+    // app and goes - housekeeping, and it also limits what a "start over"
+    // performed elsewhere could leave waiting on this device
+    const currentKey = `yours-input-${this.universeTimeValue || 'current'}`
+    for (let i = localStorage.length - 1; i >= 0; i--) {
+      const key = localStorage.key(i)
+      if (key && key.startsWith("yours-input-") && key !== currentKey) {
+        localStorage.removeItem(key)
+      }
     }
   }
 
