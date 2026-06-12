@@ -507,6 +507,46 @@ RSpec.describe ApplicationController, type: :request do
         allow_any_instance_of(Resonance).to receive(:active_subscription?).and_return(true)
       end
 
+      context "when the conversation horizon arrives (API returns 422)" do
+        before do
+          stub_const("ENV", ENV.to_hash.merge("LIGHTWARD_AI_API_URL" => "https://api.example.com/chat"))
+
+          http_response = Net::HTTPUnprocessableEntity.new("1.1", "422", "Unprocessable Content")
+          allow(http_response).to receive(:is_a?).with(Net::HTTPSuccess).and_return(false)
+          allow(http_response).to receive(:read_body).and_return(
+            '{"error":{"message":"Conversation horizon has arrived. 🤲"}}'
+          )
+
+          http = instance_double(Net::HTTP)
+          allow(Net::HTTP).to receive(:new).and_return(http)
+          allow(http).to receive(:use_ssl=)
+          allow(http).to receive(:read_timeout=)
+          allow(http).to receive(:request).and_yield(http_response)
+        end
+
+        it "relays the horizon message as itself, not as a generic error" do
+          post stream_path, params: { message: message }
+
+          expect(response.body).to include("Conversation horizon has arrived. 🤲")
+          expect(response.body).not_to include("An error occurred")
+        end
+
+        it "does not report the horizon to Rollbar (expected physics, not malfunction)" do
+          expect(Rollbar).not_to receive(:error)
+
+          post stream_path, params: { message: message }
+        end
+
+        it "does not save the narrative (the day is full; the choice to sleep stays with the user)" do
+          resonance.narrative_accumulation_by_day = []
+          resonance.save!
+
+          expect {
+            post stream_path, params: { message: message }
+          }.not_to change { resonance.reload.narrative_accumulation_by_day.size }
+        end
+      end
+
       context "when Lightward AI API returns non-success response" do
         before do
           stub_const("ENV", ENV.to_hash.merge("LIGHTWARD_AI_API_URL" => "https://api.example.com/chat"))
