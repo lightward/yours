@@ -1,8 +1,18 @@
 class Resonance < ApplicationRecord
   include StripeSubscription
+  include NativeSubscription
 
   # Custom exception for when decryption is attempted without the encryption key
   class MissingEncryptionKeyError < StandardError; end
+
+  # A resonance is a subscriber if *any* storefront says so — Stripe (web),
+  # Apple (iOS), or Google Play (Android). The platforms don't share an
+  # identity; each manages its own billing. See PROTOCOL.md.
+  def active_subscription?
+    stripe_subscription_active? ||
+      apple_subscription_active? ||
+      google_play_subscription_active?
+  end
 
   self.primary_key = "encrypted_google_id_hash"
 

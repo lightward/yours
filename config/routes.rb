@@ -21,4 +21,10 @@ Rails.application.routes.draw do
   get "native/auth", to: "application#native_auth_start"
   post "native/token", to: "application#native_token"
   get "native/state", to: "application#native_state"
+  post "native/subscription", to: "application#native_subscription"
+
+  # Storefront server-to-server notifications (renewals, cancellations,
+  # refunds) — App Store Server Notifications V2 and Play RTDN
+  post "native/apple_notifications", to: "application#apple_notifications"
+  post "native/google_notifications", to: "application#google_notifications"
 end

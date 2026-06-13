@@ -10,15 +10,17 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.0].define(version: 2025_10_10_233556) do
+ActiveRecord::Schema[8.1].define(version: 2026_06_13_000000) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
 
   create_table "resonances", primary_key: "encrypted_google_id_hash", id: :text, force: :cascade do |t|
-    t.text "encrypted_stripe_customer_id"
+    t.text "encrypted_apple_original_transaction_id"
+    t.text "encrypted_google_play_purchase_token"
     t.text "encrypted_integration_harmonic_by_night"
     t.text "encrypted_narrative_accumulation_by_day"
-    t.text "encrypted_universe_day"
+    t.text "encrypted_stripe_customer_id"
     t.text "encrypted_textarea"
+    t.text "encrypted_universe_day"
   end
 end

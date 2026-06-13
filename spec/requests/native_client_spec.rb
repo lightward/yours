@@ -262,4 +262,115 @@ RSpec.describe "Native client protocol", type: :request do
       expect(body["starting_universe_time"]).to eq("1:0")
     end
   end
+
+  describe "POST /native/subscription (in-app purchase verification)" do
+    it "records an Apple subscription the storefront confirms, and returns refreshed state" do
+      token = obtain_bearer_token
+      result = AppleAppStore::Result.new(
+        original_transaction_id: "2000000000000001",
+        product_id: "fyi.yours.subscription.tier_1",
+        active: true
+      )
+      allow_any_instance_of(AppleAppStore).to receive(:verify).and_return(result)
+
+      post "/native/subscription",
+        params: { platform: "apple", signed_transaction: "signed.jws.value" },
+        headers: { "Authorization" => "Bearer #{token}" }
+
+      expect(response).to have_http_status(:success)
+      # Reported without a second storefront round-trip (we just verified it)
+      expect(JSON.parse(response.body)["subscription_active"]).to eq(true)
+
+      # Stored encrypted, decryptable only with the google_id
+      expect(Resonance.find_by_google_id(google_id).apple_original_transaction_id)
+        .to eq("2000000000000001")
+    end
+
+    it "records a Google Play subscription the storefront confirms" do
+      token = obtain_bearer_token
+      result = GooglePlayStore::Result.new(
+        purchase_token: "play-token-abc",
+        product_id: "subscription_tier_1",
+        active: true
+      )
+      allow_any_instance_of(GooglePlayStore).to receive(:verify).and_return(result)
+
+      post "/native/subscription",
+        params: { platform: "google", signed_transaction: "play-token-abc" },
+        headers: { "Authorization" => "Bearer #{token}" }
+
+      expect(response).to have_http_status(:success)
+      expect(Resonance.find_by_google_id(google_id).google_play_purchase_token)
+        .to eq("play-token-abc")
+    end
+
+    it "rejects a transaction the storefront does not confirm" do
+      token = obtain_bearer_token
+      allow_any_instance_of(AppleAppStore).to receive(:verify).and_return(nil)
+
+      post "/native/subscription",
+        params: { platform: "apple", signed_transaction: "forged" },
+        headers: { "Authorization" => "Bearer #{token}" }
+
+      expect(response).to have_http_status(:unprocessable_content)
+      expect(JSON.parse(response.body)["error"]).to eq("subscription_not_verified")
+      expect(Resonance.find_by_google_id(google_id).apple_original_transaction_id).to be_nil
+    end
+
+    it "does not record a verified-but-inactive subscription" do
+      token = obtain_bearer_token
+      result = AppleAppStore::Result.new(
+        original_transaction_id: "2000000000000001",
+        product_id: "fyi.yours.subscription.tier_1",
+        active: false
+      )
+      allow_any_instance_of(AppleAppStore).to receive(:verify).and_return(result)
+
+      post "/native/subscription",
+        params: { platform: "apple", signed_transaction: "signed.jws.value" },
+        headers: { "Authorization" => "Bearer #{token}" }
+
+      expect(response).to have_http_status(:unprocessable_content)
+      expect(Resonance.find_by_google_id(google_id).apple_original_transaction_id).to be_nil
+    end
+
+    it "rejects an unknown platform" do
+      token = obtain_bearer_token
+      post "/native/subscription",
+        params: { platform: "windows", signed_transaction: "x" },
+        headers: { "Authorization" => "Bearer #{token}" }
+      expect(response).to have_http_status(:bad_request)
+    end
+
+    it "requires authentication" do
+      post "/native/subscription", params: { platform: "apple", signed_transaction: "x" }
+      expect(response).to have_http_status(:unauthorized)
+    end
+
+    it "surfaces a storefront verification failure as 502" do
+      token = obtain_bearer_token
+      allow_any_instance_of(AppleAppStore).to receive(:verify)
+        .and_raise(AppleAppStore::VerificationError, "Apple down")
+      allow(Rollbar).to receive(:error)
+
+      post "/native/subscription",
+        params: { platform: "apple", signed_transaction: "x" },
+        headers: { "Authorization" => "Bearer #{token}" }
+
+      expect(response).to have_http_status(:bad_gateway)
+    end
+  end
+
+  describe "storefront notification webhooks" do
+    # Entitlement is verified live at read time, so these just acknowledge.
+    it "acknowledges App Store Server Notifications" do
+      post "/native/apple_notifications", params: { signedPayload: "jws" }
+      expect(response).to have_http_status(:ok)
+    end
+
+    it "acknowledges Play Real-Time Developer Notifications" do
+      post "/native/google_notifications", params: { message: { data: "base64" } }
+      expect(response).to have_http_status(:ok)
+    end
+  end
 end

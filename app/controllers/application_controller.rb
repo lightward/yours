@@ -4,7 +4,12 @@ class ApplicationController < ActionController::Base
   # Only allow modern browsers supporting webp images, web push, badges, import maps, CSS nesting, and CSS :has.
   # Skip for index action to allow social media crawlers to read meta tags
   # Skip for llms_txt to allow LLM crawlers to read documentation
-  allow_browser versions: :modern, except: [ :index, :llms_txt ]
+  # Skip for native + storefront-webhook endpoints, whose clients aren't browsers
+  allow_browser versions: :modern, except: [
+    :index, :llms_txt,
+    :native_auth_start, :native_token, :native_state, :native_subscription,
+    :apple_notifications, :google_notifications
+  ]
 
   before_action :verify_host!
 
@@ -95,18 +100,73 @@ class ApplicationController < ActionController::Base
   def native_state
     return deny_access("Please sign in") unless current_resonance
 
-    state = {
+    render json: native_state_payload(include_subscription: params[:include] == "subscription")
+  end
+
+  # POST /native/subscription
+  # The app has completed a StoreKit/Play Billing purchase and posts the
+  # signed transaction. We verify it with the storefront's own API — never
+  # trusting the raw value — and on success record the encrypted identity.
+  # See PROTOCOL.md.
+  def native_subscription
+    return deny_access("Please sign in") unless current_resonance
+
+    signed_transaction = params[:signed_transaction].to_s
+    return render json: { error: "missing_transaction" }, status: :bad_request if signed_transaction.blank?
+
+    case params[:platform]
+    when "apple"
+      result = AppleAppStore.new.verify(signed_transaction)
+      current_resonance.record_apple_subscription(result.original_transaction_id) if result&.active
+    when "google"
+      result = GooglePlayStore.new.verify(signed_transaction)
+      current_resonance.record_google_play_subscription(result.purchase_token) if result&.active
+    else
+      return render json: { error: "unknown_platform" }, status: :bad_request
+    end
+
+    unless result&.active
+      return render json: { error: "subscription_not_verified" }, status: :unprocessable_content
+    end
+
+    # We just confirmed entitlement with the storefront; report it without a
+    # second round-trip through active_subscription?.
+    render json: native_state_payload(subscription_active: true)
+  rescue AppleAppStore::VerificationError, GooglePlayStore::VerificationError => e
+    Rollbar.error(e)
+    render json: { error: "verification_failed" }, status: :bad_gateway
+  end
+
+  # The native state document (GET /native/state, and the refreshed state
+  # returned after a successful purchase). Same fields the web client receives
+  # embedded in chat.html.erb. subscription_active can be supplied when the
+  # caller already knows it (just-verified purchase), avoiding a re-query.
+  def native_state_payload(include_subscription: false, subscription_active: nil)
+    payload = {
       universe_day: current_resonance.universe_day,
       universe_time: current_resonance.universe_time,
       narrative: current_resonance.narrative_accumulation_by_day,
       textarea: current_resonance.textarea,
       obfuscated_email: obfuscated_user_email,
-      subscription_active: current_resonance.active_subscription?
+      subscription_active: subscription_active.nil? ? current_resonance.active_subscription? : subscription_active
     }
+    payload[:subscription] = current_resonance.subscription_details if include_subscription
+    payload
+  end
 
-    state[:subscription] = current_resonance.subscription_details if params[:include] == "subscription"
+  # POST /native/apple_notifications
+  # App Store Server Notifications V2 (renewals, cancellations, refunds).
+  # Entitlement is verified live at read time, so these don't need to locate
+  # the encrypted resonance — the next /native/state reflects the truth. We
+  # acknowledge (and log) so Apple stops retrying.
+  def apple_notifications
+    head :ok
+  end
 
-    render json: state
+  # POST /native/google_notifications
+  # Play Real-Time Developer Notifications. Same reasoning as Apple's.
+  def google_notifications
+    head :ok
   end
 
   # POST /stream

@@ -53,10 +53,49 @@ exempt from CSRF (no cookies involved); cookie requests remain protected.
 | `POST /sleep` | either | web: redirect; bearer: `{ status: "integrating", starting_universe_time }` — then poll `/native/state` until `universe_time` moves |
 | `GET /save` | either | the narrative as `text/plain` |
 | `POST /reset` | either | start over at day 1 (subscriber gesture; web confirms first, apps must too) |
+| `POST /native/subscription` | bearer | verify and record a native in-app purchase (below) |
 
-Subscription create/cancel intentionally have no native path: subscriptions
-live on the web. (App Store rules make in-app purchase a whole separate
-universe; the apps describe the web step instead of linking to it.)
+## Subscriptions across three storefronts
+
+A resonance can become a subscriber three ways — Stripe (web), Apple
+in-app purchase (iOS), Google Play (Android) — and `active_subscription?`
+is **any-source-unlocks**: true if *any* of the three reports a live
+subscription. The platforms don't share an identity, so a person could in
+principle pay on more than one; each storefront manages its own billing and
+cancellation, and we don't try to reconcile across them.
+
+Each subscription identity is stored encrypted under the google_id, exactly
+like `encrypted_stripe_customer_id` — so the topological-opacity invariant
+holds for IAP too: without the OAuth key, the server can't link an Apple or
+Google transaction to a resonance.
+
+### Native purchase flow (StoreKit 2 / Play Billing)
+
+1. The app fetches products from the storefront and runs the purchase
+   locally (StoreKit 2 / Play Billing). The storefront, not our server,
+   takes the money.
+2. The app receives a **signed** transaction (Apple: a JWS; Google: a
+   purchase token) and POSTs it to `POST /native/subscription`:
+   `{ platform: "apple" | "google", signed_transaction: "..." }`
+3. The server **verifies it with the storefront's own API** — never trusting
+   the raw client value — and on success stores the encrypted
+   `originalTransactionId` (Apple) / `purchaseToken` (Google) on the
+   resonance. Returns the refreshed state.
+4. Renewals, cancellations, refunds, and billing retries arrive
+   server-to-server (App Store Server Notifications V2, Play Real-Time
+   Developer Notifications) at webhook endpoints, so entitlement stays
+   current without the app present.
+
+Verification goes through each storefront's server API (Apple's App Store
+Server API `GET /inApps/v1/transactions/{id}`; Google's
+`purchases.subscriptionsv2.get`) rather than hand-validating signature
+chains — the storefront is the authority, and our code stays HTTP +
+entitlement logic.
+
+Cancellation has no native path: the OS owns subscription management
+(iOS Settings / Play subscriptions). The apps link out to the system screen
+and describe where to manage it, the same way the web app owns Stripe's
+cancel flow.
 
 ## Continuity (cross-device safety)
 
