@@ -122,6 +122,19 @@ final class YoursAPI: @unchecked Sendable {
         return startingTime
     }
 
+    // POST /native/subscription — hand the server a StoreKit-signed transaction
+    // to verify and record. Returns the refreshed state on success.
+    func verifySubscription(platform: String, signedTransaction: String) async throws -> UniverseState {
+        var request = makeRequest("native/subscription", method: "POST")
+        request.httpBody = try JSONSerialization.data(withJSONObject: [
+            "platform": platform,
+            "signed_transaction": signedTransaction
+        ])
+        let (data, response) = try await session.data(for: request)
+        try Self.check(response, data: data)
+        return try YoursJSON.decoder.decode(UniverseState.self, from: data)
+    }
+
     func reset() async throws {
         let request = makeRequest("reset", method: "POST")
         let (data, response) = try await session.data(for: request)

@@ -3,6 +3,7 @@ import SwiftUI
 struct SettingsView: View {
     @EnvironmentObject private var model: AppModel
     @Environment(\.dismiss) private var dismiss
+    @Environment(\.openURL) private var openURL
     @State private var showStartOverConfirm = false
 
     var body: some View {
@@ -72,29 +73,23 @@ struct SettingsView: View {
                         end.formatted(date: .long, time: .omitted)
                     )
                 }
-                Text("Manage your subscription on the web, where it lives.")
+                Text("Manage or cancel in Settings › Apple Account › Subscriptions.")
                     .font(.yoursBody(15))
                     .foregroundStyle(Theme.foreground.opacity(0.6))
                     .padding(.top, 6)
+                Button("Manage in Settings") {
+                    if let url = URL(string: "https://apps.apple.com/account/subscriptions") {
+                        openURL(url)
+                    }
+                }
+                .buttonStyle(WebButtonStyle())
             }
         } else if model.state?.subscriptionActive == true {
-            Text("Active. Manage your subscription on the web, where it lives.")
+            Text("Active. Manage or cancel in Settings › Apple Account › Subscriptions.")
                 .font(.yoursBody(15))
                 .foregroundStyle(Theme.foreground)
         } else {
-            VStack(alignment: .leading, spacing: 10) {
-                Text("How much does \"new\" cost for you?")
-                    .font(.yoursBody(16))
-                    .foregroundStyle(Theme.foreground)
-                Text("Subscriptions live on the web — visit yours.fyi in your browser, then come back and pick up where you left off.")
-                    .font(.yoursBody(15))
-                    .foregroundStyle(Theme.foreground.opacity(0.6))
-                Button("I've subscribed — check again") {
-                    Task { await model.refreshState() }
-                }
-                .buttonStyle(WebButtonStyle())
-                .padding(.top, 6)
-            }
+            SubscribeOptions()
         }
     }
 

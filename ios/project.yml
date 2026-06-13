@@ -59,6 +59,9 @@ schemes:
         YoursTests: [test]
     run:
       config: Debug
+      # Local StoreKit products for simulator testing — no App Store Connect
+      # needed. Replaced by real products in TestFlight/production.
+      storeKitConfiguration: Yours.storekit
     test:
       config: Debug
       targets:

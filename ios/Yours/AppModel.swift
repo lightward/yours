@@ -1,3 +1,4 @@
+import StoreKit
 import SwiftUI
 
 // The client-side mirror of one resonance's state, and the verbs that move
@@ -57,6 +58,8 @@ final class AppModel: ObservableObject {
     enum MockMode { case chat, landing }
     #endif
 
+    let store = Store.shared
+
     init() {
         themePreference = ThemePreference(
             rawValue: UserDefaults.standard.string(forKey: "yours-theme") ?? "dark"
@@ -73,6 +76,19 @@ final class AppModel: ObservableObject {
         if ProcessInfo.processInfo.arguments.contains("-YoursMockChat") { mock = .chat }
         if ProcessInfo.processInfo.arguments.contains("-YoursMockLanding") { mock = .landing }
         #endif
+        store.start()
+    }
+
+    // MARK: - Subscription (StoreKit)
+
+    func subscribe(to product: Product) async {
+        guard let state = await store.purchase(product, api: api) else { return }
+        apply(state: state)
+    }
+
+    func restorePurchases() async {
+        guard let state = await store.restore(api: api) else { return }
+        apply(state: state)
     }
 
     // MARK: - Lifecycle

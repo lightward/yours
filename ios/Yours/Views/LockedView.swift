@@ -1,8 +1,8 @@
 import SwiftUI
 
 // Day 2+ without a subscription. The web redirects to settings with an
-// alert; here the day waits, gently, while the subscription happens on the
-// web.
+// alert; here the day waits, gently, until a subscription opens the way
+// forward — purchased right here through StoreKit.
 struct LockedView: View {
     @EnvironmentObject private var model: AppModel
     @State private var showExitConfirm = false
@@ -21,18 +21,10 @@ struct LockedView: View {
                 .font(.yoursMono(15))
                 .foregroundStyle(Theme.foreground)
                 .multilineTextAlignment(.center)
-                .padding(.bottom, 8)
+                .padding(.bottom, 28)
 
-            Text("Subscriptions live on the web — visit yours.fyi\nin your browser, then return here.")
-                .font(.yoursBody(15))
-                .foregroundStyle(Theme.foreground.opacity(0.6))
-                .multilineTextAlignment(.center)
-                .padding(.bottom, 36)
-
-            Button("I've subscribed — check again") {
-                Task { await model.refreshState() }
-            }
-            .buttonStyle(WebButtonStyle())
+            SubscribeOptions()
+                .padding(.bottom, 24)
 
             Spacer()
 
