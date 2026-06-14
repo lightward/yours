@@ -786,11 +786,14 @@ RSpec.describe ApplicationController, type: :request do
 
   describe "PUT /textarea" do
     context "when not authenticated" do
-      it "returns 401 error" do
+      it "returns 401 with the structured error code" do
         put textarea_path, params: { textarea: "some content" }, as: :json
         expect(response).to have_http_status(401)
         json = JSON.parse(response.body)
-        expect(json["error"]).to eq("Not authenticated")
+        # The contract (PROTOCOL.md) is a stable code in `error`, human text in
+        # `message` — not a human string in `error`.
+        expect(json["error"]).to eq("unauthenticated")
+        expect(json["message"]).to be_present
       end
     end
 

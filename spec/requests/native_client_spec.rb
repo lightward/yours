@@ -35,6 +35,11 @@ RSpec.describe "Native client protocol", type: :request do
     get root_path
     allow_any_instance_of(ApplicationController).to receive(:flash).and_call_original
 
+    # Sign-in lands on the consent gate, never straight at the app — the code
+    # is only minted by the deliberate confirmation POST.
+    expect(response).to redirect_to(native_auth_confirm_path)
+    post "/native/auth/confirm"
+
     expect(response.location).to start_with("yours://auth?code=")
     CGI.parse(URI.parse(response.location).query)["code"].first
   end
@@ -74,8 +79,29 @@ RSpec.describe "Native client protocol", type: :request do
       expect(JSON.parse(response.body)["obfuscated_email"]).to eq("te··@ex··")
     end
 
-    it "completes immediately when the browser session is already signed in" do
-      # Sign in through the plain web flow first
+    # Regression test for the C1 account-takeover: an app opened on a device
+    # where someone is *already* signed into the web app must NOT be handed a
+    # code for that someone without a deliberate confirmation. The existence of
+    # a browser session is not consent.
+    it "does not auto-issue a code when a browser session already exists" do
+      # User A is already signed into the web app in this browser
+      identity = double("GoogleSignIn::Identity", user_id: google_id, email_address: "test@example.com")
+      allow(GoogleSignIn::Identity).to receive(:new).and_return(identity)
+      allow_any_instance_of(ApplicationController).to receive(:flash).and_return(
+        { google_sign_in: { "id_token" => "fake_token" } }
+      )
+      get root_path
+      allow_any_instance_of(ApplicationController).to receive(:flash).and_call_original
+
+      # A native app (attacker's, holding its own verifier) starts sign-in
+      get "/native/auth", params: { code_challenge: code_challenge }
+
+      # It is sent to the consent gate, NOT handed a token
+      expect(response).to redirect_to(native_auth_confirm_path)
+      expect(response.location).not_to start_with("yours://auth?code=")
+    end
+
+    it "issues the code only after the explicit confirmation tap" do
       identity = double("GoogleSignIn::Identity", user_id: google_id, email_address: "test@example.com")
       allow(GoogleSignIn::Identity).to receive(:new).and_return(identity)
       allow_any_instance_of(ApplicationController).to receive(:flash).and_return(
@@ -85,8 +111,25 @@ RSpec.describe "Native client protocol", type: :request do
       allow_any_instance_of(ApplicationController).to receive(:flash).and_call_original
 
       get "/native/auth", params: { code_challenge: code_challenge }
+      expect(response).to redirect_to(native_auth_confirm_path)
 
+      # The deliberate human action
+      post "/native/auth/confirm"
       expect(response.location).to start_with("yours://auth?code=")
+    end
+
+    it "refuses to confirm without a pending native challenge" do
+      # Signed in, but no native sign-in was started — a stray POST can't mint
+      identity = double("GoogleSignIn::Identity", user_id: google_id, email_address: "test@example.com")
+      allow(GoogleSignIn::Identity).to receive(:new).and_return(identity)
+      allow_any_instance_of(ApplicationController).to receive(:flash).and_return(
+        { google_sign_in: { "id_token" => "fake_token" } }
+      )
+      get root_path
+      allow_any_instance_of(ApplicationController).to receive(:flash).and_call_original
+
+      post "/native/auth/confirm"
+      expect(response.location).not_to start_with("yours://auth?code=")
     end
 
     it "rejects a missing code challenge" do
@@ -204,6 +247,27 @@ RSpec.describe "Native client protocol", type: :request do
         put "/textarea", params: { textarea: "forged" }
         expect(response).to have_http_status(:unprocessable_content)
       end
+    end
+
+    it "denies textarea save with the structured contract codes (H1 regression)" do
+      # No token at all -> unauthenticated code, not a human string in `error`
+      put "/textarea", params: { textarea: "x" },
+        headers: { "Authorization" => "Bearer garbage" }
+      expect(response).to have_http_status(:unauthorized)
+      expect(JSON.parse(response.body)["error"]).to eq("unauthenticated")
+
+      # Day 2+ without subscription -> subscription_required code
+      token = obtain_bearer_token
+      resonance = Resonance.find_by_google_id(google_id)
+      resonance.universe_day = 2
+      resonance.save!
+      allow_any_instance_of(Resonance).to receive(:active_subscription?).and_return(false)
+
+      put "/textarea", params: { textarea: "x" },
+        headers: { "Authorization" => "Bearer #{token}" }
+      expect(response).to have_http_status(:forbidden)
+      expect(JSON.parse(response.body)["error"]).to eq("subscription_required")
+      expect(JSON.parse(response.body)["message"]).to be_present
     end
 
     it "streams chat over a bearer token and saves the narrative" do

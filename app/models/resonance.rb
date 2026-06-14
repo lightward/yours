@@ -66,6 +66,7 @@ class Resonance < ApplicationRecord
   def decrypt_field(encrypted_value)
     return nil if encrypted_value.nil? || encrypted_value.blank?
 
+    # A missing google_id is an auth-flow bug, not bad data — surface it loudly.
     unless google_id
       raise MissingEncryptionKeyError, "Cannot decrypt field: google_id not set. This indicates an authentication flow error."
     end
@@ -87,6 +88,14 @@ class Resonance < ApplicationRecord
     decrypted = decipher.update(encrypted) + decipher.final
     # Force UTF-8 encoding to prevent encoding compatibility errors
     decrypted.force_encoding("UTF-8")
+  rescue OpenSSL::Cipher::CipherError, ArgumentError, TypeError
+    # Corrupted, tampered, or truncated ciphertext (bad GCM tag, non-base64,
+    # short buffer). Degrade to nil rather than raising: a single bad byte must
+    # not 500 the request, lock the account out of every gated path, or signal
+    # the encryption structure to error tracking. Callers treat nil as absent,
+    # so e.g. active_subscription? simply reads false. The legitimately-fatal
+    # MissingEncryptionKeyError above is intentionally NOT rescued here.
+    nil
   end
 
   # Accessors for encrypted fields

@@ -19,6 +19,8 @@ Rails.application.routes.draw do
 
   # Native client routes (ios/, android/) — see PROTOCOL.md
   get "native/auth", to: "application#native_auth_start"
+  get "native/auth/confirm", to: "application#native_auth_confirm_start", as: :native_auth_confirm
+  post "native/auth/confirm", to: "application#native_auth_confirm"
   post "native/token", to: "application#native_token"
   get "native/state", to: "application#native_state"
   post "native/subscription", to: "application#native_subscription"

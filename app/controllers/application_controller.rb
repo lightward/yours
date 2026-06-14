@@ -7,7 +7,8 @@ class ApplicationController < ActionController::Base
   # Skip for native + storefront-webhook endpoints, whose clients aren't browsers
   allow_browser versions: :modern, except: [
     :index, :llms_txt,
-    :native_auth_start, :native_token, :native_state, :native_subscription,
+    :native_auth_start, :native_auth_confirm_start, :native_auth_confirm,
+    :native_token, :native_state, :native_subscription,
     :apple_notifications, :google_notifications
   ]
 
@@ -65,17 +66,47 @@ class ApplicationController < ActionController::Base
   # GET /native/auth
   # Entry point for native-app sign-in: remembers the app's PKCE challenge,
   # then hands off to the ordinary web sign-in flow on the landing page.
-  # When sign-in completes, handle_google_sign_in redirects back into the app.
+  # When sign-in completes, handle_google_sign_in routes to the confirmation
+  # gate, which hands the session back into the app.
+  #
+  # Crucially, an *existing* browser session is never silently inherited: a
+  # native sign-in must be confirmed by an explicit human action (the gate's
+  # button), so an app opened on a device where someone else is already signed
+  # into the web app cannot mint a token for that someone-else. (Native clients
+  # also open the sign-in sheet ephemerally, so normally there is no ambient
+  # session to inherit in the first place — this is defense in depth.)
   def native_auth_start
     challenge = params[:code_challenge].to_s
     return redirect_to root_path, alert: "Missing code challenge" if challenge.blank?
 
     session[:native_code_challenge] = challenge
 
-    # Already signed in in this browser context? Complete immediately.
-    return redirect_to_native_callback if current_resonance
+    # Already signed in in this browser context? Require explicit confirmation
+    # rather than auto-issuing a code.
+    return redirect_to native_auth_confirm_path if current_resonance
 
     redirect_to root_path
+  end
+
+  # GET /native/auth/confirm
+  # The consent gate: shows who's about to be handed to the app and requires a
+  # deliberate tap. Reached after sign-in, or immediately when a session
+  # already exists.
+  def native_auth_confirm_start
+    return redirect_to root_path unless current_resonance
+    return redirect_to root_path, alert: "Start sign-in from the app." if session[:native_code_challenge].blank?
+
+    render "application/native_auth_confirm"
+  end
+
+  # POST /native/auth/confirm
+  # The deliberate tap. Only here — never automatically — is the sign-in code
+  # minted and handed back to the app.
+  def native_auth_confirm
+    return redirect_to root_path unless current_resonance
+    return redirect_to root_path, alert: "Start sign-in from the app." if session[:native_code_challenge].blank?
+
+    redirect_to_native_callback
   end
 
   # POST /native/token
@@ -324,10 +355,19 @@ class ApplicationController < ActionController::Base
 
   # POST /save_textarea
   def save_textarea
-    return render json: { error: "Not authenticated" }, status: 401 unless current_resonance
+    # /textarea is a JSON endpoint for both web (cookie) and native (bearer)
+    # clients, so it renders structured errors directly rather than going
+    # through deny_access (which redirects web requests). Codes match
+    # PROTOCOL.md so every client can switch on `error`.
+    unless current_resonance
+      return render json: { error: "unauthenticated", message: "Please sign in" }, status: :unauthorized
+    end
     # Day 1 is free - subscription only required for day 2+
     unless current_resonance.universe_day == 1 || current_resonance.active_subscription?
-      return render json: { error: "Subscribe to continue with #{universe_day_with_units(current_resonance.universe_day)}." }, status: 403
+      return render json: {
+        error: "subscription_required",
+        message: "Subscribe to continue with #{universe_day_with_units(current_resonance.universe_day)}."
+      }, status: :forbidden
     end
 
     # Check for cross-device continuity divergence
@@ -480,8 +520,10 @@ class ApplicationController < ActionController::Base
       session[:google_id] = google_id  # Store for encryption/decryption
       session[:obfuscated_user_email] = obfuscate_email(identity.email_address)  # Store obfuscated email for display
 
-      # Native-app sign-in: hand the session back to the app instead
-      return redirect_to_native_callback if session[:native_code_challenge].present?
+      # Native-app sign-in: route to the confirmation gate (never auto-issue a
+      # code — see native_auth_start) so handing the session to the app always
+      # takes a deliberate human tap.
+      return redirect_to native_auth_confirm_path if session[:native_code_challenge].present?
 
       redirect_to root_path
     elsif error = flash[:google_sign_in]&.[]("error")  # String key, not symbol

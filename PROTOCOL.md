@@ -31,10 +31,14 @@ browser sheet (PKCE-style):
 
 1. App generates a random `code_verifier`, computes
    `code_challenge = base64url(sha256(verifier))`
-2. App opens `GET /native/auth?code_challenge=...` in the browser sheet;
-   the human signs in with Google exactly as on the web
-3. Server redirects to `yours://auth?code=<one-time code>` (60-second TTL,
-   bound to the challenge)
+2. App opens `GET /native/auth?code_challenge=...` in the browser sheet
+   **ephemerally** (no shared cookies); the human signs in with Google
+   exactly as on the web
+3. Server shows a consent gate (`/native/auth/confirm`) naming the account;
+   the human taps **Continue**, and only then does the server redirect to
+   `yours://auth?code=<one-time code>` (60-second TTL, bound to the
+   challenge). An existing browser session is never silently inherited — the
+   tap is required, which prevents a confused-deputy account takeover.
 4. App exchanges it: `POST /native/token` with `code` + `code_verifier` →
    `{ token, obfuscated_email }`
 5. App stores `token` in the keychain; all further requests send

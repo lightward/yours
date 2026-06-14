@@ -113,6 +113,42 @@ RSpec.describe Resonance, type: :model do
       expect(decrypted).to eq(test_data)
     end
 
+    # H2 regression: corrupted/tampered ciphertext must degrade to nil, never
+    # raise — a single bad byte must not 500 the request or lock the account
+    # out of every gated path. (A genuinely missing google_id still raises;
+    # that's an auth-flow bug, covered separately.)
+    context "with corrupted ciphertext" do
+      let(:resonance) { Resonance.find_or_create_by_google_id(google_id) }
+
+      it "returns nil for a tampered GCM auth tag" do
+        encrypted = resonance.encrypt_field("a secret")
+        raw = Base64.strict_decode64(encrypted)
+        raw[13] = (raw[13].ord ^ 0xFF).chr # flip a bit in the auth tag
+        tampered = Base64.strict_encode64(raw)
+
+        expect(resonance.decrypt_field(tampered)).to be_nil
+      end
+
+      it "returns nil for non-base64 garbage" do
+        expect(resonance.decrypt_field("!!!not base64!!!")).to be_nil
+      end
+
+      it "returns nil for a truncated buffer" do
+        encrypted = resonance.encrypt_field("a secret")
+        truncated = Base64.strict_encode64(Base64.strict_decode64(encrypted)[0, 10])
+        expect(resonance.decrypt_field(truncated)).to be_nil
+      end
+
+      it "keeps active_subscription? total — corrupted IAP data reads as inactive, not a crash" do
+        resonance.encrypted_apple_original_transaction_id = Base64.strict_encode64("garbage that won't decrypt")
+        resonance.save!
+
+        reloaded = Resonance.find_by_google_id(google_id)
+        expect { reloaded.apple_subscription_active? }.not_to raise_error
+        expect(reloaded.apple_subscription_active?).to be false
+      end
+    end
+
     it "allows decrypted JSON data to be concatenated with UTF-8 strings" do
       resonance = Resonance.find_or_create_by_google_id(google_id)
 
