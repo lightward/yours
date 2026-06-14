@@ -194,13 +194,20 @@ final class AppModel: ObservableObject {
         isWaiting = true
         clearDraft()
 
-        let index = messages.count
-        messages.append(DisplayMessage(role: "assistant", text: ".", isPulsing: true, isComplete: false))
+        // Track the streaming message by its stable id, never by index: a
+        // concurrent apply(state:) (from a refresh, a purchase, a mid-stream
+        // universe_time) can replace the whole array, and the error paths below
+        // remove messages — any captured index would go stale and misroute or
+        // trap. updateStreaming(_:) looks the message up by id each time and
+        // no-ops if it's gone.
+        let placeholder = DisplayMessage(role: "assistant", text: ".", isPulsing: true, isComplete: false)
+        let streamingID = placeholder.id
+        messages.append(placeholder)
 
         Task {
             #if DEBUG
             if mock != nil {
-                await MockData.streamResponse(into: self, at: index)
+                await MockData.streamResponse(into: self, id: streamingID)
                 isWaiting = false
                 return
             }
@@ -208,12 +215,11 @@ final class AppModel: ObservableObject {
             do {
                 let events = try await api.stream(message: .user(text), universeTime: universeTime)
                 for try await event in events {
-                    handle(event, at: index)
+                    handle(event, id: streamingID)
                 }
-                messages[index].isPulsing = false
-                messages[index].isComplete = true
+                updateStreaming(streamingID) { $0.isPulsing = false; $0.isComplete = true }
             } catch APIError.divergence(let message) {
-                messages.remove(at: index)
+                removeMessage(streamingID)
                 notice = Notice(
                     message: message.isEmpty
                         ? "This space moved forward elsewhere. Refresh to join where it is now."
@@ -222,51 +228,65 @@ final class AppModel: ObservableObject {
                     action: .refresh
                 )
             } catch APIError.unauthenticated {
-                messages.remove(at: index)
+                removeMessage(streamingID)
                 notice = Notice(
                     message: "Your session has expired. Sign in to continue.",
                     actionLabel: "Sign in",
                     action: .signIn
                 )
             } catch APIError.subscriptionRequired {
-                messages.remove(at: index)
+                removeMessage(streamingID)
                 await refreshState()
             } catch {
-                messages[index].isPulsing = false
-                messages[index].isComplete = true
-                messages[index].isError = true
-                messages[index].text = "⚠️ Error: the stream broke. Your message wasn't lost on the web side — refresh to see where things stand."
+                updateStreaming(streamingID) {
+                    $0.isPulsing = false
+                    $0.isComplete = true
+                    $0.isError = true
+                    $0.text = "⚠️ Error: the stream broke. Your message wasn't lost on the web side — refresh to see where things stand."
+                }
             }
             isWaiting = false
         }
     }
 
-    private func handle(_ event: SSEEvent, at index: Int) {
+    // Mutate the in-flight streaming message by id; no-op if it's no longer in
+    // the array (e.g. an apply(state:) replaced it). This is the guard that
+    // makes streaming safe against concurrent state replacement.
+    func updateStreaming(_ id: UUID, _ mutate: (inout DisplayMessage) -> Void) {
+        guard let i = messages.firstIndex(where: { $0.id == id }) else { return }
+        mutate(&messages[i])
+    }
+
+    private func removeMessage(_ id: UUID) {
+        messages.removeAll { $0.id == id }
+    }
+
+    private func handle(_ event: SSEEvent, id: UUID) {
         switch event.name {
         case "message_start":
-            messages[index].isPulsing = false
-            messages[index].text = ""
+            updateStreaming(id) { $0.isPulsing = false; $0.text = "" }
         case "content_block_delta":
             if let delta = event.textDelta {
-                if messages[index].isPulsing {
-                    messages[index].isPulsing = false
-                    messages[index].text = ""
+                updateStreaming(id) {
+                    if $0.isPulsing { $0.isPulsing = false; $0.text = "" }
+                    $0.text += delta
                 }
-                messages[index].text += delta
             }
         case "message_stop":
-            messages[index].isComplete = true
+            updateStreaming(id) { $0.isComplete = true }
         case "universe_time":
             if let time = event.universeTime {
                 state?.universeTime = time
             }
         case "error":
-            messages[index].isPulsing = false
-            messages[index].isComplete = true
-            messages[index].isError = true
-            messages[index].text = "⚠️ \(event.errorMessage ?? "An error occurred")"
+            updateStreaming(id) {
+                $0.isPulsing = false
+                $0.isComplete = true
+                $0.isError = true
+                $0.text = "⚠️ \(event.errorMessage ?? "An error occurred")"
+            }
         case "end":
-            messages[index].isPulsing = false
+            updateStreaming(id) { $0.isPulsing = false }
         default:
             break
         }

@@ -31,15 +31,14 @@ enum MockData {
     static let exportText = state.narrative.map(\.text).joined(separator: "\n\n---\n\n")
 
     @MainActor
-    static func streamResponse(into model: AppModel, at index: Int) async {
+    static func streamResponse(into model: AppModel, id: UUID) async {
         try? await Task.sleep(for: .seconds(1.2))
-        model.messages[index].isPulsing = false
-        model.messages[index].text = ""
+        model.updateStreaming(id) { $0.isPulsing = false; $0.text = "" }
         for word in responseText.split(separator: " ", omittingEmptySubsequences: false) {
-            model.messages[index].text += (model.messages[index].text.isEmpty ? "" : " ") + word
+            model.updateStreaming(id) { $0.text += ($0.text.isEmpty ? "" : " ") + word }
             try? await Task.sleep(for: .milliseconds(40))
         }
-        model.messages[index].isComplete = true
+        model.updateStreaming(id) { $0.isComplete = true }
     }
 }
 #endif

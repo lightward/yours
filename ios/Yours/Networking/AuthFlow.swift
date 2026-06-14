@@ -37,9 +37,13 @@ final class AuthFlow: NSObject, ASWebAuthenticationPresentationContextProviding 
                 }
             }
             session.presentationContextProvider = self
-            // Share Safari's cookie jar: someone already signed in on the web
-            // gets a one-tap entry
-            session.prefersEphemeralWebBrowserSession = false
+            // Ephemeral on purpose: do NOT share Safari's cookie jar. If we
+            // inherited an existing yours.fyi session, this app could be handed
+            // a token for whoever happened to be signed into the browser — a
+            // confused-deputy account takeover. Each native sign-in is its own
+            // deliberate Google auth. (The server also gates code issuance
+            // behind an explicit confirmation tap; this is the matching half.)
+            session.prefersEphemeralWebBrowserSession = true
             activeSession = session
             session.start()
         }
