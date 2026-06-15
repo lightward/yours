@@ -84,7 +84,7 @@ The update loop, when web-app behavior changes:
 3. Verify by looking: `bin/ios test` / `bin/android test`, then `bin/ios run -YoursMockChat` / `bin/android run YoursMockChat` and the matching `screenshot` command. The simulator and emulator are right there.
 4. The server side of the contract is protected by `spec/requests/native_client_spec.rb`; the client sides by `ios/YoursTests` and `android/app/src/test` (markdown parity, SSE framing).
 
-Identity note, because it's the part that looks scary and isn't: native clients carry the google_id in an encrypted bearer token (device keychain) instead of a session cookie. Same topology — the server still stores nothing it can decrypt alone. Subscriptions intentionally have no native purchase path (App Store rules); the apps describe the web step instead.
+Identity note, because it's the part that looks scary and isn't: native clients carry the google_id in an encrypted bearer token (device keychain) instead of a session cookie. Same topology — the server still stores nothing it can decrypt alone. iOS purchases run through StoreKit and are verified server-side against Apple's API; Android remains present in the codebase but its Play Billing path is gated until that client is ready to ship.
 
 ### The formal mirror next door
 

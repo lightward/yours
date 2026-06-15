@@ -24,7 +24,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_06_14_000000) do
     t.text "encrypted_textarea"
     t.text "encrypted_universe_day"
     t.string "google_play_transaction_fingerprint"
-    t.index ["apple_transaction_fingerprint"], name: "index_resonances_on_apple_transaction_fingerprint", unique: true
-    t.index ["google_play_transaction_fingerprint"], name: "index_resonances_on_google_play_transaction_fingerprint", unique: true
+    t.index [ "apple_transaction_fingerprint" ], name: "index_resonances_on_apple_transaction_fingerprint", unique: true
+    t.index [ "google_play_transaction_fingerprint" ], name: "index_resonances_on_google_play_transaction_fingerprint", unique: true
   end
 end
