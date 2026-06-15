@@ -55,9 +55,10 @@ final class YoursAPI: @unchecked Sendable {
     }
 
     func state(includeSubscription: Bool = false) async throws -> UniverseState {
-        var path = "native/state"
-        if includeSubscription { path += "?include=subscription" }
-        let request = makeRequest(path)
+        // Query items must go through URLComponents — URL.appending(path:)
+        // would percent-encode the "?" into the path and miss the route.
+        let query = includeSubscription ? [URLQueryItem(name: "include", value: "subscription")] : []
+        let request = makeRequest("native/state", query: query)
         let (data, response) = try await session.data(for: request)
         try Self.check(response, data: data)
         return try YoursJSON.decoder.decode(UniverseState.self, from: data)
@@ -157,8 +158,14 @@ final class YoursAPI: @unchecked Sendable {
         var message: ChatMessage
     }
 
-    private func makeRequest(_ path: String, method: String = "GET", universeTime: String? = nil) -> URLRequest {
-        var request = URLRequest(url: Self.baseURL.appending(path: path))
+    private func makeRequest(_ path: String, method: String = "GET", universeTime: String? = nil, query: [URLQueryItem] = []) -> URLRequest {
+        var url = Self.baseURL.appending(path: path)
+        if !query.isEmpty {
+            var components = URLComponents(url: url, resolvingAgainstBaseURL: false)!
+            components.queryItems = query
+            url = components.url!
+        }
+        var request = URLRequest(url: url)
         request.httpMethod = method
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
         if let token {

@@ -89,20 +89,44 @@ RSpec.describe AppleAppStore do
   end
 
   describe "#subscription_active?" do
-    it "is true for active/grace/billing-retry statuses" do
-      [ 1, 3, 4 ].each do |status|
+    it "is true for active and grace-period statuses" do
+      [ 1, 4 ].each do |status|
         allow(store).to receive(:get)
           .and_return({ "data" => [ { "lastTransactions" => [ { "status" => status } ] } ] })
         expect(store.subscription_active?("2000000000000001")).to be(true), "status #{status}"
       end
     end
 
-    it "is false for expired/revoked statuses" do
-      [ 2, 5 ].each do |status|
+    it "is false for expired, billing-retry, and revoked statuses" do
+      # 3 = billing retry: the paid period has lapsed pending recovery — NOT
+      # entitled (tightened from treating it as active).
+      [ 2, 3, 5 ].each do |status|
         allow(store).to receive(:get)
           .and_return({ "data" => [ { "lastTransactions" => [ { "status" => status } ] } ] })
         expect(store.subscription_active?("2000000000000001")).to be(false), "status #{status}"
       end
+    end
+
+    it "is lenient on API failure (returns false, doesn't raise)" do
+      allow(store).to receive(:get).and_raise(described_class::VerificationError, "Apple down")
+      expect { store.subscription_active?("2000000000000001") }.not_to raise_error
+      expect(store.subscription_active?("2000000000000001")).to be false
+    end
+  end
+
+  describe "#verify is strict on API failure" do
+    it "propagates a status-API outage so the caller can return a retryable 502" do
+      signed = jws_with("transactionId" => "2000000000000001")
+      txn_jws = jws_with("productId" => "fyi.yours.subscription.tier_1",
+                         "originalTransactionId" => "2000000000000001")
+      # transaction lookup succeeds; the subscription-status call fails
+      call = 0
+      allow(store).to receive(:get) do
+        call += 1
+        call == 1 ? { "signedTransactionInfo" => txn_jws } : raise(described_class::VerificationError, "Apple down")
+      end
+
+      expect { store.verify(signed) }.to raise_error(described_class::VerificationError)
     end
   end
 end

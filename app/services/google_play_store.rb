@@ -11,11 +11,13 @@ class GooglePlayStore
   SCOPE = "https://www.googleapis.com/auth/androidpublisher".freeze
   API_HOST = "androidpublisher.googleapis.com".freeze
 
-  # SubscriptionState values that count as entitled.
+  # SubscriptionState values that count as entitled: active, and grace period
+  # (billing issue being retried while the user still has access). NOT
+  # entitled: ON_HOLD (the Play equivalent of Apple's billing-retry — access
+  # has lapsed pending recovery), plus expired/canceled/paused/pending.
   ENTITLED_STATES = %w[
     SUBSCRIPTION_STATE_ACTIVE
     SUBSCRIPTION_STATE_IN_GRACE_PERIOD
-    SUBSCRIPTION_STATE_ON_HOLD
   ].freeze
 
   Result = Struct.new(:purchase_token, :product_id, :active, :account_token, keyword_init: true)
@@ -25,6 +27,12 @@ class GooglePlayStore
   def initialize(config: GOOGLE_PLAY_CONFIG, product_ids: GOOGLE_PRODUCT_IDS)
     @config = config
     @product_ids = product_ids
+  end
+
+  # Google Play billing is live only when a service account is configured.
+  # Until then the path stays gated (the Android client has no billing yet).
+  def self.configured?
+    GOOGLE_PLAY_CONFIG[:service_account_json].present?
   end
 
   # Given a purchase token from the app, return a Result if it's a genuine,

@@ -386,7 +386,19 @@ RSpec.describe "Native client protocol", type: :request do
         .to eq("2000000000000001")
     end
 
-    it "records a Google Play subscription the storefront confirms" do
+    it "rejects Google Play purchases while billing is gated off" do
+      token = obtain_bearer_token # configured? is false in test (no service account)
+
+      post "/native/subscription",
+        params: { platform: "google", signed_transaction: "play-token-abc" },
+        headers: { "Authorization" => "Bearer #{token}" }
+
+      expect(response).to have_http_status(:not_implemented)
+      expect(JSON.parse(response.body)["error"]).to eq("platform_unavailable")
+    end
+
+    it "records a Google Play subscription the storefront confirms (when configured)" do
+      allow(GooglePlayStore).to receive(:configured?).and_return(true)
       token = obtain_bearer_token
       result = GooglePlayStore::Result.new(
         purchase_token: "play-token-abc",

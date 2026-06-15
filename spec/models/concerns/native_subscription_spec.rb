@@ -76,11 +76,21 @@ RSpec.describe NativeSubscription do
       expect(resonance.active_subscription?).to be true
     end
 
-    it "is true when only Google Play is active" do
+    it "is true when only Google Play is active (and Play is configured)" do
+      allow(GooglePlayStore).to receive(:configured?).and_return(true)
       resonance.google_play_purchase_token = "play-token-abc"
       resonance.save!
       allow_any_instance_of(GooglePlayStore).to receive(:subscription_active?).and_return(true)
       expect(resonance.active_subscription?).to be true
+    end
+
+    it "ignores Google Play entitlement while Play billing is gated off" do
+      # configured? is false in test (no service account) — the Google check
+      # short-circuits without hitting the API
+      resonance.google_play_purchase_token = "play-token-abc"
+      resonance.save!
+      expect_any_instance_of(GooglePlayStore).not_to receive(:subscription_active?)
+      expect(resonance.google_play_subscription_active?).to be false
     end
 
     it "does not call a storefront when its identity is absent" do

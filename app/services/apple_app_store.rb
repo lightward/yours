@@ -17,9 +17,13 @@ class AppleAppStore
   PRODUCTION_HOST = "api.storekit.itunes.apple.com".freeze
   SANDBOX_HOST = "api.storekit-sandbox.itunes.apple.com".freeze
 
-  # Apple subscription states that count as entitled (1 = active, 3 = in
-  # billing retry, 4 = in grace period). 2 = expired, 5 = revoked.
-  ENTITLED_STATUSES = [ 1, 3, 4 ].freeze
+  # Apple subscription states that count as entitled:
+  #   1 = active, 4 = in grace period (billing issue being retried while the
+  #   user still expects service — Apple recommends keeping access).
+  # NOT entitled: 2 = expired, 3 = in billing retry (the paid period has
+  #   lapsed and Apple is attempting recovery — no current entitlement),
+  #   5 = revoked.
+  ENTITLED_STATUSES = [ 1, 4 ].freeze
 
   Result = Struct.new(:original_transaction_id, :product_id, :active, :app_account_token, keyword_init: true)
 
@@ -45,7 +49,9 @@ class AppleAppStore
     Result.new(
       original_transaction_id: original_id,
       product_id: info["productId"],
-      active: subscription_active?(original_id),
+      # Strict during purchase verification: a status-API outage must raise
+      # (→ retryable 502), not silently look like "not subscribed" (→ 422).
+      active: status_entitled?(original_id),
       # The UUID the app set at purchase (StoreKit appAccountToken). The
       # controller checks this against the resonance's iap_account_token so a
       # transaction can only unlock the account that bought it. Downcased
@@ -54,9 +60,20 @@ class AppleAppStore
     )
   end
 
-  # Used by the entitlement check and renewal webhooks: is this original
-  # transaction's subscription currently in an entitled state?
+  # Used by the entitlement re-check and renewal webhooks (page renders): is
+  # this subscription currently entitled? Lenient — a transient API failure
+  # returns false rather than raising, so an outage can't 500 a request.
   def subscription_active?(original_transaction_id)
+    status_entitled?(original_transaction_id)
+  rescue VerificationError
+    false
+  end
+
+  private
+
+  # The actual status check, which DOES raise on API failure. Callers choose
+  # whether to rescue (entitlement re-check) or propagate (purchase verify).
+  def status_entitled?(original_transaction_id)
     statuses = fetch_subscription_statuses(original_transaction_id)
     return false unless statuses
 
@@ -65,8 +82,6 @@ class AppleAppStore
         ENTITLED_STATUSES.include?(txn["status"])
       end
     end
-  rescue VerificationError
-    false
   end
 
   private

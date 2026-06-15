@@ -75,6 +75,7 @@ module NativeSubscription
   end
 
   def google_play_subscription_active?
+    return false unless GooglePlayStore.configured?
     token = google_play_purchase_token
     return false if token.blank?
     GooglePlayStore.new.subscription_active?(token)

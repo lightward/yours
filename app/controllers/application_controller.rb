@@ -162,6 +162,13 @@ class ApplicationController < ActionController::Base
       end
       current_resonance.record_apple_subscription(result.original_transaction_id)
     when "google"
+      # Google Play billing isn't live yet (the Android client has no
+      # BillingClient). The verification path exists and is tested, but stays
+      # gated until Android billing ships and the service account is
+      # configured — so the server doesn't advertise a path no client uses.
+      unless GooglePlayStore.configured?
+        return render json: { error: "platform_unavailable", message: "Google Play subscriptions aren't available yet." }, status: :not_implemented
+      end
       result = GooglePlayStore.new.verify(signed_transaction)
       return render(json: { error: "subscription_not_verified" }, status: :unprocessable_content) unless result&.active
       unless secure_token_match?(result.account_token, expected_token)
