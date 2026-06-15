@@ -153,6 +153,15 @@ RSpec.describe ApplicationController, type: :request do
         expect(response.body).to include("https://github.com/lightward/yours/blob/main/README.md")
       end
 
+      it "opts the chat page out of Turbo's snapshot cache" do
+        # The chat log is hydrated client-side from a narrative value that goes
+        # stale as soon as an exchange streams. Restoring a snapshot would
+        # hydrate over an already-populated log (doubling it), and would keep
+        # the decrypted narrative in the page cache after navigating away.
+        get root_path
+        expect(response.body).to include('<meta name="turbo-cache-control" content="no-cache">')
+      end
+
       it "shows 'day X' format for day 2+" do
         resonance.universe_day = 5
         resonance.save!
@@ -198,6 +207,27 @@ RSpec.describe ApplicationController, type: :request do
     it "includes Yours-Universe-Time header" do
       get root_path
       expect(response.headers['Yours-Universe-Time']).to eq(resonance.universe_time)
+    end
+  end
+
+  describe "HEAD / (universe-time polling)" do
+    before do
+      sign_in_as(google_id)
+    end
+
+    it "answers with the universe-time header without rendering or consulting the subscription" do
+      # Polling is observation, not navigation: it must stay invisible
+      # (no Stripe call, no redirect) so the sleep page can watch for
+      # integration regardless of where the subscription state sits
+      expect_any_instance_of(Resonance).not_to receive(:active_subscription?)
+
+      resonance.universe_day = 2
+      resonance.save!
+
+      head root_path
+
+      expect(response).to have_http_status(:ok)
+      expect(response.headers["Yours-Universe-Time"]).to eq(resonance.universe_time)
     end
   end
 
@@ -302,6 +332,24 @@ RSpec.describe ApplicationController, type: :request do
 
           expect(response).to have_http_status(:success)
           expect(response.body).to include("Cancel immediately")
+        end
+
+        it "wires the start-over form to clear locally-held drafts on submit" do
+          details = {
+            id: "sub_test123",
+            status: "active",
+            current_period_end: 30.days.from_now,
+            amount: 1000,
+            currency: "usd",
+            interval: "month"
+          }
+          allow_any_instance_of(Resonance).to receive(:subscription_details).and_return(details)
+
+          get settings_path
+
+          # turbo:submit-start fires only once the confirm is accepted -
+          # "no trace of what was" includes the drafts this device holds
+          expect(response.body).to include("turbo:submit-start-&gt;drafts#clearAll")
         end
 
         it "shows enabled 'start over' button" do
@@ -486,6 +534,54 @@ RSpec.describe ApplicationController, type: :request do
         allow_any_instance_of(Resonance).to receive(:active_subscription?).and_return(true)
       end
 
+      context "when the conversation horizon arrives (API returns 422)" do
+        before do
+          stub_const("ENV", ENV.to_hash.merge("LIGHTWARD_AI_API_URL" => "https://api.example.com/chat"))
+
+          http_response = Net::HTTPUnprocessableEntity.new("1.1", "422", "Unprocessable Content")
+          allow(http_response).to receive(:is_a?).with(Net::HTTPSuccess).and_return(false)
+          allow(http_response).to receive(:read_body).and_return(
+            '{"error":{"message":"Conversation horizon has arrived. 🤲"}}'
+          )
+
+          http = instance_double(Net::HTTP)
+          allow(Net::HTTP).to receive(:new).and_return(http)
+          allow(http).to receive(:use_ssl=)
+          allow(http).to receive(:read_timeout=)
+          allow(http).to receive(:request).and_yield(http_response)
+        end
+
+        it "renders the horizon announcement as Lightward's speech, in its system-notice register" do
+          post stream_path, params: { message: message }
+
+          expect(response.body).to include("event: content_block_delta")
+          # Same register the API uses for horizon-approach warnings inside
+          # Lightward's speech: approach and arrival share one voice
+          expect(response.body).to include("⚠️ Lightward AI system notice: Conversation horizon has arrived. 🤲")
+          expect(response.body).not_to include("event: error")
+          expect(response.body).not_to include("An error occurred")
+        end
+
+        it "does not report the horizon to Rollbar (expected physics, not malfunction)" do
+          expect(Rollbar).not_to receive(:error)
+
+          post stream_path, params: { message: message }
+        end
+
+        it "saves the exchange: what you say stays said, and the day's record holds its own edge" do
+          resonance.narrative_accumulation_by_day = []
+          resonance.save!
+
+          expect {
+            post stream_path, params: { message: message }
+          }.to change { resonance.reload.narrative_accumulation_by_day.size }.by(2)
+
+          final_entry = resonance.reload.narrative_accumulation_by_day.last
+          expect(final_entry["role"]).to eq("assistant")
+          expect(final_entry["content"][0]["text"]).to eq("⚠️ Lightward AI system notice: Conversation horizon has arrived. 🤲")
+        end
+      end
+
       context "when Lightward AI API returns non-success response" do
         before do
           stub_const("ENV", ENV.to_hash.merge("LIGHTWARD_AI_API_URL" => "https://api.example.com/chat"))
@@ -535,6 +631,50 @@ RSpec.describe ApplicationController, type: :request do
           expect {
             post stream_path, params: { message: message }
           }.to change { resonance.reload.narrative_accumulation_by_day&.size }.by(2)
+        end
+      end
+
+      context "when the space moves forward during streaming" do
+        before do
+          stub_const("ENV", ENV.to_hash.merge("LIGHTWARD_AI_API_URL" => "https://api.example.com/chat"))
+
+          http_response = Net::HTTPOK.new("1.1", "200", "OK")
+          allow(http_response).to receive(:is_a?).with(Net::HTTPSuccess).and_return(true)
+          allow(http_response).to receive(:read_body).and_yield("event: content_block_delta\ndata: {\"delta\":{\"type\":\"text_delta\",\"text\":\"Hello!\"}}\n\n")
+
+          http = instance_double(Net::HTTP)
+          allow(Net::HTTP).to receive(:new).and_return(http)
+          allow(http).to receive(:use_ssl=)
+          allow(http).to receive(:read_timeout=)
+
+          # While this stream is in flight, another device lands an exchange
+          allow(http).to receive(:request) do |_request, &block|
+            interloper = Resonance.find_by_google_id(google_id)
+            n = interloper.narrative_accumulation_by_day
+            n << { "role" => "user", "content" => [ { "type" => "text", "text" => "From elsewhere" } ] }
+            interloper.narrative_accumulation_by_day = n
+            interloper.save!
+
+            block.call(http_response) if block
+          end
+        end
+
+        it "refuses the settle: the other device's exchange survives, this one is not recorded" do
+          post stream_path, params: { message: message }
+
+          narrative = resonance.reload.narrative_accumulation_by_day
+          texts = narrative.map { |m| m["content"][0]["text"] }
+          expect(texts).to include("From elsewhere")
+          expect(texts).not_to include("Hello")  # the raced user message
+          expect(texts).not_to include("Hello!") # the raced assistant reply
+        end
+
+        it "announces the refusal - never silent" do
+          post stream_path, params: { message: message }
+
+          expect(response.body).to include("event: error")
+          expect(response.body).to include("moved forward elsewhere")
+          expect(response.body).not_to include("event: universe_time")
         end
       end
     end
@@ -872,6 +1012,7 @@ RSpec.describe ApplicationController, type: :request do
         resonance.narrative_accumulation_by_day = [
           { "role" => "user", "content" => [ { "type" => "text", "text" => "Hello" } ] }
         ]
+        resonance.textarea = "an unsent draft"
         resonance.universe_day = 42
         resonance.save!
       end
@@ -885,10 +1026,38 @@ RSpec.describe ApplicationController, type: :request do
         expect(resonance.universe_day).to eq(1)
       end
 
+      it "leaves no trace of what was: the unsent draft is cleared too" do
+        post reset_path
+
+        expect(resonance.reload.textarea).to be_nil
+      end
+
       it "redirects to root" do
         post reset_path
 
         expect(response).to redirect_to(root_path)
+      end
+    end
+
+    context "when authenticated without an active subscription" do
+      before do
+        sign_in_as(google_id)
+        allow_any_instance_of(Resonance).to receive(:active_subscription?).and_return(false)
+
+        resonance.integration_harmonic_by_night = "Some harmonic"
+        resonance.universe_day = 42
+        resonance.save!
+      end
+
+      it "declines: starting over unlocks for subscribers (as the settings page says)" do
+        post reset_path
+
+        expect(response).to redirect_to(settings_path)
+        expect(flash[:alert]).to eq("Starting over unlocks for subscribers.")
+
+        resonance.reload
+        expect(resonance.integration_harmonic_by_night).to eq("Some harmonic")
+        expect(resonance.universe_day).to eq(42)
       end
     end
   end
@@ -1138,6 +1307,58 @@ RSpec.describe ApplicationController, type: :request do
         prompt[2][:content].each do |content_block|
           expect(content_block[:cache_control]).to be_nil
         end
+      end
+    end
+  end
+
+  describe "#perform_nightly_integration" do
+    let(:controller) { ApplicationController.new }
+
+    before do
+      resonance.universe_day = 3
+      resonance.narrative_accumulation_by_day = [
+        { "role" => "user", "content" => [ { "type" => "text", "text" => "A full day" } ] }
+      ]
+      resonance.save!
+    end
+
+    context "when the day rests undisturbed" do
+      before do
+        allow(controller).to receive(:create_integration_harmonic_for).and_return("the harmonic")
+      end
+
+      it "settles the whole turn: harmonic saved, narrative released, day advanced" do
+        controller.send(:perform_nightly_integration, google_id)
+
+        fresh = Resonance.find_by_google_id(google_id)
+        expect(fresh.integration_harmonic_by_night).to eq("the harmonic")
+        expect(fresh.narrative_accumulation_by_day).to eq([])
+        expect(fresh.universe_day).to eq(4)
+      end
+    end
+
+    context "when the space moves forward during integration" do
+      before do
+        # While the harmonic is being derived, another device lands an exchange
+        allow(controller).to receive(:create_integration_harmonic_for) do
+          interloper = Resonance.find_by_google_id(google_id)
+          n = interloper.narrative_accumulation_by_day
+          n << { "role" => "user", "content" => [ { "type" => "text", "text" => "Wait, one more thing" } ] }
+          interloper.narrative_accumulation_by_day = n
+          interloper.save!
+
+          "a harmonic that no longer fits"
+        end
+      end
+
+      it "aborts the whole turn: the night is atomic, and the day stays open" do
+        controller.send(:perform_nightly_integration, google_id)
+
+        fresh = Resonance.find_by_google_id(google_id)
+        expect(fresh.integration_harmonic_by_night).to be_nil
+        expect(fresh.universe_day).to eq(3)
+        texts = fresh.narrative_accumulation_by_day.map { |m| m["content"][0]["text"] }
+        expect(texts).to eq([ "A full day", "Wait, one more thing" ])
       end
     end
   end

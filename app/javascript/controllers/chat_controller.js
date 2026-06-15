@@ -9,6 +9,7 @@ export default class extends Controller {
   }
 
   connect() {
+    this.sweepStaleDrafts()
     this.loadExistingMessages()
     this.loadSavedInput()
     this.saveDebounceTimeout = null
@@ -71,6 +72,20 @@ export default class extends Controller {
     // Debounced save to server (unless this is a programmatic event from loadSavedInput)
     if (!event.skipServerSave) {
       this.debouncedSaveToServer(textarea.value)
+    }
+  }
+
+  sweepStaleDrafts() {
+    // Drafts are keyed by universe_time, so every tick of the universe can
+    // strand a key. Anything not keyed to the present is unreachable by the
+    // app and goes - housekeeping, and it also limits what a "start over"
+    // performed elsewhere could leave waiting on this device
+    const currentKey = `yours-input-${this.universeTimeValue || 'current'}`
+    for (let i = localStorage.length - 1; i >= 0; i--) {
+      const key = localStorage.key(i)
+      if (key && key.startsWith("yours-input-") && key !== currentKey) {
+        localStorage.removeItem(key)
+      }
     }
   }
 
@@ -453,18 +468,7 @@ export default class extends Controller {
 
   handleContinuityDivergence(data) {
     // Create a gentle notice that this space moved forward elsewhere
-    const noticeElement = document.createElement("div")
-    noticeElement.classList.add("continuity-notice")
-
-    noticeElement.innerHTML = `
-      <div style="margin-bottom: 1rem;">${data.message}</div>
-      <button onclick="window.location.reload()" style="cursor: pointer;">
-        Refresh to continue
-      </button>
-    `
-
-    this.logTarget.appendChild(noticeElement)
-    noticeElement.scrollIntoView({ behavior: "smooth", block: "end" })
+    this.appendRefreshNotice(data.message, ["continuity-notice"])
   }
 
   handleSessionExpired(message) {
@@ -474,16 +478,27 @@ export default class extends Controller {
       return // Already showing the notice
     }
 
-    // Create a gentle notice that the session has expired
-    const noticeElement = document.createElement("div")
-    noticeElement.classList.add("continuity-notice", "session-expired-notice")
+    this.appendRefreshNotice(message, ["continuity-notice", "session-expired-notice"])
+  }
 
-    noticeElement.innerHTML = `
-      <div style="margin-bottom: 1rem;">${message}</div>
-      <button onclick="window.location.reload()" style="cursor: pointer;">
-        Refresh to continue
-      </button>
-    `
+  // Built with DOM APIs rather than innerHTML + inline handlers: the message
+  // is user-facing text (no markup injection), and the click handler is a
+  // listener so the page works under a strict CSP
+  appendRefreshNotice(message, classes) {
+    const noticeElement = document.createElement("div")
+    noticeElement.classList.add(...classes)
+
+    const messageElement = document.createElement("div")
+    messageElement.style.marginBottom = "1rem"
+    messageElement.textContent = message
+
+    const button = document.createElement("button")
+    button.style.cursor = "pointer"
+    button.textContent = "Refresh to continue"
+    button.addEventListener("click", () => window.location.reload())
+
+    noticeElement.appendChild(messageElement)
+    noticeElement.appendChild(button)
 
     this.logTarget.appendChild(noticeElement)
     noticeElement.scrollIntoView({ behavior: "smooth", block: "end" })

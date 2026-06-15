@@ -1,25 +1,41 @@
 # Be sure to restart your server when you modify this file.
-
-# Define an application-wide content security policy.
-# See the Securing Rails Applications Guide for more information:
-# https://guides.rubyonrails.org/security.html#content-security-policy-header
-
-# Rails.application.configure do
-#   config.content_security_policy do |policy|
-#     policy.default_src :self, :https
-#     policy.font_src    :self, :https, :data
-#     policy.img_src     :self, :https, :data
-#     policy.object_src  :none
-#     policy.script_src  :self, :https
-#     policy.style_src   :self, :https
-#     # Specify URI for violation reports
-#     # policy.report_uri "/csp-violation-report-endpoint"
-#   end
 #
-#   # Generate session nonces for permitted importmap, inline scripts, and inline styles.
-#   config.content_security_policy_nonce_generator = ->(request) { request.session.id.to_s }
-#   config.content_security_policy_nonce_directives = %w(script-src style-src)
+# Defense-in-depth: the app renders only the user's own conversation, with
+# escaping handled in the chat controller's renderer - this policy is the
+# second wall. External script execution is pinned to named hosts; objects,
+# embedding, and off-site form targets are refused.
 #
-#   # Report violations without enforcing the policy.
-#   # config.content_security_policy_report_only = true
-# end
+# script-src keeps :unsafe_inline for now: the Rollbar JS middleware injects
+# its snippet without nonce awareness, and importmap + the theme-flash
+# snippet are inline by design. Tightening to nonces is possible whenever
+# Rollbar's injection learns nonces - the chat controller already avoids
+# inline event handlers, so nothing else stands in the way.
+#
+# (An iOS wrapper pointed at the live site is unaffected by page CSP; only a
+# local-serve wrapper with a custom scheme would need its scheme added here.)
+
+Rails.application.configure do
+  config.content_security_policy do |policy|
+    policy.default_src :self
+    policy.script_src  :self, :unsafe_inline,
+      "https://aura.lightward.io",
+      "https://status.yours.fyi",
+      "https://cdn.usefathom.com",
+      "https://cdn.rollbar.com"
+    policy.style_src   :self, :unsafe_inline, "https://fonts.lightward.io"
+    policy.font_src    :self, "https://fonts.lightward.io"
+    policy.img_src     :self, :data, "https://cdn.usefathom.com"
+    policy.connect_src :self,
+      "https://status.yours.fyi",
+      "https://cdn.usefathom.com",
+      "https://api.rollbar.com"
+    # the status embed injects its widget as an iframe
+    policy.frame_src   "https://status.yours.fyi"
+    policy.object_src  :none
+    policy.frame_ancestors :none
+    policy.base_uri    :self
+    # forms post to self; Chrome enforces form-action through redirect
+    # chains, so the two off-site handoffs are named
+    policy.form_action :self, "https://accounts.google.com", "https://checkout.stripe.com"
+  end
+end

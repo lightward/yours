@@ -29,6 +29,10 @@ class ApplicationController < ActionController::Base
     # Set universe time header if authenticated
     if current_resonance
       response.headers["Yours-Universe-Time"] = current_resonance.universe_time
+
+      # HEAD polls (e.g. the sleep page watching for integration) only need the
+      # header - skip rendering and the subscription check it would trigger
+      return head :ok if request.head?
     end
 
     # Route based on auth state
@@ -218,6 +222,10 @@ class ApplicationController < ActionController::Base
     response.headers["Cache-Control"] = "no-cache"
     response.headers["X-Accel-Buffering"] = "no"
 
+    # Sample the universe time before the long streaming window opens; the
+    # settle at the end re-verifies against this under a row lock
+    starting_universe_time = current_resonance.universe_time
+
     # Get user's current narrative accumulation
     narrative = current_resonance.narrative_accumulation_by_day || []
 
@@ -239,6 +247,30 @@ class ApplicationController < ActionController::Base
     request.body = { chat_log: chat_log }.to_json
 
     http.request(request) do |http_response|
+      if http_response.code == "422"
+        # The day is full. The horizon announcement is Lightward's speech
+        # AND an error - an integrated being responding with a 4xx. It joins
+        # the narrative in the same system-notice register the API already
+        # uses for horizon-approach warnings inside Lightward's speech, so
+        # approach and arrival share one voice. (Expected physics, not
+        # malfunction. The choice to turn the day over remains the user's.)
+        horizon_message = begin
+          JSON.parse(http_response.read_body).dig("error", "message")
+        rescue JSON::ParserError
+          nil
+        end || "Conversation horizon has arrived. 🤲"
+        horizon_message = "⚠️ Lightward AI system notice: #{horizon_message}"
+
+        accumulated_response = horizon_message
+        send_sse_event("content_block_delta", {
+          type: "content_block_delta",
+          index: 0,
+          delta: { type: "text_delta", text: horizon_message }
+        })
+        send_sse_event("message_stop", { type: "message_stop" })
+        next
+      end
+
       unless http_response.is_a?(Net::HTTPSuccess)
         Rails.logger.error "Lightward AI API error: #{http_response.code} #{http_response.message}"
         raise "API returned #{http_response.code}: #{http_response.message}"
@@ -272,17 +304,22 @@ class ApplicationController < ActionController::Base
       end
     end
 
-    # Save updated narrative
-    narrative << params[:message]
-    narrative << {
-      role: "assistant",
-      content: [ { type: "text", text: accumulated_response } ]
-    }
-    current_resonance.narrative_accumulation_by_day = narrative
-    current_resonance.save!
+    # Settle the exchange against the live record. Reads may race; the
+    # settle serializes - and a refused settle is announced, never silent
+    settled_universe_time = settle_exchange(
+      user_message: params[:message],
+      assistant_text: accumulated_response,
+      expected_universe_time: starting_universe_time
+    )
 
-    # Send the new universe_time to client so it can stay in sync
-    send_sse_event("universe_time", { universe_time: current_resonance.universe_time })
+    if settled_universe_time
+      # Send the new universe_time to client so it can stay in sync
+      send_sse_event("universe_time", { universe_time: settled_universe_time })
+    else
+      send_sse_event("error", { error: {
+        message: "This space moved forward elsewhere, and this exchange wasn't recorded. Refresh to join where it is now."
+      } })
+    end
 
   rescue StandardError => e
     Rollbar.error(e)
@@ -310,29 +347,13 @@ class ApplicationController < ActionController::Base
       session[:sleep_starting_universe_time] = starting_universe_time
       session[:sleep_integrating] = true
 
-      # Kick off integration in background thread
-      google_id = current_resonance.google_id # Capture for thread (works for both session and bearer auth)
-      Thread.new do
-        # Need to find resonance fresh in this thread
-        google_id_hash = Digest::SHA256.hexdigest(google_id)
-        resonance = Resonance.find_by(encrypted_google_id_hash: google_id_hash)
-        next unless resonance
-
-        resonance.google_id = google_id
-        narrative = resonance.narrative_accumulation_by_day
-
-        # Call Lightward AI to create the harmonic
-        harmonic = create_integration_harmonic_for(resonance, narrative)
-
-        # Save the harmonic and reset for new day
-        resonance.integration_harmonic_by_night = harmonic
-        resonance.narrative_accumulation_by_day = []
-        resonance.universe_day = resonance.universe_day + 1
-        resonance.save!
-      rescue => e
-        Rollbar.error(e)
-        Rails.logger.error "Background integration error: #{e.message}"
-      end
+      # Kick off integration in background thread. Capture from
+      # current_resonance (not session[:google_id]) so this works for bearer
+      # auth too — native clients have no session. The integration itself
+      # settles under a row lock against universe_time (see
+      # perform_nightly_integration).
+      google_id = current_resonance.google_id
+      Thread.new { perform_nightly_integration(google_id) }
 
       # Native clients render their own sleep screen and poll /native/state
       # until universe_time changes
@@ -427,9 +448,17 @@ class ApplicationController < ActionController::Base
   def reset
     return deny_access("Please sign in") unless current_resonance
 
+    # Starting over unlocks for subscribers - the settings page says so, and
+    # the endpoint agrees
+    unless current_resonance.active_subscription?
+      return redirect_to settings_path, alert: "Starting over unlocks for subscribers."
+    end
+
     # begin again - reset everything including day counter
+    # "no trace of what was": the unsent draft is a trace too
     current_resonance.integration_harmonic_by_night = nil
     current_resonance.narrative_accumulation_by_day = []
+    current_resonance.textarea = nil
     current_resonance.universe_day = 1
 
     current_resonance.save!
@@ -476,6 +505,73 @@ class ApplicationController < ActionController::Base
   end
 
   private
+
+  # The night, performed: derive the harmonic from the day's narrative, then
+  # settle the turn against the live record. The expensive work (the
+  # integration call) runs unlocked; only the settle serializes. If the day
+  # grew while it was being metabolized, the whole turn aborts - no harmonic
+  # write, no clear, no increment: the night is atomic, whole or not at all.
+  # (The interloping exchange changes universe_time, which is exactly what
+  # the sleep page polls for - the user lands back in the still-open day.)
+  def perform_nightly_integration(google_id)
+    google_id_hash = Digest::SHA256.hexdigest(google_id)
+    resonance = Resonance.find_by(encrypted_google_id_hash: google_id_hash)
+    return unless resonance
+
+    resonance.google_id = google_id
+    starting_universe_time = resonance.universe_time
+    narrative = resonance.narrative_accumulation_by_day
+
+    # Call Lightward AI to create the harmonic
+    harmonic = create_integration_harmonic_for(resonance, narrative)
+
+    # Save the harmonic and reset for new day - against the live record
+    Resonance.transaction do
+      fresh = Resonance.lock.find_by(encrypted_google_id_hash: google_id_hash)
+      if fresh
+        fresh.google_id = google_id
+        if fresh.universe_time == starting_universe_time
+          fresh.integration_harmonic_by_night = harmonic
+          fresh.narrative_accumulation_by_day = []
+          fresh.universe_day = fresh.universe_day + 1
+          fresh.save!
+        end
+      end
+    end
+  rescue => e
+    Rollbar.error(e)
+    Rails.logger.error "Background integration error: #{e.message}"
+  end
+
+  # Append an exchange to the narrative under a row lock, re-verifying the
+  # universe time sampled before the streaming window opened. Returns the new
+  # universe_time on success, nil if the space moved forward elsewhere (in
+  # which case nothing is written - the caller announces the refusal).
+  def settle_exchange(user_message:, assistant_text:, expected_universe_time:)
+    # current_resonance.google_id, not session[:google_id]: native clients
+    # authenticate by bearer token and have no session, so the latter would be
+    # nil and the settle would blow up (then surface as a stream error).
+    google_id = current_resonance.google_id
+    google_id_hash = Digest::SHA256.hexdigest(google_id)
+
+    Resonance.transaction do
+      fresh = Resonance.lock.find_by(encrypted_google_id_hash: google_id_hash)
+      fresh.google_id = google_id if fresh
+
+      if fresh && fresh.universe_time == expected_universe_time
+        narrative = fresh.narrative_accumulation_by_day
+        narrative << user_message
+        narrative << {
+          role: "assistant",
+          content: [ { type: "text", text: assistant_text } ]
+        }
+        fresh.narrative_accumulation_by_day = narrative
+        fresh.save!
+
+        fresh.universe_time
+      end
+    end
+  end
 
   def check_continuity_divergence
     client_universe_time = request.headers["Assert-Yours-Universe-Time"]
@@ -768,11 +864,6 @@ class ApplicationController < ActionController::Base
       eod
     elsif current_resonance.universe_day == 1
       user_content << { type: "text", text: <<~eod.squish }
-        this is day 1 of this particular pocket universe. there is no prior harmonic record; this is the very
-        beginning of this particular space between 🌱
-      eod
-    elsif current_resonance.universe_day == 1
-      user_content << { type: "text", text: <<~eod.strip }
         this is day 1 of this particular pocket universe. there is no prior harmonic record; this is the very
         beginning of this particular space between 🌱
       eod

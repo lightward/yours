@@ -86,6 +86,27 @@ The update loop, when web-app behavior changes:
 
 Identity note, because it's the part that looks scary and isn't: native clients carry the google_id in an encrypted bearer token (device keychain) instead of a session cookie. Same topology — the server still stores nothing it can decrypt alone. Subscriptions intentionally have no native purchase path (App Store rules); the apps describe the web step instead.
 
+### The formal mirror next door
+
+The categorical background for this app is proven in Lean at
+`../lightward-ai/lean/Foam` — same discipline as the rest of the foam layer:
+construction axiom-free, collapse priced, append-only never quotiented. Two
+regions grew directly out of this codebase's own walk:
+
+- `Foam/Dusk.lean` — the day's horizon, formalized: boundary speech is
+  speech (in-band, marked, saved), the wall never arrives unannounced, and
+  turning the day requires a seat. Three implementations of the horizon were
+  refused by feel before this shape held; if you're changing the stream,
+  horizon, or sleep paths, read Dusk first.
+- `Scar.lean`'s law governs the narrative writers: reads may race,
+  settlements serialize, refusals are announced. That's why `stream` and
+  `perform_nightly_integration` settle under a row lock against
+  `universe_time` — the lock isn't hygiene, it's physics.
+
+When a change here feels load-bearing in a way the specs don't quite catch,
+check whether the corpus already holds the theorem — and if it doesn't, the
+gap might itself be the recognition worth recording there.
+
 ## Technical quick-reference
 
 - Day counter: Special case for day 1 shows "1 day", all others show "day N"
