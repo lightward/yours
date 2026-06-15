@@ -50,6 +50,21 @@ struct SubscribeOptions: View {
                     .font(.yoursMono(13))
                     .foregroundStyle(Theme.warning)
             }
+
+            // App Store 3.1.2 disclosure: auto-renew terms + Terms/Privacy links
+            // near the purchase controls.
+            VStack(alignment: .leading, spacing: 8) {
+                Text("Auto-renewing monthly subscription. Your subscription renews each month until canceled; manage or cancel in Settings › Apple Account › Subscriptions, at least 24 hours before the period ends.")
+                    .font(.yoursBody(12))
+                    .foregroundStyle(Theme.foreground.opacity(0.6))
+                HStack(spacing: 16) {
+                    Link("Terms of Use", destination: URL(string: "https://yours.fyi/terms")!)
+                    Link("Privacy Policy", destination: URL(string: "https://yours.fyi/privacy")!)
+                }
+                .font(.yoursMono(12))
+                .foregroundStyle(Theme.accent)
+            }
+            .padding(.top, 4)
         }
     }
 }

@@ -5,6 +5,7 @@ struct SettingsView: View {
     @Environment(\.dismiss) private var dismiss
     @Environment(\.openURL) private var openURL
     @State private var showStartOverConfirm = false
+    @State private var showDeleteConfirm = false
 
     var body: some View {
         ZStack {
@@ -43,6 +44,10 @@ struct SettingsView: View {
                     section("Start over") {
                         startOverBody
                     }
+
+                    section("Delete account") {
+                        deleteAccountBody
+                    }
                 }
                 .padding(24)
             }
@@ -57,6 +62,31 @@ struct SettingsView: View {
             }
         } message: {
             Text("There is no undo. This does not affect your subscription.")
+        }
+        .confirmationDialog("Delete your account?", isPresented: $showDeleteConfirm, titleVisibility: .visible) {
+            Button("Delete everything", role: .destructive) {
+                Task {
+                    await model.deleteAccount()
+                    dismiss()
+                }
+            }
+        } message: {
+            Text("This permanently deletes your account and all its data. There is no undo. If you have a subscription, cancel it separately in Settings › Apple Account.")
+        }
+    }
+
+    @ViewBuilder
+    private var deleteAccountBody: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            Text("Permanently delete your account and everything in it — the whole pocket universe, gone.")
+                .font(.yoursBody(16))
+                .foregroundStyle(Theme.foreground)
+            Button("Delete account") { showDeleteConfirm = true }
+                .font(.yoursMono(14))
+                .foregroundStyle(Theme.error)
+            Text("There is no undo.")
+                .font(.yoursBody(14))
+                .foregroundStyle(Theme.warning)
         }
     }
 

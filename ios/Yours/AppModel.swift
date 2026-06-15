@@ -92,6 +92,20 @@ final class AppModel: ObservableObject {
         apply(state: state)
     }
 
+    // Permanent account deletion (App Store 5.1.1v). Destroys the resonance
+    // server-side, then returns to the landing screen.
+    func deleteAccount() async {
+        #if DEBUG
+        if mock != nil { signOut(); return }
+        #endif
+        do {
+            try await api.deleteAccount()
+            signOut()
+        } catch {
+            notice = Notice(message: "Couldn't delete the account just now.", actionLabel: "Try again", action: .refresh)
+        }
+    }
+
     // MARK: - Lifecycle
 
     func start() async {

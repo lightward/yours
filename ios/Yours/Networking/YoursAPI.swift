@@ -136,6 +136,13 @@ final class YoursAPI: @unchecked Sendable {
         return try YoursJSON.decoder.decode(UniverseState.self, from: data)
     }
 
+    // DELETE /native/account — permanent account deletion (App Store 5.1.1v)
+    func deleteAccount() async throws {
+        let request = makeRequest("native/account", method: "DELETE")
+        let (data, response) = try await session.data(for: request)
+        try Self.check(response, data: data)
+    }
+
     func reset() async throws {
         let request = makeRequest("reset", method: "POST")
         let (data, response) = try await session.data(for: request)

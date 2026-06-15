@@ -356,6 +356,23 @@ RSpec.describe "Native client protocol", type: :request do
       expect(body["status"]).to eq("integrating")
       expect(body["starting_universe_time"]).to eq("1:0")
     end
+
+    it "permanently deletes the account (App Store 5.1.1v)" do
+      token = obtain_bearer_token
+      Resonance.find_by_google_id(google_id).update_columns(encrypted_textarea: "x")
+      expect(Resonance.find_by_google_id(google_id)).to be_present
+
+      delete "/native/account", headers: { "Authorization" => "Bearer #{token}" }
+
+      expect(response).to have_http_status(:success)
+      expect(JSON.parse(response.body)["status"]).to eq("deleted")
+      expect(Resonance.find_by_google_id(google_id)).to be_nil
+    end
+
+    it "requires authentication to delete an account" do
+      delete "/native/account"
+      expect(response).to have_http_status(:unauthorized)
+    end
   end
 
   describe "POST /native/subscription (in-app purchase verification)" do

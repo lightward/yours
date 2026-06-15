@@ -58,6 +58,7 @@ exempt from CSRF (no cookies involved); cookie requests remain protected.
 | `GET /save` | either | the narrative as `text/plain` |
 | `POST /reset` | either | start over at day 1 (subscriber gesture; web confirms first, apps must too) |
 | `POST /native/subscription` | bearer | verify and record a native in-app purchase (below) |
+| `DELETE /native/account` | bearer | permanently delete the account and all its data (App Store 5.1.1v); ends the session |
 
 ## Subscriptions across three storefronts
 

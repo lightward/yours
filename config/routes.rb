@@ -15,6 +15,7 @@ Rails.application.routes.draw do
   post "subscription", to: "application#create_subscription"
   delete "subscription", to: "application#destroy_subscription"
   post "reset", to: "application#reset"
+  post "account/delete", to: "application#destroy_account", as: :destroy_account
   get "llms.txt", to: "application#llms_txt"
 
   # Native client routes (ios/, android/) — see PROTOCOL.md
@@ -24,6 +25,7 @@ Rails.application.routes.draw do
   post "native/token", to: "application#native_token"
   get "native/state", to: "application#native_state"
   post "native/subscription", to: "application#native_subscription"
+  delete "native/account", to: "application#destroy_account"
 
   # Storefront server-to-server notifications (renewals, cancellations,
   # refunds) — App Store Server Notifications V2 and Play RTDN

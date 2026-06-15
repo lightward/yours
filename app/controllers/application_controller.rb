@@ -495,6 +495,24 @@ class ApplicationController < ActionController::Base
     redirect_to root_path
   end
 
+  # DELETE /native/account  (and POST /account/delete for the web form)
+  # Permanent account deletion — App Store guideline 5.1.1(v). Destroys the
+  # resonance row outright; the encrypted data goes with it (and was never
+  # readable without the google_id anyway). Then ends the session.
+  def destroy_account
+    return deny_access("Please sign in") unless current_resonance
+
+    current_resonance.destroy!
+    session[:google_id] = nil
+    session[:obfuscated_user_email] = nil
+
+    if native_api_request?
+      render json: { status: "deleted" }
+    else
+      redirect_to root_path, notice: "Your account and all its data have been deleted."
+    end
+  end
+
   # GET /save
   def save
     return deny_access("Please sign in") unless current_resonance
