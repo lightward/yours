@@ -224,9 +224,13 @@ RSpec.describe "Native client protocol", type: :request do
     end
 
     context "with forgery protection enabled (as in production)" do
-      around do |example|
+      # The bearer token is minted via the browser handshake while forgery
+      # protection is off (the handshake is cookie+CSRF-backed and uses real
+      # form tokens in production); we then enable forgery protection to prove
+      # the *bearer* requests afterward need no CSRF token.
+      def with_forgery_protection
         ActionController::Base.allow_forgery_protection = true
-        example.run
+        yield
       ensure
         ActionController::Base.allow_forgery_protection = false
       end
@@ -234,18 +238,45 @@ RSpec.describe "Native client protocol", type: :request do
       it "accepts bearer-authenticated writes without a CSRF token" do
         token = obtain_bearer_token
 
-        put "/textarea",
-          params: { textarea: "draft from the phone" },
-          headers: { "Authorization" => "Bearer #{token}" }
+        with_forgery_protection do
+          put "/textarea",
+            params: { textarea: "draft from the phone" },
+            headers: { "Authorization" => "Bearer #{token}" }
+        end
 
         expect(response).to have_http_status(:success)
         expect(Resonance.find_by_google_id(google_id).textarea).to eq("draft from the phone")
       end
 
       it "still protects cookie-authenticated writes" do
-        # show_exceptions = :rescuable renders InvalidAuthenticityToken as 422
-        put "/textarea", params: { textarea: "forged" }
+        with_forgery_protection do
+          # show_exceptions = :rescuable renders InvalidAuthenticityToken as 422
+          put "/textarea", params: { textarea: "forged" }
+        end
         expect(response).to have_http_status(:unprocessable_content)
+      end
+    end
+
+    # P0 regression: the browser sign-in confirm POST is cookie+session backed
+    # and MUST keep CSRF protection — it is NOT part of the stateless bearer
+    # API, even though its path starts with /native/.
+    it "keeps CSRF protection on the browser confirm POST" do
+      # Sign in (forgery off) so a session exists with a pending challenge
+      get "/native/auth", params: { code_challenge: code_challenge }
+      identity = double("GoogleSignIn::Identity", user_id: google_id, email_address: "test@example.com")
+      allow(GoogleSignIn::Identity).to receive(:new).and_return(identity)
+      allow_any_instance_of(ApplicationController).to receive(:flash).and_return(
+        { google_sign_in: { "id_token" => "fake_token" } }
+      )
+      get root_path
+      allow_any_instance_of(ApplicationController).to receive(:flash).and_call_original
+
+      ActionController::Base.allow_forgery_protection = true
+      begin
+        post "/native/auth/confirm" # no CSRF token
+        expect(response).to have_http_status(:unprocessable_content)
+      ensure
+        ActionController::Base.allow_forgery_protection = false
       end
     end
 

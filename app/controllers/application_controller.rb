@@ -652,7 +652,16 @@ class ApplicationController < ActionController::Base
   end
 
   def current_resonance
-    google_id = session[:google_id] || native_token_payload&.[]("google_id")
+    # When a bearer token is present, it wins — a request carrying an
+    # Authorization header is a device API call, and an ambient browser cookie
+    # must not override (or stand in for) its identity. Otherwise fall back to
+    # the session cookie (the web path).
+    google_id =
+      if bearer_token_present?
+        native_token_payload&.[]("google_id")
+      else
+        session[:google_id]
+      end
     return nil unless google_id
 
     @current_resonance ||= begin
@@ -665,7 +674,11 @@ class ApplicationController < ActionController::Base
   helper_method :current_resonance
 
   def obfuscated_user_email
-    session[:obfuscated_user_email] || native_token_payload&.[]("obfuscated_email")
+    if bearer_token_present?
+      native_token_payload&.[]("obfuscated_email")
+    else
+      session[:obfuscated_user_email]
+    end
   end
   helper_method :obfuscated_user_email
 
@@ -684,8 +697,23 @@ class ApplicationController < ActionController::Base
   # Native API requests authenticate via bearer token (or, for the token
   # exchange itself, via PKCE code) — cookies play no part, so CSRF
   # protection doesn't apply.
+  # The stateless, bearer-authenticated API surface. Cookies play no part
+  # here, so CSRF doesn't apply. Deliberately does NOT include the browser
+  # sign-in/confirm endpoints (which are cookie + session backed and MUST keep
+  # CSRF) even though their paths start with /native/.
   def native_api_request?
-    request.path.start_with?("/native/") || request.headers["Authorization"].to_s.start_with?("Bearer ")
+    return false if browser_native_auth_request?
+    request.path.start_with?("/native/") || bearer_token_present?
+  end
+
+  # The native sign-in handshake pages that run in the browser with a session:
+  # these are real form posts and keep CSRF protection.
+  def browser_native_auth_request?
+    request.path.start_with?("/native/auth")
+  end
+
+  def bearer_token_present?
+    request.headers["Authorization"].to_s.start_with?("Bearer ")
   end
 
   def protect_against_forgery?
