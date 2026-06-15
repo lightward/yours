@@ -52,13 +52,20 @@ final class Store: ObservableObject {
     }
 
     // Returns the verified server state on success, nil if the person cancelled.
-    func purchase(_ product: Product, api: YoursAPI) async -> UniverseState? {
+    func purchase(_ product: Product, accountToken: String?, api: YoursAPI) async -> UniverseState? {
         purchasing = true
         purchaseError = nil
         defer { purchasing = false }
 
         do {
-            let result = try await product.purchase()
+            // Bind the purchase to this account so the server can verify the
+            // transaction belongs to whoever bought it (cross-account replay
+            // prevention). The token comes from /native/state.
+            var options: Set<Product.PurchaseOption> = []
+            if let accountToken, let uuid = UUID(uuidString: accountToken) {
+                options.insert(.appAccountToken(uuid))
+            }
+            let result = try await product.purchase(options: options)
             switch result {
             case .success(let verification):
                 return try await submit(verification, api: api)

@@ -82,8 +82,9 @@ final class AppModel: ObservableObject {
     // MARK: - Subscription (StoreKit)
 
     func subscribe(to product: Product) async {
-        guard let state = await store.purchase(product, api: api) else { return }
-        apply(state: state)
+        let accountToken = state?.iapAccountToken
+        guard let newState = await store.purchase(product, accountToken: accountToken, api: api) else { return }
+        apply(state: newState)
     }
 
     func restorePurchases() async {

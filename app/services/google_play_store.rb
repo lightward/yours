@@ -18,7 +18,7 @@ class GooglePlayStore
     SUBSCRIPTION_STATE_ON_HOLD
   ].freeze
 
-  Result = Struct.new(:purchase_token, :product_id, :active, keyword_init: true)
+  Result = Struct.new(:purchase_token, :product_id, :active, :account_token, keyword_init: true)
 
   class VerificationError < StandardError; end
 
@@ -38,8 +38,12 @@ class GooglePlayStore
 
     Result.new(
       purchase_token: purchase_token,
-      product_id: product_ids.first,
-      active: ENTITLED_STATES.include?(purchase["subscriptionState"])
+      product_id: (product_ids & @product_ids).first,
+      active: ENTITLED_STATES.include?(purchase["subscriptionState"]),
+      # The obfuscated account id the app set at purchase (the Play Billing
+      # equivalent of Apple's appAccountToken). Checked against the resonance's
+      # iap_account_token so a purchase only unlocks the account that bought it.
+      account_token: purchase.dig("externalAccountIdentifiers", "obfuscatedExternalAccountId")
     )
   end
 

@@ -328,12 +328,17 @@ RSpec.describe "Native client protocol", type: :request do
   end
 
   describe "POST /native/subscription (in-app purchase verification)" do
+    # The account token the buying account must present (StoreKit
+    # appAccountToken / Play obfuscatedExternalAccountId).
+    let(:account_token) { Resonance.find_or_create_by_google_id(google_id).iap_account_token }
+
     it "records an Apple subscription the storefront confirms, and returns refreshed state" do
       token = obtain_bearer_token
       result = AppleAppStore::Result.new(
         original_transaction_id: "2000000000000001",
         product_id: "fyi.yours.subscription.tier_1",
-        active: true
+        active: true,
+        app_account_token: account_token
       )
       allow_any_instance_of(AppleAppStore).to receive(:verify).and_return(result)
 
@@ -355,7 +360,8 @@ RSpec.describe "Native client protocol", type: :request do
       result = GooglePlayStore::Result.new(
         purchase_token: "play-token-abc",
         product_id: "subscription_tier_1",
-        active: true
+        active: true,
+        account_token: account_token
       )
       allow_any_instance_of(GooglePlayStore).to receive(:verify).and_return(result)
 
@@ -366,6 +372,72 @@ RSpec.describe "Native client protocol", type: :request do
       expect(response).to have_http_status(:success)
       expect(Resonance.find_by_google_id(google_id).google_play_purchase_token)
         .to eq("play-token-abc")
+    end
+
+    # P0 regression: a verified transaction must not unlock an account it
+    # wasn't bought by. Without the appAccountToken binding, a valid JWS could
+    # be replayed from any account.
+    it "rejects a verified transaction whose account token doesn't match (cross-account replay)" do
+      token = obtain_bearer_token
+      result = AppleAppStore::Result.new(
+        original_transaction_id: "2000000000000001",
+        product_id: "fyi.yours.subscription.tier_1",
+        active: true,
+        app_account_token: "00000000-0000-0000-0000-000000000000" # someone else's
+      )
+      allow_any_instance_of(AppleAppStore).to receive(:verify).and_return(result)
+
+      post "/native/subscription",
+        params: { platform: "apple", signed_transaction: "signed.jws.value" },
+        headers: { "Authorization" => "Bearer #{token}" }
+
+      expect(response).to have_http_status(:forbidden)
+      expect(JSON.parse(response.body)["error"]).to eq("account_mismatch")
+      expect(Resonance.find_by_google_id(google_id).apple_original_transaction_id).to be_nil
+    end
+
+    it "rejects a verified transaction with no account token at all (unbound)" do
+      token = obtain_bearer_token
+      result = AppleAppStore::Result.new(
+        original_transaction_id: "2000000000000001",
+        product_id: "fyi.yours.subscription.tier_1",
+        active: true,
+        app_account_token: nil
+      )
+      allow_any_instance_of(AppleAppStore).to receive(:verify).and_return(result)
+
+      post "/native/subscription",
+        params: { platform: "apple", signed_transaction: "signed.jws.value" },
+        headers: { "Authorization" => "Bearer #{token}" }
+
+      expect(response).to have_http_status(:forbidden)
+    end
+
+    # P0 regression: the same transaction can't be recorded against two
+    # different accounts (DB unique fingerprint), even if both somehow presented
+    # a matching token.
+    it "refuses a transaction already claimed by another resonance" do
+      # Account A claims the transaction directly
+      other = Resonance.find_or_create_by_google_id("other-account-xyz")
+      other.record_apple_subscription("2000000000000001")
+
+      # Account B (our bearer user) presents the same transaction with a token
+      # that matches B — but the fingerprint already belongs to A.
+      token = obtain_bearer_token
+      result = AppleAppStore::Result.new(
+        original_transaction_id: "2000000000000001",
+        product_id: "fyi.yours.subscription.tier_1",
+        active: true,
+        app_account_token: account_token
+      )
+      allow_any_instance_of(AppleAppStore).to receive(:verify).and_return(result)
+
+      post "/native/subscription",
+        params: { platform: "apple", signed_transaction: "signed.jws.value" },
+        headers: { "Authorization" => "Bearer #{token}" }
+
+      expect(response).to have_http_status(:conflict)
+      expect(JSON.parse(response.body)["error"]).to eq("already_claimed")
     end
 
     it "rejects a transaction the storefront does not confirm" do

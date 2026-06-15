@@ -10,11 +10,12 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_06_13_000000) do
+ActiveRecord::Schema[8.1].define(version: 2026_06_14_000000) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
 
   create_table "resonances", primary_key: "encrypted_google_id_hash", id: :text, force: :cascade do |t|
+    t.string "apple_transaction_fingerprint"
     t.text "encrypted_apple_original_transaction_id"
     t.text "encrypted_google_play_purchase_token"
     t.text "encrypted_integration_harmonic_by_night"
@@ -22,5 +23,8 @@ ActiveRecord::Schema[8.1].define(version: 2026_06_13_000000) do
     t.text "encrypted_stripe_customer_id"
     t.text "encrypted_textarea"
     t.text "encrypted_universe_day"
+    t.string "google_play_transaction_fingerprint"
+    t.index ["apple_transaction_fingerprint"], name: "index_resonances_on_apple_transaction_fingerprint", unique: true
+    t.index ["google_play_transaction_fingerprint"], name: "index_resonances_on_google_play_transaction_fingerprint", unique: true
   end
 end

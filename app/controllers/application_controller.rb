@@ -149,27 +149,45 @@ class ApplicationController < ActionController::Base
     signed_transaction = params[:signed_transaction].to_s
     return render json: { error: "missing_transaction" }, status: :bad_request if signed_transaction.blank?
 
+    expected_token = current_resonance.iap_account_token
+
     case params[:platform]
     when "apple"
       result = AppleAppStore.new.verify(signed_transaction)
-      current_resonance.record_apple_subscription(result.original_transaction_id) if result&.active
+      return render(json: { error: "subscription_not_verified" }, status: :unprocessable_content) unless result&.active
+      # Bind: the transaction must have been bought by THIS account. Without
+      # this check a valid transaction from account A could unlock account B.
+      unless secure_token_match?(result.app_account_token, expected_token)
+        return render json: { error: "account_mismatch" }, status: :forbidden
+      end
+      current_resonance.record_apple_subscription(result.original_transaction_id)
     when "google"
       result = GooglePlayStore.new.verify(signed_transaction)
-      current_resonance.record_google_play_subscription(result.purchase_token) if result&.active
+      return render(json: { error: "subscription_not_verified" }, status: :unprocessable_content) unless result&.active
+      unless secure_token_match?(result.account_token, expected_token)
+        return render json: { error: "account_mismatch" }, status: :forbidden
+      end
+      current_resonance.record_google_play_subscription(result.purchase_token)
     else
       return render json: { error: "unknown_platform" }, status: :bad_request
-    end
-
-    unless result&.active
-      return render json: { error: "subscription_not_verified" }, status: :unprocessable_content
     end
 
     # We just confirmed entitlement with the storefront; report it without a
     # second round-trip through active_subscription?.
     render json: native_state_payload(subscription_active: true)
+  rescue NativeSubscription::AlreadyClaimedError => e
+    render json: { error: "already_claimed", message: e.message }, status: :conflict
   rescue AppleAppStore::VerificationError, GooglePlayStore::VerificationError => e
     Rollbar.error(e)
     render json: { error: "verification_failed" }, status: :bad_gateway
+  end
+
+  # Constant-time comparison of the transaction's account token against the one
+  # we expect for this resonance. A blank token on the transaction is a
+  # mismatch (an unbound purchase can't be trusted to this account).
+  def secure_token_match?(actual, expected)
+    return false if actual.blank? || expected.blank?
+    ActiveSupport::SecurityUtils.secure_compare(actual.to_s.downcase, expected.to_s.downcase)
   end
 
   # The native state document (GET /native/state, and the refreshed state
@@ -183,7 +201,11 @@ class ApplicationController < ActionController::Base
       narrative: current_resonance.narrative_accumulation_by_day,
       textarea: current_resonance.textarea,
       obfuscated_email: obfuscated_user_email,
-      subscription_active: subscription_active.nil? ? current_resonance.active_subscription? : subscription_active
+      subscription_active: subscription_active.nil? ? current_resonance.active_subscription? : subscription_active,
+      # The token the app must set on a purchase (StoreKit appAccountToken /
+      # Play obfuscatedExternalAccountId) so the server can bind the
+      # transaction to this account. See PROTOCOL.md.
+      iap_account_token: current_resonance.iap_account_token
     }
     payload[:subscription] = current_resonance.subscription_details if include_subscription
     payload

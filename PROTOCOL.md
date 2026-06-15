@@ -76,15 +76,21 @@ Google transaction to a resonance.
 ### Native purchase flow (StoreKit 2 / Play Billing)
 
 1. The app fetches products from the storefront and runs the purchase
-   locally (StoreKit 2 / Play Billing). The storefront, not our server,
-   takes the money.
+   locally (StoreKit 2 / Play Billing), **binding the purchase to this
+   account**: it sets StoreKit's `appAccountToken` (Apple) /
+   `obfuscatedExternalAccountId` (Google) to the `iap_account_token` from
+   `/native/state`. The storefront, not our server, takes the money.
 2. The app receives a **signed** transaction (Apple: a JWS; Google: a
    purchase token) and POSTs it to `POST /native/subscription`:
    `{ platform: "apple" | "google", signed_transaction: "..." }`
 3. The server **verifies it with the storefront's own API** — never trusting
-   the raw client value — and on success stores the encrypted
-   `originalTransactionId` (Apple) / `purchaseToken` (Google) on the
-   resonance. Returns the refreshed state.
+   the raw client value — checks that the transaction's account token matches
+   *this* resonance (so a valid transaction can't unlock an account it wasn't
+   bought by), and on success stores the encrypted `originalTransactionId`
+   (Apple) / `purchaseToken` (Google) plus a keyed fingerprint with a DB
+   unique index (so one transaction can't be claimed by two accounts).
+   Returns the refreshed state. Mismatched account token → **403**
+   `account_mismatch`; already-claimed → **409** `already_claimed`.
 4. Renewals, cancellations, refunds, and billing retries arrive
    server-to-server (App Store Server Notifications V2, Play Real-Time
    Developer Notifications) at webhook endpoints, so entitlement stays

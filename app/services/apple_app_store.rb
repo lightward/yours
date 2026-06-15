@@ -21,7 +21,7 @@ class AppleAppStore
   # billing retry, 4 = in grace period). 2 = expired, 5 = revoked.
   ENTITLED_STATUSES = [ 1, 3, 4 ].freeze
 
-  Result = Struct.new(:original_transaction_id, :product_id, :active, keyword_init: true)
+  Result = Struct.new(:original_transaction_id, :product_id, :active, :app_account_token, keyword_init: true)
 
   class VerificationError < StandardError; end
 
@@ -45,7 +45,12 @@ class AppleAppStore
     Result.new(
       original_transaction_id: original_id,
       product_id: info["productId"],
-      active: subscription_active?(original_id)
+      active: subscription_active?(original_id),
+      # The UUID the app set at purchase (StoreKit appAccountToken). The
+      # controller checks this against the resonance's iap_account_token so a
+      # transaction can only unlock the account that bought it. Downcased
+      # because Apple may echo it upcased.
+      app_account_token: info["appAccountToken"]&.downcase
     )
   end
 

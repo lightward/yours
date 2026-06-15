@@ -10,6 +10,9 @@ struct UniverseState: Decodable, Equatable {
     var obfuscatedEmail: String?
     var subscriptionActive: Bool
     var subscription: SubscriptionDetails?
+    // Set as StoreKit's appAccountToken at purchase so the server can bind the
+    // transaction to this account (cross-account replay prevention).
+    var iapAccountToken: String?
 
     // The "1 day" / "day 2" pun, preserved (uses a non-breaking space like
     // the web's universe_day_with_units)
