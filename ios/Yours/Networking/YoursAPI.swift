@@ -24,15 +24,32 @@ final class YoursAPI: @unchecked Sendable {
 
         UserDefaults.standard.set(arguments[index + 1], forKey: baseURLOverrideKey)
     }
-    #endif
 
-    static var baseURL: URL {
-        #if DEBUG
+    private static var configuredBaseURL: URL? {
         if let override = UserDefaults.standard.string(forKey: baseURLOverrideKey),
            let url = URL(string: override) {
             return url
         }
+
+        guard let bundled = Bundle.main.object(forInfoDictionaryKey: baseURLOverrideKey) as? String,
+              !bundled.isEmpty,
+              !bundled.contains("$(")
+        else { return nil }
+
+        return URL(string: bundled)
+    }
+    #endif
+
+    static var baseURL: URL {
+        #if DEBUG
+        if let url = configuredBaseURL {
+            return url
+        }
+        #if targetEnvironment(simulator)
         return URL(string: "http://localhost:3000")!
+        #else
+        return URL(string: "https://yours.fyi")!
+        #endif
         #else
         return URL(string: "https://yours.fyi")!
         #endif

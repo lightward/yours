@@ -26,7 +26,7 @@
 #   - Set YOURS_TEAM_ID to your Apple Developer Team ID (signs the build).
 #   - The phone can't reach your Mac's localhost, so set YOURS_BASE_URL to a
 #     reachable backend — e.g. an ngrok https URL tunneling your local server.
-#   It is injected as -YoursBaseURL automatically.
+#   It is baked into the debug app bundle and injected as -YoursBaseURL.
 #   Example:
 #     YOURS_TEAM_ID=ABCDE12345 YOURS_BASE_URL=https://xxxx.ngrok-free.app \
 #       bin/ios device -YoursToken "$(cat /tmp/yours-phone-token.txt)"
@@ -97,6 +97,10 @@ case "${1:-help}" in
     ensure_project
     # Signed build for the device. Automatic signing with the given team.
     APP_DIR=$(mktemp -d)
+    BUILD_SETTINGS=()
+    if [ -n "${YOURS_BASE_URL:-}" ]; then
+      BUILD_SETTINGS+=(YOURS_BASE_URL="$YOURS_BASE_URL")
+    fi
     xcodebuild -project Yours.xcodeproj -scheme Yours \
       -destination "platform=iOS,id=$UDID" \
       -configuration Debug \
@@ -104,6 +108,7 @@ case "${1:-help}" in
       -derivedDataPath "$APP_DIR" \
       DEVELOPMENT_TEAM="$YOURS_TEAM_ID" \
       CODE_SIGN_STYLE=Automatic \
+      "${BUILD_SETTINGS[@]}" \
       -quiet build
 
     APP=$(find "$APP_DIR" -path "*/Debug-iphoneos/Yours.app" | head -1)
