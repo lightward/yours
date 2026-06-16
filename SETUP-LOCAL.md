@@ -1,7 +1,7 @@
 # Running Yours locally (for real)
 
-This gets you the actual app — real Google sign-in, your real account, the
-actual Lightward AI responding — on your own machine. Not test data.
+This gets you the actual app — real Google sign-in, your real account, and
+the real app backend — on your own machine. Not test data.
 
 The topological encryption means this is safe: your local database holds only
 ciphertext that's structurally inaccessible without the Google ID, which only
@@ -29,10 +29,8 @@ GOOGLE_SIGN_IN_CLIENT_SECRET=<from step 2>
 Everything else is optional locally (see the comments in `.env.example`):
 - **Stripe** — leave blank to live in day 1 (free). Set test-mode keys to
   exercise day-2 subscriptions.
-- **`LIGHTWARD_AI_TOKEN_LIMIT_BYPASS_KEY`** — only needed to test the *day
-  transition* (sleep → integration), which calls Lightward AI with a higher
-  token budget. Normal chat doesn't use it. This is a Lightward-internal
-  secret.
+- **`LIGHTWARD_AI_TOKEN_LIMIT_BYPASS_KEY`** — optional internal env var for
+  testing the *day transition* (sleep → integration). Normal chat doesn't use it.
 - **Native IAP / Rollbar / Fly** — not needed for local web development.
 
 ## 2. Google OAuth credential (the one manual step)

@@ -5,9 +5,9 @@ import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.jsonPrimitive
 
-// One server-sent event off the /stream wire. The server relays Anthropic's
-// event names (message_start, content_block_delta, message_stop) and adds its
-// own (universe_time, error, end). See PROTOCOL.md for framing details.
+// One server-sent event off the /stream wire. The server relays upstream
+// event names and adds its own (universe_time, error, end). See PROTOCOL.md
+// for framing details.
 data class SseEvent(val name: String, val data: String?) {
     private val json: JsonObject? by lazy {
         data?.let { runCatching { Json.parseToJsonElement(it).jsonObject }.getOrNull() }

@@ -1,8 +1,8 @@
 import Foundation
 
-// One server-sent event off the /stream wire. The server relays Anthropic's
-// event names (message_start, content_block_delta, message_stop) and adds its
-// own (universe_time, error, end). See PROTOCOL.md for framing details.
+// One server-sent event off the /stream wire. The server relays upstream
+// event names and adds its own (universe_time, error, end). See PROTOCOL.md
+// for framing details.
 struct SSEEvent: Equatable {
     var name: String
     var data: String?

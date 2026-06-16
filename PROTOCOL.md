@@ -138,8 +138,8 @@ Web clients get redirects-with-alerts for the same conditions.
 
 ## The SSE stream
 
-`POST /stream` relays Lightward AI's Anthropic-shaped events and adds its
-own. Events arrive as `event: <name>\ndata: <json>\n\n`:
+`POST /stream` relays upstream stream events and adds its own. Events arrive
+as `event: <name>\ndata: <json>\n\n`:
 
 - `message_start` — clear the pulsing placeholder
 - `content_block_delta` — append `data.delta.text` when
