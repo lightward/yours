@@ -25,7 +25,8 @@ RSpec.describe "Native client protocol", type: :request do
   # server redirects back into the app with a one-time code.
   def native_sign_in
     get "/native/auth", params: { code_challenge: code_challenge }
-    expect(response).to redirect_to(root_path)
+    expect(response).to have_http_status(:success)
+    expect(response.body).to include('id="native-google-sign-in"')
 
     identity = double("GoogleSignIn::Identity", user_id: google_id, email_address: "test@example.com")
     allow(GoogleSignIn::Identity).to receive(:new).and_return(identity)
@@ -58,6 +59,16 @@ RSpec.describe "Native client protocol", type: :request do
   end
 
   describe "sign-in handshake" do
+    it "auto-submits native sign-in into Google instead of showing the public landing again" do
+      get "/native/auth", params: { code_challenge: code_challenge }
+
+      expect(response).to have_http_status(:success)
+      expect(response.body).to include('action="/google_sign_in/authorization"')
+      expect(response.body).to include('name="proceed_to" value="/"')
+      expect(response.body).to include('data-turbo="false"')
+      expect(response.body).to include("requestSubmit()")
+    end
+
     it "exchanges a code for a working bearer token" do
       token = obtain_bearer_token
 

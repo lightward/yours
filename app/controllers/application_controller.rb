@@ -69,7 +69,8 @@ class ApplicationController < ActionController::Base
 
   # GET /native/auth
   # Entry point for native-app sign-in: remembers the app's PKCE challenge,
-  # then hands off to the ordinary web sign-in flow on the landing page.
+  # then hands off to the ordinary web Google flow without showing the public
+  # landing page again (the app already showed that choice).
   # When sign-in completes, handle_google_sign_in routes to the confirmation
   # gate, which hands the session back into the app.
   #
@@ -89,7 +90,7 @@ class ApplicationController < ActionController::Base
     # rather than auto-issuing a code.
     return redirect_to native_auth_confirm_path if current_resonance
 
-    redirect_to root_path
+    render "application/native_auth_redirect"
   end
 
   # GET /native/auth/confirm
