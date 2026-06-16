@@ -40,8 +40,17 @@ RSpec.describe "Native client protocol", type: :request do
     expect(response).to redirect_to(native_auth_confirm_path)
     post "/native/auth/confirm"
 
-    expect(response.location).to start_with("yours://auth?code=")
-    CGI.parse(URI.parse(response.location).query)["code"].first
+    expect(response).to redirect_to(native_auth_return_path)
+    follow_redirect!
+
+    callback_url = native_callback_url_from_body
+    CGI.parse(URI.parse(callback_url).query)["code"].first
+  end
+
+  def native_callback_url_from_body
+    callback_url = CGI.unescapeHTML(response.body)[/yours:\/\/auth\?code=[^"'<\s]+/]
+    expect(callback_url).to be_present
+    callback_url
   end
 
   def obtain_bearer_token
@@ -127,7 +136,34 @@ RSpec.describe "Native client protocol", type: :request do
 
       # The deliberate human action
       post "/native/auth/confirm"
-      expect(response.location).to start_with("yours://auth?code=")
+      expect(response).to redirect_to(native_auth_return_path)
+
+      follow_redirect!
+      expect(native_callback_url_from_body).to start_with("yours://auth?code=")
+      expect(response.body).to include("Returning to the app.")
+    end
+
+    it "keeps returning to the app if iOS retries the confirmation POST" do
+      identity = double("GoogleSignIn::Identity", user_id: google_id, email_address: "test@example.com")
+      allow(GoogleSignIn::Identity).to receive(:new).and_return(identity)
+      allow_any_instance_of(ApplicationController).to receive(:flash).and_return(
+        { google_sign_in: { "id_token" => "fake_token" } }
+      )
+      get root_path
+      allow_any_instance_of(ApplicationController).to receive(:flash).and_call_original
+
+      get "/native/auth", params: { code_challenge: code_challenge }
+      expect(response).to redirect_to(native_auth_confirm_path)
+
+      post "/native/auth/confirm"
+      expect(response).to redirect_to(native_auth_return_path)
+      follow_redirect!
+      callback_url = native_callback_url_from_body
+
+      post "/native/auth/confirm"
+      expect(response).to redirect_to(native_auth_return_path)
+      follow_redirect!
+      expect(native_callback_url_from_body).to eq(callback_url)
     end
 
     it "renders the confirmation form without Turbo so the app callback navigation is not intercepted" do

@@ -7,7 +7,7 @@ class ApplicationController < ActionController::Base
   # Skip for native + storefront-webhook endpoints, whose clients aren't browsers
   allow_browser versions: :modern, except: [
     :index, :llms_txt,
-    :native_auth_start, :native_auth_confirm_start, :native_auth_confirm,
+    :native_auth_start, :native_auth_confirm_start, :native_auth_confirm, :native_auth_return,
     :native_token, :native_state, :native_subscription,
     :apple_notifications, :google_notifications
   ]
@@ -85,6 +85,7 @@ class ApplicationController < ActionController::Base
     return redirect_to root_path, alert: "Missing code challenge" if challenge.blank?
 
     session[:native_code_challenge] = challenge
+    session.delete(:native_callback_url)
 
     # Already signed in in this browser context? Require explicit confirmation
     # rather than auto-issuing a code.
@@ -99,6 +100,7 @@ class ApplicationController < ActionController::Base
   # already exists.
   def native_auth_confirm_start
     return redirect_to root_path unless current_resonance
+    return redirect_to native_auth_return_path if session[:native_callback_url].present?
     return redirect_to root_path, alert: "Start sign-in from the app." if session[:native_code_challenge].blank?
 
     render "application/native_auth_confirm"
@@ -109,9 +111,22 @@ class ApplicationController < ActionController::Base
   # minted and handed back to the app.
   def native_auth_confirm
     return redirect_to root_path unless current_resonance
-    return redirect_to root_path, alert: "Start sign-in from the app." if session[:native_code_challenge].blank?
+    return redirect_to root_path, alert: "Start sign-in from the app." unless issue_native_callback_url
 
-    redirect_to_native_callback
+    redirect_to native_auth_return_path, status: :see_other
+  end
+
+  # GET /native/auth/return
+  # A tiny handoff page that explicitly opens the app. iOS can strand a browser
+  # sheet on a POST -> custom-scheme redirect; loading a real HTTPS page first
+  # gives the user and WebKit a stable place to retry the app switch.
+  def native_auth_return
+    return redirect_to root_path unless current_resonance
+
+    @native_callback_url = session[:native_callback_url]
+    return redirect_to root_path, alert: "Start sign-in from the app." if @native_callback_url.blank?
+
+    render "application/native_auth_return"
   end
 
   # POST /native/token
@@ -757,13 +772,16 @@ class ApplicationController < ActionController::Base
     end
   end
 
-  def redirect_to_native_callback
+  def issue_native_callback_url
+    return session[:native_callback_url] if session[:native_callback_url].present?
+    return nil if session[:native_code_challenge].blank?
+
     code = NativeToken.issue_code(
       google_id: session[:google_id],
       obfuscated_email: session[:obfuscated_user_email],
       code_challenge: session.delete(:native_code_challenge)
     )
-    redirect_to "yours://auth?code=#{CGI.escape(code)}", allow_other_host: true
+    session[:native_callback_url] = "yours://auth?code=#{CGI.escape(code)}"
   end
 
   def redirect_to_google_sign_in
