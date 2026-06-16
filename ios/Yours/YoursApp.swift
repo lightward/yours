@@ -10,6 +10,7 @@ struct YoursApp: App {
                 .environmentObject(model)
                 .preferredColorScheme(model.themePreference.colorScheme)
                 .task { await model.start() }
+                .onOpenURL { model.handleOpenURL($0) }
         }
     }
 }

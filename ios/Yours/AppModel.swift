@@ -187,6 +187,10 @@ final class AppModel: ObservableObject {
         }
     }
 
+    func handleOpenURL(_ url: URL) {
+        _ = authFlow.handleCallbackURL(url)
+    }
+
     func signOut(message: String? = nil) {
         Keychain.token = nil
         api.token = nil

@@ -9,6 +9,7 @@ import Foundation
 @MainActor
 final class AuthFlow: NSObject, ASWebAuthenticationPresentationContextProviding {
     private var activeSession: ASWebAuthenticationSession?
+    private var callbackContinuation: CheckedContinuation<URL, Error>?
 
     struct Cancelled: Error {}
 
@@ -23,17 +24,20 @@ final class AuthFlow: NSObject, ASWebAuthenticationPresentationContextProviding 
         components.queryItems = [URLQueryItem(name: "code_challenge", value: challenge)]
 
         let callbackURL: URL = try await withCheckedThrowingContinuation { continuation in
+            callbackContinuation = continuation
             let session = ASWebAuthenticationSession(
                 url: components.url!,
                 callbackURLScheme: "yours"
-            ) { url, error in
-                if let url {
-                    continuation.resume(returning: url)
-                } else if let error = error as? ASWebAuthenticationSessionError,
-                          error.code == .canceledLogin {
-                    continuation.resume(throwing: Cancelled())
-                } else {
-                    continuation.resume(throwing: error ?? Cancelled())
+            ) { [weak self] url, error in
+                Task { @MainActor in
+                    if let url {
+                        self?.finish(callbackURL: url)
+                    } else if let error = error as? ASWebAuthenticationSessionError,
+                              error.code == .canceledLogin {
+                        self?.finish(error: Cancelled())
+                    } else {
+                        self?.finish(error: error ?? Cancelled())
+                    }
                 }
             }
             session.presentationContextProvider = self
@@ -47,13 +51,35 @@ final class AuthFlow: NSObject, ASWebAuthenticationPresentationContextProviding 
             activeSession = session
             session.start()
         }
-        activeSession = nil
 
         guard let code = URLComponents(url: callbackURL, resolvingAgainstBaseURL: false)?
             .queryItems?.first(where: { $0.name == "code" })?.value
         else { throw APIError.badResponse }
 
         return try await api.exchangeToken(code: code, verifier: verifier)
+    }
+
+    func handleCallbackURL(_ url: URL) -> Bool {
+        guard url.scheme == "yours", url.host == "auth" else { return false }
+
+        finish(callbackURL: url)
+        return true
+    }
+
+    private func finish(callbackURL url: URL) {
+        guard let continuation = callbackContinuation else { return }
+
+        callbackContinuation = nil
+        activeSession = nil
+        continuation.resume(returning: url)
+    }
+
+    private func finish(error: Error) {
+        guard let continuation = callbackContinuation else { return }
+
+        callbackContinuation = nil
+        activeSession = nil
+        continuation.resume(throwing: error)
     }
 
     nonisolated func presentationAnchor(for session: ASWebAuthenticationSession) -> ASPresentationAnchor {
