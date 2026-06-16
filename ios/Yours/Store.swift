@@ -89,12 +89,29 @@ final class Store: ObservableObject {
         purchaseError = nil
         defer { purchasing = false }
 
+        if let state = await syncExistingEntitlement(api: api) {
+            return state
+        }
+
+        purchaseError = "No active subscription found to restore."
+        return nil
+    }
+
+    // Quietly re-link an existing App Store entitlement before showing a
+    // purchase prompt. Unlike the explicit restore button, this does not set
+    // loading/error UI: if nothing verifies, the normal subscription choices
+    // are shown.
+    func syncExistingEntitlement(api: YoursAPI) async -> UniverseState? {
         for await result in Transaction.currentEntitlements {
+            guard case .verified(let transaction) = result,
+                  Self.productIDs.contains(transaction.productID)
+            else { continue }
+
             if let state = try? await submit(result, api: api) {
                 return state
             }
         }
-        purchaseError = "No active subscription found to restore."
+
         return nil
     }
 

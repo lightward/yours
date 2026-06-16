@@ -51,6 +51,7 @@ final class AppModel: ObservableObject {
     let api: YoursAPI
     private let authFlow = AuthFlow()
     private var draftSaveTask: Task<Void, Never>?
+    private var checkedExistingAppleEntitlement = false
 
     #if DEBUG
     // Simulator screenshot / preview support: -YoursMockChat, -YoursMockLanding
@@ -142,7 +143,9 @@ final class AppModel: ObservableObject {
         if mock != nil { return }
         #endif
         do {
-            apply(state: try await api.state())
+            let state = try await api.state()
+            let syncedState = await stateAfterSyncingExistingEntitlementIfNeeded(state)
+            apply(state: syncedState)
         } catch APIError.unauthenticated {
             signOut(message: "Your session has expired. Sign in to continue.")
         } catch {
@@ -157,6 +160,19 @@ final class AppModel: ObservableObject {
                 )
             }
         }
+    }
+
+    private func stateAfterSyncingExistingEntitlementIfNeeded(_ state: UniverseState) async -> UniverseState {
+        guard state.universeDay > 1,
+              !state.subscriptionActive,
+              !checkedExistingAppleEntitlement
+        else { return state }
+
+        checkedExistingAppleEntitlement = true
+        if let restored = await store.syncExistingEntitlement(api: api) {
+            return restored
+        }
+        return state
     }
 
     private func apply(state: UniverseState) {
@@ -194,6 +210,7 @@ final class AppModel: ObservableObject {
     func signOut(message: String? = nil) {
         Keychain.token = nil
         api.token = nil
+        checkedExistingAppleEntitlement = false
         state = nil
         messages = []
         composerText = ""
