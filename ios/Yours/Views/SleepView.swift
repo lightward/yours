@@ -25,10 +25,12 @@ struct SleepView: View {
                 }
                 .font(.yoursMono(14))
                 .foregroundStyle(Theme.accent)
+                .accessibilityIdentifier("sleep-continue-button")
             } else {
                 Text("Integrating \(model.state.map(\.dayWithUnits) ?? "the day")\(dots)")
                     .font(.yoursMono(14))
                     .foregroundStyle(Theme.accentActive)
+                    .accessibilityIdentifier("sleep-integrating-label")
             }
         }
         .task { await animateEllipsis() }

@@ -14,7 +14,7 @@ struct ChatScreen: View {
 
             ScrollViewReader { proxy in
                 ScrollView {
-                    VStack(spacing: 16) {
+                    VStack(spacing: 14) {
                         ForEach(model.messages) { message in
                             MessageView(message: message)
                         }
@@ -24,7 +24,8 @@ struct ChatScreen: View {
                         Color.clear.frame(height: 1).id("bottom")
                     }
                     .padding(.horizontal, 16)
-                    .padding(.vertical, 12)
+                    .padding(.top, 18)
+                    .padding(.bottom, 20)
                 }
                 .defaultScrollAnchor(.bottom)
                 .scrollDismissesKeyboard(.interactively)
@@ -80,11 +81,13 @@ struct ChatScreen: View {
                 Button(email) { showSettings = true }
                     .font(.yoursMono(14))
                     .foregroundStyle(Theme.accent)
+                    .accessibilityIdentifier("settings-button")
             }
 
             Button("Exit") { showExitConfirm = true }
                 .font(.yoursMono(14))
                 .foregroundStyle(Theme.accentActive)
+                .accessibilityIdentifier("exit-button")
         }
         .padding(.horizontal, 16)
         .padding(.vertical, 12)
@@ -112,44 +115,75 @@ struct ChatScreen: View {
                 }
                 .clipShape(RoundedRectangle(cornerRadius: 8))
                 .focused($composerFocused)
+                .accessibilityIdentifier("composer-field")
                 .disabled(model.isWaiting)
                 .opacity(model.isWaiting ? 0.5 : 1)
                 .onChange(of: model.composerText) {
                     model.composerChanged()
                 }
 
-            HStack(spacing: 20) {
-                Button("Send") { model.send() }
-                    .buttonStyle(WebButtonStyle())
-                    .disabled(model.isWaiting || model.composerText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
-
-                if model.state?.subscriptionActive == true {
-                    Button("Move to \(UniverseState.dayWithUnits(nextDay))") {
-                        showSleepConfirm = true
-                    }
-                    .font(.yoursMono(13))
-                    .foregroundStyle(Theme.accentActive)
-                } else {
-                    // Day 1 visitor — same words as the web; the path runs
-                    // through settings, which explains the web step
-                    Button("Subscribe for \(UniverseState.dayWithUnits(nextDay))") {
-                        showSettings = true
-                    }
-                    .font(.yoursMono(13))
-                    .foregroundStyle(Theme.accent)
-                }
-
-                Spacer()
-
-                Button("Save") { exportNarrative() }
-                    .font(.yoursMono(13))
-                    .foregroundStyle(Theme.foreground.opacity(0.6))
-            }
-            .opacity(model.isWaiting ? 0.5 : 1)
-            .disabled(model.isWaiting)
+            composerActions
+                .frame(maxWidth: .infinity)
+                .opacity(model.isWaiting ? 0.5 : 1)
+                .disabled(model.isWaiting)
         }
         .padding(16)
         .background(Theme.background)
+    }
+
+    private var composerActions: some View {
+        ViewThatFits(in: .horizontal) {
+            HStack(spacing: 16) {
+                sendButton
+                nextDayButton
+                Spacer()
+                saveButton
+            }
+
+            VStack(alignment: .leading, spacing: 12) {
+                HStack {
+                    sendButton
+                    Spacer()
+                    saveButton
+                }
+                nextDayButton
+            }
+        }
+    }
+
+    private var sendButton: some View {
+        Button("Send") { model.send() }
+            .buttonStyle(WebButtonStyle())
+            .accessibilityIdentifier("send-button")
+            .disabled(model.composerText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+    }
+
+    @ViewBuilder
+    private var nextDayButton: some View {
+        if model.state?.subscriptionActive == true {
+            Button("Move to \(UniverseState.dayWithUnits(nextDay))") {
+                showSleepConfirm = true
+            }
+            .font(.yoursMono(13))
+            .foregroundStyle(Theme.accentActive)
+            .accessibilityIdentifier("next-day-button")
+        } else {
+            // Day 1 visitor — same words as the web; the path runs
+            // through settings, which explains the web step
+            Button("Subscribe for \(UniverseState.dayWithUnits(nextDay))") {
+                showSettings = true
+            }
+            .font(.yoursMono(13))
+            .foregroundStyle(Theme.accent)
+            .accessibilityIdentifier("next-day-button")
+        }
+    }
+
+    private var saveButton: some View {
+        Button("Save") { exportNarrative() }
+            .font(.yoursMono(13))
+            .foregroundStyle(Theme.foreground.opacity(0.6))
+            .accessibilityIdentifier("save-button")
     }
 
     private func exportNarrative() {
@@ -178,7 +212,7 @@ struct MessageView: View {
         Group {
             if message.isPulsing {
                 Text(String(repeating: ".", count: dotCount))
-                    .font(.yoursMono(16))
+                    .font(.yoursMono(15))
                     .foregroundStyle(Theme.foreground)
                     .frame(minHeight: 24)
                     .opacity(pulseDim ? 0.4 : 1)
@@ -195,13 +229,14 @@ struct MessageView: View {
                     }
             } else {
                 Text(message.isComplete ? MarkdownLite.rendered(message.text) : MarkdownLite.streaming(message.text))
-                    .font(.yoursMono(16))
+                    .font(.yoursMono(15))
+                    .lineSpacing(3)
                     .foregroundStyle(Theme.foreground)
                     .textSelection(.enabled)
             }
         }
         .frame(maxWidth: .infinity, alignment: .leading)
-        .padding(16)
+        .padding(14)
         .background(isUser ? Theme.userMessageBg : Theme.assistantMessageBg)
         .overlay(alignment: .leading) {
             if isUser {

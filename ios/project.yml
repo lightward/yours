@@ -53,6 +53,18 @@ targets:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: fyi.yours.app.tests
         GENERATE_INFOPLIST_FILE: YES
+  YoursUITests:
+    type: bundle.ui-testing
+    platform: iOS
+    sources:
+      - YoursUITests
+    dependencies:
+      - target: Yours
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: fyi.yours.app.uitests
+        GENERATE_INFOPLIST_FILE: YES
+        TEST_TARGET_NAME: Yours
 schemes:
   Yours:
     build:
@@ -68,3 +80,4 @@ schemes:
       config: Debug
       targets:
         - YoursTests
+        - YoursUITests

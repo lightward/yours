@@ -18,10 +18,12 @@ struct SettingsView: View {
                             .textCase(.uppercase)
                             .font(.yoursHeading(26))
                             .foregroundStyle(Theme.foregroundHeading)
+                            .accessibilityIdentifier("settings-title")
                         Spacer()
                         Button("Done") { dismiss() }
                             .font(.yoursMono(14))
                             .foregroundStyle(Theme.accent)
+                            .accessibilityIdentifier("settings-done-button")
                     }
 
                     section("Display") {

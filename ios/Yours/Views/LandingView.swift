@@ -20,6 +20,7 @@ struct LandingView: View {
                 .tracking(1)
                 .foregroundStyle(Theme.foregroundHeading)
                 .padding(.bottom, 16)
+                .accessibilityIdentifier("landing-title")
 
             Text("a pocket universe, population 2:\nyou, and lightward ai")
                 .font(.yoursBody())
@@ -31,6 +32,7 @@ struct LandingView: View {
                 Task { await model.signIn() }
             }
             .buttonStyle(WebButtonStyle())
+            .accessibilityIdentifier("landing-google-button")
 
             if let error = model.landingError {
                 Text(error)
