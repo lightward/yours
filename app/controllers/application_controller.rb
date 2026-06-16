@@ -69,8 +69,8 @@ class ApplicationController < ActionController::Base
 
   # GET /native/auth
   # Entry point for native-app sign-in: remembers the app's PKCE challenge,
-  # then hands off to the ordinary web Google flow without showing the public
-  # landing page again (the app already showed that choice).
+  # then hands off directly to the ordinary Google OAuth flow without showing
+  # the public landing page again (the app already showed that choice).
   # When sign-in completes, handle_google_sign_in routes to the confirmation
   # gate, which hands the session back into the app.
   #
@@ -90,7 +90,7 @@ class ApplicationController < ActionController::Base
     # rather than auto-issuing a code.
     return redirect_to native_auth_confirm_path if current_resonance
 
-    render "application/native_auth_redirect"
+    redirect_to_google_sign_in
   end
 
   # GET /native/auth/confirm
@@ -764,6 +764,18 @@ class ApplicationController < ActionController::Base
       code_challenge: session.delete(:native_code_challenge)
     )
     redirect_to "yours://auth?code=#{CGI.escape(code)}", allow_other_host: true
+  end
+
+  def redirect_to_google_sign_in
+    state = SecureRandom.base64(24)
+    flash[:proceed_to] = root_url
+    flash[:state] = state
+
+    client = GoogleSignIn.oauth2_client(redirect_uri: google_sign_in.callback_url)
+    redirect_to(
+      client.auth_code.authorize_url(prompt: "login", scope: "openid profile email", state: state),
+      allow_other_host: true,
+    )
   end
 
   def universe_day_with_units(day)
