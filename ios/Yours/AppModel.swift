@@ -66,6 +66,7 @@ final class AppModel: ObservableObject {
             rawValue: UserDefaults.standard.string(forKey: "yours-theme") ?? "dark"
         ) ?? .dark
         #if DEBUG
+        YoursAPI.persistLaunchBaseURLOverride()
         // Local-dev entry without the Google handshake: mint a token with
         // `bin/rails runner` and pass it as `-YoursToken <token>`
         if let injected = UserDefaults.standard.string(forKey: "YoursToken") {

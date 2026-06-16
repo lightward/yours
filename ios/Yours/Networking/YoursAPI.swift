@@ -13,9 +13,22 @@ enum APIError: Error, Equatable {
 final class YoursAPI: @unchecked Sendable {
     var token: String?
 
+    #if DEBUG
+    private static let baseURLOverrideKey = "YoursBaseURL"
+
+    static func persistLaunchBaseURLOverride() {
+        let arguments = ProcessInfo.processInfo.arguments
+        guard let index = arguments.firstIndex(of: "-\(baseURLOverrideKey)"),
+              arguments.indices.contains(index + 1)
+        else { return }
+
+        UserDefaults.standard.set(arguments[index + 1], forKey: baseURLOverrideKey)
+    }
+    #endif
+
     static var baseURL: URL {
         #if DEBUG
-        if let override = UserDefaults.standard.string(forKey: "YoursBaseURL"),
+        if let override = UserDefaults.standard.string(forKey: baseURLOverrideKey),
            let url = URL(string: override) {
             return url
         }
