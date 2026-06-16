@@ -8,7 +8,7 @@
     <br><span class="mono"><%= obfuscated_user_email %></span>?
   </p>
 
-  <%= button_to "Continue", native_auth_confirm_path, method: :post, class: "exit" %>
+  <%= button_to "Continue", native_auth_confirm_path, method: :post, class: "exit", form: { data: { turbo: false } } %>
 
   <%= link_to "Use a different account", exit_path, class: "quiet-link", style: "margin-top: 1.5rem;", data: { turbo: false } %>
 </div>

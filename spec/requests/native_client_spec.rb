@@ -118,6 +118,24 @@ RSpec.describe "Native client protocol", type: :request do
       expect(response.location).to start_with("yours://auth?code=")
     end
 
+    it "renders the confirmation form without Turbo so the app callback navigation is not intercepted" do
+      identity = double("GoogleSignIn::Identity", user_id: google_id, email_address: "test@example.com")
+      allow(GoogleSignIn::Identity).to receive(:new).and_return(identity)
+      allow_any_instance_of(ApplicationController).to receive(:flash).and_return(
+        { google_sign_in: { "id_token" => "fake_token" } }
+      )
+      get root_path
+      allow_any_instance_of(ApplicationController).to receive(:flash).and_call_original
+
+      get "/native/auth", params: { code_challenge: code_challenge }
+      expect(response).to redirect_to(native_auth_confirm_path)
+
+      get "/native/auth/confirm"
+
+      expect(response.body).to include('action="/native/auth/confirm"')
+      expect(response.body).to include('data-turbo="false"')
+    end
+
     it "refuses to confirm without a pending native challenge" do
       # Signed in, but no native sign-in was started — a stray POST can't mint
       identity = double("GoogleSignIn::Identity", user_id: google_id, email_address: "test@example.com")
