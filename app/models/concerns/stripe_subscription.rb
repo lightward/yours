@@ -1,7 +1,7 @@
 module StripeSubscription
   extend ActiveSupport::Concern
 
-  def active_subscription?
+  def stripe_subscription_active?
     return false unless stripe_customer_id.present?
 
     # List subscriptions for this customer

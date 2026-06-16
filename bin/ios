@@ -1,0 +1,142 @@
+#!/usr/bin/env bash
+# The iOS development loop, terminal-first:
+#
+#   bin/ios generate            # regenerate Yours.xcodeproj from project.yml
+#   bin/ios build               # build for the simulator
+#   bin/ios test                # run the unit tests
+#   bin/ios run [args...]       # build, install, launch on the SIMULATOR
+#                               #   (args go to the app, e.g. -YoursMockChat)
+#   bin/ios device [args...]    # build (signed), install, launch on a
+#                               #   physically connected iPhone
+#   bin/ios screenshot [path]   # screenshot the booted simulator
+#
+# Useful launch args (Debug builds only):
+#   -YoursMockChat       canned day-3 conversation, no backend needed
+#   -YoursMockLanding    the landing screen
+#   -YoursMockAutoSend   with MockChat: auto-sends a message (streaming demo)
+#   -YoursMockSleep      with MockChat: goes straight to the night
+#   -YoursToken <tok>    sign in with a minted bearer token (no Google flow)
+#   -YoursBaseURL <url>  point the app at a specific backend
+#
+# Simulator against a local backend: bin/dev (or bin/rails s), then bin/ios run.
+# The Debug build defaults to http://localhost:3000.
+#
+# Physical iPhone (bin/ios device):
+#   - Plug the iPhone in via USB; trust the Mac if prompted.
+#   - Set YOURS_TEAM_ID to your Apple Developer Team ID (signs the build).
+#   - The phone can't reach your Mac's localhost, so set YOURS_BASE_URL to a
+#     reachable backend — e.g. an ngrok https URL tunneling your local server.
+#   It is baked into the debug app bundle and injected as -YoursBaseURL.
+#   Example:
+#     YOURS_TEAM_ID=ABCDE12345 YOURS_BASE_URL=https://xxxx.ngrok-free.app \
+#       bin/ios device -YoursToken "$(cat /tmp/yours-phone-token.txt)"
+
+set -euo pipefail
+SELF="$(cd "$(dirname "$0")" && pwd)/$(basename "$0")"
+cd "$(dirname "$0")/../ios"
+
+BUNDLE_ID="fyi.yours.app"
+
+simulator_id() {
+  xcrun simctl list devices available | grep -E "iPhone" | head -1 | grep -oE "[0-9A-F-]{36}"
+}
+
+# UDID of the first connected physical iPhone, or empty. The `|| true` guards
+# keep the pipeline from aborting the script (set -e/pipefail) when grep finds
+# no match — "no device" is a normal case we handle explicitly below.
+device_id() {
+  { xcrun devicectl list devices 2>/dev/null || true; } \
+    | { grep -iE "iphone|ipad" || true; } \
+    | { grep -ivE "simulator|unavailable" || true; } \
+    | { grep -oE "[0-9A-F-]{36}" || true; } \
+    | head -1
+}
+
+ensure_project() {
+  command -v xcodegen >/dev/null || { echo "xcodegen not found — brew install xcodegen"; exit 1; }
+  xcodegen generate --quiet
+}
+
+build() {
+  ensure_project
+  xcodebuild -project Yours.xcodeproj -scheme Yours \
+    -destination "platform=iOS Simulator,id=$(simulator_id)" -quiet "$@"
+}
+
+case "${1:-help}" in
+  generate)
+    ensure_project
+    echo "Generated ios/Yours.xcodeproj"
+    ;;
+  build)
+    build build
+    echo "Build OK"
+    ;;
+  test)
+    build test
+    ;;
+  run)
+    shift || true
+    build build
+    SIM=$(simulator_id)
+    xcrun simctl boot "$SIM" 2>/dev/null || true
+    xcrun simctl bootstatus "$SIM" -b >/dev/null
+    APP=$(find ~/Library/Developer/Xcode/DerivedData -path "*/Build/Products/Debug-iphonesimulator/Yours.app" | head -1)
+    xcrun simctl install "$SIM" "$APP"
+    open -a Simulator
+    xcrun simctl terminate "$SIM" "$BUNDLE_ID" 2>/dev/null || true
+    xcrun simctl launch "$SIM" "$BUNDLE_ID" "$@"
+    ;;
+  device)
+    shift || true
+    : "${YOURS_TEAM_ID:?Set YOURS_TEAM_ID to your Apple Developer Team ID (Xcode > Settings > Accounts shows it)}"
+    UDID=$(device_id)
+    [ -z "$UDID" ] && { echo "No iPhone found. Plug it in via USB and trust the Mac, then retry."; exit 1; }
+    echo "Target device: $UDID"
+
+    ensure_project
+    # Signed build for the device. Automatic signing with the given team.
+    APP_DIR=$(mktemp -d)
+    BUILD_SETTINGS=()
+    if [ -n "${YOURS_BASE_URL:-}" ]; then
+      BUILD_SETTINGS+=(YOURS_BASE_URL="$YOURS_BASE_URL")
+    fi
+    xcodebuild -project Yours.xcodeproj -scheme Yours \
+      -destination "platform=iOS,id=$UDID" \
+      -configuration Debug \
+      -allowProvisioningUpdates \
+      -derivedDataPath "$APP_DIR" \
+      DEVELOPMENT_TEAM="$YOURS_TEAM_ID" \
+      CODE_SIGN_STYLE=Automatic \
+      "${BUILD_SETTINGS[@]}" \
+      -quiet build
+
+    APP=$(find "$APP_DIR" -path "*/Debug-iphoneos/Yours.app" | head -1)
+    [ -z "$APP" ] && { echo "Build produced no app bundle."; exit 1; }
+
+    echo "Installing to device…"
+    xcrun devicectl device install app --device "$UDID" "$APP"
+
+    # The phone can't see localhost; inject the reachable backend URL.
+    EXTRA_ARGS=("$@")
+    if [ -n "${YOURS_BASE_URL:-}" ]; then
+      EXTRA_ARGS+=(-YoursBaseURL "$YOURS_BASE_URL")
+    fi
+
+    echo "Launching…"
+    if [ ${#EXTRA_ARGS[@]} -gt 0 ]; then
+      xcrun devicectl device process launch --device "$UDID" "$BUNDLE_ID" -- "${EXTRA_ARGS[@]}"
+    else
+      xcrun devicectl device process launch --device "$UDID" "$BUNDLE_ID"
+    fi
+    echo "Running on device. (First launch: trust the developer in Settings > General > VPN & Device Management.)"
+    ;;
+  screenshot)
+    OUT="${2:-/tmp/yours-$(date +%H%M%S).png}"
+    xcrun simctl io "$(simulator_id)" screenshot "$OUT"
+    echo "$OUT"
+    ;;
+  *)
+    sed -n '2,20p' "$SELF" | sed 's/^# \{0,1\}//'
+    ;;
+esac

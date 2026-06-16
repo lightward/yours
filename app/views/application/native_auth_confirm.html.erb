@@ -1,0 +1,14 @@
+<div class="landing">
+  <img src="/icon.png" alt="Yours" class="landing-icon">
+
+  <h1 class="landing-title">Yours</h1>
+
+  <p class="landing-tagline">
+    Continue to the app as
+    <br><span class="mono"><%= obfuscated_user_email %></span>?
+  </p>
+
+  <%= button_to "Continue", native_auth_confirm_path, method: :post, class: "exit", form: { data: { turbo: false } } %>
+
+  <%= link_to "Use a different account", exit_path, class: "quiet-link", style: "margin-top: 1.5rem;", data: { turbo: false } %>
+</div>

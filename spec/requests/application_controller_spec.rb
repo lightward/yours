@@ -28,6 +28,24 @@ RSpec.describe ApplicationController, type: :request do
     )
   end
 
+  describe "GET /terms and /privacy" do
+    it "serves public terms of use" do
+      get terms_path
+
+      expect(response).to have_http_status(:success)
+      expect(response.body).to include("Terms of Use")
+      expect(response.body).to include("App Store subscriptions renew monthly")
+    end
+
+    it "serves a public privacy policy" do
+      get privacy_path
+
+      expect(response).to have_http_status(:success)
+      expect(response.body).to include("Privacy Policy")
+      expect(response.body).to include("subscription status")
+    end
+  end
+
   describe "GET / (root)" do
     context "when not authenticated" do
       it "shows landing page" do
@@ -926,11 +944,14 @@ RSpec.describe ApplicationController, type: :request do
 
   describe "PUT /textarea" do
     context "when not authenticated" do
-      it "returns 401 error" do
+      it "returns 401 with the structured error code" do
         put textarea_path, params: { textarea: "some content" }, as: :json
         expect(response).to have_http_status(401)
         json = JSON.parse(response.body)
-        expect(json["error"]).to eq("Not authenticated")
+        # The contract (PROTOCOL.md) is a stable code in `error`, human text in
+        # `message` — not a human string in `error`.
+        expect(json["error"]).to eq("unauthenticated")
+        expect(json["message"]).to be_present
       end
     end
 

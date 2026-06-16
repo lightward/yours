@@ -6,6 +6,8 @@ Rails.application.routes.draw do
   get "exit", to: "application#logout"
   get "settings", to: "application#settings"
   get "save", to: "application#save"
+  get "terms", to: "application#terms"
+  get "privacy", to: "application#privacy"
 
   # Service routes
   post "stream", to: "application#stream"
@@ -15,5 +17,21 @@ Rails.application.routes.draw do
   post "subscription", to: "application#create_subscription"
   delete "subscription", to: "application#destroy_subscription"
   post "reset", to: "application#reset"
+  post "account/delete", to: "application#destroy_account", as: :destroy_account
   get "llms.txt", to: "application#llms_txt"
+
+  # Native client routes (ios/, android/) — see PROTOCOL.md
+  get "native/auth", to: "application#native_auth_start"
+  get "native/auth/confirm", to: "application#native_auth_confirm_start", as: :native_auth_confirm
+  post "native/auth/confirm", to: "application#native_auth_confirm"
+  get "native/auth/return", to: "application#native_auth_return", as: :native_auth_return
+  post "native/token", to: "application#native_token"
+  get "native/state", to: "application#native_state"
+  post "native/subscription", to: "application#native_subscription"
+  delete "native/account", to: "application#destroy_account"
+
+  # Storefront server-to-server notifications (renewals, cancellations,
+  # refunds) — App Store Server Notifications V2 and Play RTDN
+  post "native/apple_notifications", to: "application#apple_notifications"
+  post "native/google_notifications", to: "application#google_notifications"
 end

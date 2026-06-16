@@ -4,7 +4,13 @@ class ApplicationController < ActionController::Base
   # Only allow modern browsers supporting webp images, web push, badges, import maps, CSS nesting, and CSS :has.
   # Skip for index action to allow social media crawlers to read meta tags
   # Skip for llms_txt to allow LLM crawlers to read documentation
-  allow_browser versions: :modern, except: [ :index, :llms_txt ]
+  # Skip for native + storefront-webhook endpoints, whose clients aren't browsers
+  allow_browser versions: :modern, except: [
+    :index, :terms, :privacy, :llms_txt,
+    :native_auth_start, :native_auth_confirm_start, :native_auth_confirm, :native_auth_return,
+    :native_token, :native_state, :native_subscription,
+    :apple_notifications, :google_notifications
+  ]
 
   before_action :verify_host!
 
@@ -61,12 +67,194 @@ class ApplicationController < ActionController::Base
     render "application/settings"
   end
 
+  # GET /native/auth
+  # Entry point for native-app sign-in: remembers the app's PKCE challenge,
+  # then hands off directly to the ordinary Google OAuth flow without showing
+  # the public landing page again (the app already showed that choice).
+  # When sign-in completes, handle_google_sign_in routes to the confirmation
+  # gate, which hands the session back into the app.
+  #
+  # Crucially, an *existing* browser session is never silently inherited: a
+  # native sign-in must be confirmed by an explicit human action (the gate's
+  # button), so an app opened on a device where someone else is already signed
+  # into the web app cannot mint a token for that someone-else. (Native clients
+  # also open the sign-in sheet ephemerally, so normally there is no ambient
+  # session to inherit in the first place — this is defense in depth.)
+  def native_auth_start
+    challenge = params[:code_challenge].to_s
+    return redirect_to root_path, alert: "Missing code challenge" if challenge.blank?
+
+    session[:native_code_challenge] = challenge
+    session.delete(:native_callback_url)
+
+    # Already signed in in this browser context? Require explicit confirmation
+    # rather than auto-issuing a code.
+    return redirect_to native_auth_confirm_path if current_resonance
+
+    redirect_to_google_sign_in
+  end
+
+  # GET /native/auth/confirm
+  # The consent gate: shows who's about to be handed to the app and requires a
+  # deliberate tap. Reached after sign-in, or immediately when a session
+  # already exists.
+  def native_auth_confirm_start
+    return redirect_to root_path unless current_resonance
+    return redirect_to native_auth_return_path if session[:native_callback_url].present?
+    return redirect_to root_path, alert: "Start sign-in from the app." if session[:native_code_challenge].blank?
+
+    render "application/native_auth_confirm"
+  end
+
+  # POST /native/auth/confirm
+  # The deliberate tap. Only here — never automatically — is the sign-in code
+  # minted and handed back to the app.
+  def native_auth_confirm
+    return redirect_to root_path unless current_resonance
+    return redirect_to root_path, alert: "Start sign-in from the app." unless issue_native_callback_url
+
+    redirect_to native_auth_return_path, status: :see_other
+  end
+
+  # GET /native/auth/return
+  # A tiny handoff page that explicitly opens the app. iOS can strand a browser
+  # sheet on a POST -> custom-scheme redirect; loading a real HTTPS page first
+  # gives the user and WebKit a stable place to retry the app switch.
+  def native_auth_return
+    return redirect_to root_path unless current_resonance
+
+    @native_callback_url = session[:native_callback_url]
+    return redirect_to root_path, alert: "Start sign-in from the app." if @native_callback_url.blank?
+
+    render "application/native_auth_return"
+  end
+
+  # POST /native/token
+  # Exchanges a sign-in code (plus its PKCE verifier) for a long-lived bearer
+  # token. The token carries the google_id between requests the same way the
+  # web session cookie does; the server still stores nothing it can decrypt
+  # alone.
+  def native_token
+    payload = NativeToken.redeem_code(params[:code].to_s, code_verifier: params[:code_verifier].to_s)
+    return render json: { error: "invalid_code" }, status: :unauthorized unless payload
+
+    render json: {
+      token: NativeToken.issue(google_id: payload["google_id"], obfuscated_email: payload["obfuscated_email"]),
+      obfuscated_email: payload["obfuscated_email"]
+    }
+  end
+
+  # GET /native/state
+  # Everything a native client needs to render itself, in one JSON document —
+  # the same state the web client receives embedded in chat.html.erb.
+  # Pass include=subscription for full subscription details (settings screen).
+  def native_state
+    return deny_access("Please sign in") unless current_resonance
+
+    render json: native_state_payload(include_subscription: params[:include] == "subscription")
+  end
+
+  # POST /native/subscription
+  # The app has completed a StoreKit/Play Billing purchase and posts the
+  # signed transaction. We verify it with the storefront's own API — never
+  # trusting the raw value — and on success record the encrypted identity.
+  # See PROTOCOL.md.
+  def native_subscription
+    return deny_access("Please sign in") unless current_resonance
+
+    signed_transaction = params[:signed_transaction].to_s
+    return render json: { error: "missing_transaction" }, status: :bad_request if signed_transaction.blank?
+
+    expected_token = current_resonance.iap_account_token
+
+    case params[:platform]
+    when "apple"
+      result = AppleAppStore.new.verify(signed_transaction)
+      return render(json: { error: "subscription_not_verified" }, status: :unprocessable_content) unless result&.active
+      # Bind: the transaction must have been bought by THIS account. Without
+      # this check a valid transaction from account A could unlock account B.
+      unless secure_token_match?(result.app_account_token, expected_token)
+        return render json: { error: "account_mismatch" }, status: :forbidden
+      end
+      current_resonance.record_apple_subscription(result.original_transaction_id)
+    when "google"
+      # Google Play billing isn't live yet (the Android client has no
+      # BillingClient). The verification path exists and is tested, but stays
+      # gated until Android billing ships and the service account is
+      # configured — so the server doesn't advertise a path no client uses.
+      unless GooglePlayStore.configured?
+        return render json: { error: "platform_unavailable", message: "Google Play subscriptions aren't available yet." }, status: :not_implemented
+      end
+      result = GooglePlayStore.new.verify(signed_transaction)
+      return render(json: { error: "subscription_not_verified" }, status: :unprocessable_content) unless result&.active
+      unless secure_token_match?(result.account_token, expected_token)
+        return render json: { error: "account_mismatch" }, status: :forbidden
+      end
+      current_resonance.record_google_play_subscription(result.purchase_token)
+    else
+      return render json: { error: "unknown_platform" }, status: :bad_request
+    end
+
+    # We just confirmed entitlement with the storefront; report it without a
+    # second round-trip through active_subscription?.
+    render json: native_state_payload(subscription_active: true)
+  rescue NativeSubscription::AlreadyClaimedError => e
+    render json: { error: "already_claimed", message: e.message }, status: :conflict
+  rescue AppleAppStore::VerificationError, GooglePlayStore::VerificationError => e
+    Rollbar.error(e)
+    render json: { error: "verification_failed" }, status: :bad_gateway
+  end
+
+  # Constant-time comparison of the transaction's account token against the one
+  # we expect for this resonance. A blank token on the transaction is a
+  # mismatch (an unbound purchase can't be trusted to this account).
+  def secure_token_match?(actual, expected)
+    return false if actual.blank? || expected.blank?
+    ActiveSupport::SecurityUtils.secure_compare(actual.to_s.downcase, expected.to_s.downcase)
+  end
+
+  # The native state document (GET /native/state, and the refreshed state
+  # returned after a successful purchase). Same fields the web client receives
+  # embedded in chat.html.erb. subscription_active can be supplied when the
+  # caller already knows it (just-verified purchase), avoiding a re-query.
+  def native_state_payload(include_subscription: false, subscription_active: nil)
+    payload = {
+      universe_day: current_resonance.universe_day,
+      universe_time: current_resonance.universe_time,
+      narrative: current_resonance.narrative_accumulation_by_day,
+      textarea: current_resonance.textarea,
+      obfuscated_email: obfuscated_user_email,
+      subscription_active: subscription_active.nil? ? current_resonance.active_subscription? : subscription_active,
+      # The token the app must set on a purchase (StoreKit appAccountToken /
+      # Play obfuscatedExternalAccountId) so the server can bind the
+      # transaction to this account. See PROTOCOL.md.
+      iap_account_token: current_resonance.iap_account_token
+    }
+    payload[:subscription] = current_resonance.subscription_details if include_subscription
+    payload
+  end
+
+  # POST /native/apple_notifications
+  # App Store Server Notifications V2 (renewals, cancellations, refunds).
+  # Entitlement is verified live at read time, so these don't need to locate
+  # the encrypted resonance — the next /native/state reflects the truth. We
+  # acknowledge (and log) so Apple stops retrying.
+  def apple_notifications
+    head :ok
+  end
+
+  # POST /native/google_notifications
+  # Play Real-Time Developer Notifications. Same reasoning as Apple's.
+  def google_notifications
+    head :ok
+  end
+
   # POST /stream
   def stream
-    return redirect_to root_path, alert: "Please sign in" unless current_resonance
+    return deny_access("Please sign in") unless current_resonance
     # Day 1 is free - subscription only required for day 2+
     unless current_resonance.universe_day == 1 || current_resonance.active_subscription?
-      return redirect_to root_path, alert: "Subscribe to continue with #{universe_day_with_units(current_resonance.universe_day)}."
+      return deny_access("Subscribe to continue with #{universe_day_with_units(current_resonance.universe_day)}.", status: :forbidden, code: "subscription_required")
     end
 
     # Check for cross-device continuity divergence
@@ -190,22 +378,33 @@ class ApplicationController < ActionController::Base
 
   # GET/POST /sleep
   def sleep
-    return redirect_to root_path, alert: "Please sign in" unless current_resonance
+    return deny_access("Please sign in") unless current_resonance
 
     # POST triggers integration, GET is just contemplative viewing
     if request.post?
       # Subscription required to move forward
       unless current_resonance.active_subscription?
-        return redirect_to root_path, alert: "Subscribe to continue with #{universe_day_with_units(current_resonance.universe_day + 1)}."
+        return deny_access("Subscribe to continue with #{universe_day_with_units(current_resonance.universe_day + 1)}.", status: :forbidden, code: "subscription_required")
       end
 
       # Capture universe_time before integration and store in session
-      session[:sleep_starting_universe_time] = current_resonance.universe_time
+      starting_universe_time = current_resonance.universe_time
+      session[:sleep_starting_universe_time] = starting_universe_time
       session[:sleep_integrating] = true
 
-      # Kick off integration in background thread
-      google_id = session[:google_id] # Capture for thread
+      # Kick off integration in background thread. Capture from
+      # current_resonance (not session[:google_id]) so this works for bearer
+      # auth too — native clients have no session. The integration itself
+      # settles under a row lock against universe_time (see
+      # perform_nightly_integration).
+      google_id = current_resonance.google_id
       Thread.new { perform_nightly_integration(google_id) }
+
+      # Native clients render their own sleep screen and poll /native/state
+      # until universe_time changes
+      if native_api_request?
+        return render json: { status: "integrating", starting_universe_time: starting_universe_time }
+      end
 
       # Redirect to GET /sleep to avoid form resubmission issues
       redirect_to sleep_path
@@ -222,10 +421,19 @@ class ApplicationController < ActionController::Base
 
   # POST /save_textarea
   def save_textarea
-    return render json: { error: "Not authenticated" }, status: 401 unless current_resonance
+    # /textarea is a JSON endpoint for both web (cookie) and native (bearer)
+    # clients, so it renders structured errors directly rather than going
+    # through deny_access (which redirects web requests). Codes match
+    # PROTOCOL.md so every client can switch on `error`.
+    unless current_resonance
+      return render json: { error: "unauthenticated", message: "Please sign in" }, status: :unauthorized
+    end
     # Day 1 is free - subscription only required for day 2+
     unless current_resonance.universe_day == 1 || current_resonance.active_subscription?
-      return render json: { error: "Subscribe to continue with #{universe_day_with_units(current_resonance.universe_day)}." }, status: 403
+      return render json: {
+        error: "subscription_required",
+        message: "Subscribe to continue with #{universe_day_with_units(current_resonance.universe_day)}."
+      }, status: :forbidden
     end
 
     # Check for cross-device continuity divergence
@@ -283,7 +491,7 @@ class ApplicationController < ActionController::Base
 
   # POST /reset
   def reset
-    return redirect_to root_path, alert: "Please sign in" unless current_resonance
+    return deny_access("Please sign in") unless current_resonance
 
     # Starting over unlocks for subscribers - the settings page says so, and
     # the endpoint agrees
@@ -303,9 +511,27 @@ class ApplicationController < ActionController::Base
     redirect_to root_path
   end
 
+  # DELETE /native/account  (and POST /account/delete for the web form)
+  # Permanent account deletion — App Store guideline 5.1.1(v). Destroys the
+  # resonance row outright; the encrypted data goes with it (and was never
+  # readable without the google_id anyway). Then ends the session.
+  def destroy_account
+    return deny_access("Please sign in") unless current_resonance
+
+    current_resonance.destroy!
+    session[:google_id] = nil
+    session[:obfuscated_user_email] = nil
+
+    if native_api_request?
+      render json: { status: "deleted" }
+    else
+      redirect_to root_path, notice: "Your account and all its data have been deleted."
+    end
+  end
+
   # GET /save
   def save
-    return redirect_to root_path, alert: "Please sign in" unless current_resonance
+    return deny_access("Please sign in") unless current_resonance
 
     narrative = current_resonance.narrative_accumulation_by_day || []
 
@@ -339,6 +565,16 @@ class ApplicationController < ActionController::Base
   def llms_txt
     readme_content = Rails.root.join("README.md").read
     render plain: readme_content, content_type: "text/plain"
+  end
+
+  # GET /terms
+  def terms
+    render "application/terms"
+  end
+
+  # GET /privacy
+  def privacy
+    render "application/privacy"
   end
 
   private
@@ -385,7 +621,10 @@ class ApplicationController < ActionController::Base
   # universe_time on success, nil if the space moved forward elsewhere (in
   # which case nothing is written - the caller announces the refusal).
   def settle_exchange(user_message:, assistant_text:, expected_universe_time:)
-    google_id = session[:google_id]
+    # current_resonance.google_id, not session[:google_id]: native clients
+    # authenticate by bearer token and have no session, so the latter would be
+    # nil and the settle would blow up (then surface as a stream error).
+    google_id = current_resonance.google_id
     google_id_hash = Digest::SHA256.hexdigest(google_id)
 
     Resonance.transaction do
@@ -449,6 +688,12 @@ class ApplicationController < ActionController::Base
 
       session[:google_id] = google_id  # Store for encryption/decryption
       session[:obfuscated_user_email] = obfuscate_email(identity.email_address)  # Store obfuscated email for display
+
+      # Native-app sign-in: route to the confirmation gate (never auto-issue a
+      # code — see native_auth_start) so handing the session to the app always
+      # takes a deliberate human tap.
+      return redirect_to native_auth_confirm_path if session[:native_code_challenge].present?
+
       redirect_to root_path
     elsif error = flash[:google_sign_in]&.[]("error")  # String key, not symbol
       redirect_to root_path, alert: "Authentication failed: #{error}"
@@ -458,10 +703,19 @@ class ApplicationController < ActionController::Base
   end
 
   def current_resonance
-    return nil unless session[:google_id]
+    # When a bearer token is present, it wins — a request carrying an
+    # Authorization header is a device API call, and an ambient browser cookie
+    # must not override (or stand in for) its identity. Otherwise fall back to
+    # the session cookie (the web path).
+    google_id =
+      if bearer_token_present?
+        native_token_payload&.[]("google_id")
+      else
+        session[:google_id]
+      end
+    return nil unless google_id
 
     @current_resonance ||= begin
-      google_id = session[:google_id]
       google_id_hash = Digest::SHA256.hexdigest(google_id)
       resonance = Resonance.find_by(encrypted_google_id_hash: google_id_hash)
       resonance.google_id = google_id if resonance
@@ -471,9 +725,86 @@ class ApplicationController < ActionController::Base
   helper_method :current_resonance
 
   def obfuscated_user_email
-    session[:obfuscated_user_email]
+    if bearer_token_present?
+      native_token_payload&.[]("obfuscated_email")
+    else
+      session[:obfuscated_user_email]
+    end
   end
   helper_method :obfuscated_user_email
+
+  # Decoded payload of the Authorization: Bearer token, if one is present and
+  # valid. This is the native-client counterpart of the session cookie: the
+  # google_id arrives with the request and is never stored server-side.
+  def native_token_payload
+    return @native_token_payload if defined?(@native_token_payload)
+
+    @native_token_payload = begin
+      header = request.headers["Authorization"].to_s
+      header.start_with?("Bearer ") ? NativeToken.read(header.delete_prefix("Bearer ")) : nil
+    end
+  end
+
+  # Native API requests authenticate via bearer token (or, for the token
+  # exchange itself, via PKCE code) — cookies play no part, so CSRF
+  # protection doesn't apply.
+  # The stateless, bearer-authenticated API surface. Cookies play no part
+  # here, so CSRF doesn't apply. Deliberately does NOT include the browser
+  # sign-in/confirm endpoints (which are cookie + session backed and MUST keep
+  # CSRF) even though their paths start with /native/.
+  def native_api_request?
+    return false if browser_native_auth_request?
+    request.path.start_with?("/native/") || bearer_token_present?
+  end
+
+  # The native sign-in handshake pages that run in the browser with a session:
+  # these are real form posts and keep CSRF protection.
+  def browser_native_auth_request?
+    request.path.start_with?("/native/auth")
+  end
+
+  def bearer_token_present?
+    request.headers["Authorization"].to_s.start_with?("Bearer ")
+  end
+
+  def protect_against_forgery?
+    return false if native_api_request?
+    super
+  end
+
+  # Web clients get the familiar redirect-with-alert; native clients get
+  # structured JSON they can route on.
+  def deny_access(message, status: :unauthorized, code: "unauthenticated")
+    if native_api_request?
+      render json: { error: code, message: message }, status: status
+    else
+      redirect_to root_path, alert: message
+    end
+  end
+
+  def issue_native_callback_url
+    return session[:native_callback_url] if session[:native_callback_url].present?
+    return nil if session[:native_code_challenge].blank?
+
+    code = NativeToken.issue_code(
+      google_id: session[:google_id],
+      obfuscated_email: session[:obfuscated_user_email],
+      code_challenge: session.delete(:native_code_challenge)
+    )
+    session[:native_callback_url] = "yours://auth?code=#{CGI.escape(code)}"
+  end
+
+  def redirect_to_google_sign_in
+    state = SecureRandom.base64(24)
+    flash[:proceed_to] = root_url
+    flash[:state] = state
+
+    client = GoogleSignIn.oauth2_client(redirect_uri: google_sign_in.callback_url)
+    redirect_to(
+      client.auth_code.authorize_url(prompt: "login", scope: "openid profile email", state: state),
+      allow_other_host: true,
+    )
+  end
 
   def universe_day_with_units(day)
     day == 1 ? "1\u00A0day" : "day\u00A0#{day}"

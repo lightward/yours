@@ -1,0 +1,20 @@
+<% content_for :head do %>
+  <meta name="turbo-cache-control" content="no-cache">
+  <script>
+    window.addEventListener("load", function() {
+      window.location.href = "<%= j @native_callback_url %>";
+    });
+  </script>
+<% end %>
+
+<div class="landing">
+  <img src="/icon.png" alt="Yours" class="landing-icon">
+
+  <h1 class="landing-title">Yours</h1>
+
+  <p class="landing-tagline">
+    Returning to the app.
+  </p>
+
+  <%= link_to "Return to app", @native_callback_url, class: "exit", data: { turbo: false } %>
+</div>
