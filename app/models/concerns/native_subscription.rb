@@ -5,8 +5,8 @@
 #
 # This concern owns the encrypted accessors, the per-resonance account token
 # that binds a purchase to its buyer, and the "is this storefront's
-# subscription active?" checks. The any-source-unlocks combination lives in
-# StripeSubscription#active_subscription?, which calls these.
+# subscription active?" checks. The any-source-unlocks combination lives on
+# Resonance#active_subscription?, which calls these.
 module NativeSubscription
   extend ActiveSupport::Concern
 

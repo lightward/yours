@@ -20,7 +20,7 @@ struct SubscribeOptions: View {
                     .font(.yoursMono(13))
                     .foregroundStyle(Theme.foreground.opacity(0.6))
             } else {
-                ForEach(model.store.sortedProducts, id: \.id) { product in
+                ForEach(store.sortedProducts, id: \.id) { product in
                     Button {
                         Task { await model.subscribe(to: product) }
                     } label: {
@@ -30,7 +30,7 @@ struct SubscribeOptions: View {
                         }
                     }
                     .buttonStyle(WebButtonStyle())
-                    .disabled(model.store.purchasing)
+                    .disabled(store.purchasing)
                 }
             }
 
@@ -43,9 +43,9 @@ struct SubscribeOptions: View {
             }
             .font(.yoursMono(13))
             .foregroundStyle(Theme.accent)
-            .disabled(model.store.purchasing)
+            .disabled(store.purchasing)
 
-            if let error = model.store.purchaseError {
+            if let error = store.purchaseError {
                 Text(error)
                     .font(.yoursMono(13))
                     .foregroundStyle(Theme.warning)

@@ -34,7 +34,7 @@ enum Keychain {
             guard let newValue, let data = newValue.data(using: .utf8) else { return }
             var attributes = base
             attributes[kSecValueData as String] = data
-            attributes[kSecAttrAccessible as String] = kSecAttrAccessibleAfterFirstUnlock
+            attributes[kSecAttrAccessible as String] = kSecAttrAccessibleWhenUnlockedThisDeviceOnly
             SecItemAdd(attributes as CFDictionary, nil)
         }
     }

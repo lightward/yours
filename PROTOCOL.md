@@ -62,12 +62,14 @@ exempt from CSRF (no cookies involved); cookie requests remain protected.
 
 ## Subscriptions across three storefronts
 
-A resonance can become a subscriber via Stripe (web) or Apple in-app
-purchase (iOS), and `active_subscription?` is **any-source-unlocks**: true
-if *any* live source reports a subscription. The platforms don't share an
-identity, so a person could in principle pay on more than one; each
-storefront manages its own billing and cancellation, and we don't try to
-reconcile across them.
+A resonance can become a subscriber via Stripe (web), Apple in-app purchase
+(iOS), or Google Play once Android billing is enabled. `active_subscription?`
+is **any-source-unlocks**: true if *any* live source reports a subscription.
+One live entitlement is enough for access, so checkout surfaces avoid
+starting another subscription while any storefront is active. Each storefront
+still manages its own billing and cancellation; we record the identities
+needed to ask each storefront for current entitlement, but we don't reconcile
+or cancel across storefronts.
 
 > **Google Play (Android) is implemented server-side but gated off** until
 > the Android client has a billing flow. `POST /native/subscription` with
