@@ -6,6 +6,8 @@ Rails.application.routes.draw do
   get "exit", to: "application#logout"
   get "settings", to: "application#settings"
   get "save", to: "application#save"
+  get "terms", to: "application#terms"
+  get "privacy", to: "application#privacy"
 
   # Service routes
   post "stream", to: "application#stream"

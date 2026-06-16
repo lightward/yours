@@ -73,7 +73,7 @@ struct SettingsView: View {
                 }
             }
         } message: {
-            Text("This permanently deletes your account and all its data. There is no undo. If you have a subscription, cancel it separately in Settings › Apple Account.")
+            Text("This permanently deletes your account and all its data. There is no undo. If you have a subscription, cancel it separately where it is billed.")
         }
     }
 
@@ -105,10 +105,25 @@ struct SettingsView: View {
                         end.formatted(date: .long, time: .omitted)
                     )
                 }
-                Text("Manage or cancel in Settings › Apple Account › Subscriptions.")
+                Text("This subscription is billed by Stripe on the web.")
                     .font(.yoursBody(15))
                     .foregroundStyle(Theme.foreground.opacity(0.6))
                     .padding(.top, 6)
+                Button("Manage on web") {
+                    if let url = URL(string: "https://yours.fyi/settings") {
+                        openURL(url)
+                    }
+                }
+                .buttonStyle(WebButtonStyle())
+            }
+        } else if model.state?.subscriptionActive == true {
+            VStack(alignment: .leading, spacing: 10) {
+                Text("Active through the App Store.")
+                    .font(.yoursBody(15))
+                    .foregroundStyle(Theme.foreground)
+                Text("Manage or cancel in Settings › Apple Account › Subscriptions.")
+                    .font(.yoursBody(15))
+                    .foregroundStyle(Theme.foreground.opacity(0.6))
                 Button("Manage in Settings") {
                     if let url = URL(string: "https://apps.apple.com/account/subscriptions") {
                         openURL(url)
@@ -116,10 +131,6 @@ struct SettingsView: View {
                 }
                 .buttonStyle(WebButtonStyle())
             }
-        } else if model.state?.subscriptionActive == true {
-            Text("Active. Manage or cancel in Settings › Apple Account › Subscriptions.")
-                .font(.yoursBody(15))
-                .foregroundStyle(Theme.foreground)
         } else {
             SubscribeOptions()
         }

@@ -30,12 +30,13 @@ final class Store: ObservableObject {
         products.sorted { $0.price < $1.price }
     }
 
-    func start() {
+    func start(api: YoursAPI, onSyncedState: @escaping @MainActor (UniverseState) -> Void) {
         // Listen for transactions that arrive outside an explicit purchase
         // (renewals, Ask-to-Buy approvals, restores on another device)
+        updatesTask?.cancel()
         updatesTask = Task.detached { [weak self] in
             for await update in Transaction.updates {
-                await self?.handle(verification: update)
+                await self?.handle(verification: update, api: api, onSyncedState: onSyncedState)
             }
         }
         Task { await loadProducts() }
@@ -126,11 +127,27 @@ final class Store: ObservableObject {
         return state
     }
 
-    private func handle(verification: VerificationResult<Transaction>) async {
-        // Background updates: finish so StoreKit stops re-delivering. The next
-        // /native/state reflects entitlement; we don't have an api handle here.
-        if case .verified(let transaction) = verification {
+    private func handle(
+        verification: VerificationResult<Transaction>,
+        api: YoursAPI,
+        onSyncedState: @escaping @MainActor (UniverseState) -> Void
+    ) async {
+        guard case .verified(let transaction) = verification,
+              Self.productIDs.contains(transaction.productID)
+        else { return }
+
+        do {
+            if let state = try await submit(verification, api: api) {
+                onSyncedState(state)
+            }
+            purchaseError = nil
+        } catch APIError.http(422) {
+            // StoreKit verified the transaction, but the server found no
+            // active entitlement for it. Finish so StoreKit does not redeliver
+            // a terminally unusable transaction forever.
             await transaction.finish()
+        } catch {
+            purchaseError = "Couldn't sync the App Store purchase. Tap Restore purchase to retry."
         }
     }
 }

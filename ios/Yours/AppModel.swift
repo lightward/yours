@@ -78,7 +78,9 @@ final class AppModel: ObservableObject {
         if ProcessInfo.processInfo.arguments.contains("-YoursMockChat") { mock = .chat }
         if ProcessInfo.processInfo.arguments.contains("-YoursMockLanding") { mock = .landing }
         #endif
-        store.start()
+        store.start(api: api) { [weak self] state in
+            self?.apply(state: state)
+        }
     }
 
     // MARK: - Subscription (StoreKit)

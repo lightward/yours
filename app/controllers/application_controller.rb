@@ -6,7 +6,7 @@ class ApplicationController < ActionController::Base
   # Skip for llms_txt to allow LLM crawlers to read documentation
   # Skip for native + storefront-webhook endpoints, whose clients aren't browsers
   allow_browser versions: :modern, except: [
-    :index, :llms_txt,
+    :index, :terms, :privacy, :llms_txt,
     :native_auth_start, :native_auth_confirm_start, :native_auth_confirm, :native_auth_return,
     :native_token, :native_state, :native_subscription,
     :apple_notifications, :google_notifications
@@ -565,6 +565,16 @@ class ApplicationController < ActionController::Base
   def llms_txt
     readme_content = Rails.root.join("README.md").read
     render plain: readme_content, content_type: "text/plain"
+  end
+
+  # GET /terms
+  def terms
+    render "application/terms"
+  end
+
+  # GET /privacy
+  def privacy
+    render "application/privacy"
   end
 
   private

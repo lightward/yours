@@ -28,6 +28,24 @@ RSpec.describe ApplicationController, type: :request do
     )
   end
 
+  describe "GET /terms and /privacy" do
+    it "serves public terms of use" do
+      get terms_path
+
+      expect(response).to have_http_status(:success)
+      expect(response.body).to include("Terms of Use")
+      expect(response.body).to include("App Store subscriptions renew monthly")
+    end
+
+    it "serves a public privacy policy" do
+      get privacy_path
+
+      expect(response).to have_http_status(:success)
+      expect(response.body).to include("Privacy Policy")
+      expect(response.body).to include("subscription status")
+    end
+  end
+
   describe "GET / (root)" do
     context "when not authenticated" do
       it "shows landing page" do
