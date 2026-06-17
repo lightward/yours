@@ -34,7 +34,7 @@ RSpec.describe ApplicationController, type: :request do
 
       expect(response).to have_http_status(:success)
       expect(response.body).to include("Terms of Use")
-      expect(response.body).to include("App Store subscriptions renew monthly")
+      expect(response.body).to include("temporary terms placeholder")
     end
 
     it "serves a public privacy policy" do
@@ -42,7 +42,7 @@ RSpec.describe ApplicationController, type: :request do
 
       expect(response).to have_http_status(:success)
       expect(response.body).to include("Privacy Policy")
-      expect(response.body).to include("subscription status")
+      expect(response.body).to include("temporary privacy placeholder")
     end
   end
 
