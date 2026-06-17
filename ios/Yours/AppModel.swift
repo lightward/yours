@@ -33,6 +33,7 @@ final class AppModel: ObservableObject {
     enum NoticeAction: Equatable {
         case refresh
         case signIn
+        case retrySend(text: String, failedMessageID: UUID)
     }
 
     @Published var phase: Phase = .loading
@@ -40,6 +41,7 @@ final class AppModel: ObservableObject {
     @Published var messages: [DisplayMessage] = []
     @Published var composerText = ""
     @Published var isWaiting = false
+    @Published var isSigningIn = false
     @Published var notice: Notice?
     @Published var landingError: String?
     @Published var sleepStartingTime: String?
@@ -98,15 +100,20 @@ final class AppModel: ObservableObject {
 
     // Permanent account deletion (App Store 5.1.1v). Destroys the resonance
     // server-side, then returns to the landing screen.
-    func deleteAccount() async {
+    func deleteAccount() async -> Bool {
         #if DEBUG
-        if mock != nil { signOut(); return }
+        if mock != nil {
+            signOut()
+            return true
+        }
         #endif
         do {
             try await api.deleteAccount()
             signOut()
+            return true
         } catch {
             notice = Notice(message: "Couldn't delete the account just now.", actionLabel: "Try again", action: .refresh)
+            return false
         }
     }
 
@@ -193,6 +200,11 @@ final class AppModel: ObservableObject {
     // MARK: - Auth
 
     func signIn() async {
+        guard !isSigningIn else { return }
+        isSigningIn = true
+        landingError = nil
+        defer { isSigningIn = false }
+
         do {
             let result = try await authFlow.signIn(api: api)
             Keychain.token = result.token
@@ -228,7 +240,9 @@ final class AppModel: ObservableObject {
         guard !text.isEmpty, !isWaiting, let universeTime = state?.universeTime else { return }
 
         notice = nil
-        messages.append(DisplayMessage(role: "user", text: text))
+        let userMessage = DisplayMessage(role: "user", text: text, isComplete: false)
+        let userMessageID = userMessage.id
+        messages.append(userMessage)
         composerText = ""
         isWaiting = true
         clearDraft()
@@ -247,18 +261,44 @@ final class AppModel: ObservableObject {
             #if DEBUG
             if mock != nil {
                 await MockData.streamResponse(into: self, id: streamingID)
+                updateStreaming(userMessageID) { $0.isComplete = true }
                 isWaiting = false
                 return
             }
             #endif
             do {
                 let events = try await api.stream(message: .user(text), universeTime: universeTime)
+                var streamErrorMessage: String?
                 for try await event in events {
+                    if event.name == "error" {
+                        streamErrorMessage = event.errorMessage ?? "An error occurred"
+                        break
+                    }
                     handle(event, id: streamingID)
                 }
-                updateStreaming(streamingID) { $0.isPulsing = false; $0.isComplete = true }
+                if let streamErrorMessage {
+                    removeMessage(streamingID)
+                    restoreFailedSend(text, userMessageID: userMessageID)
+                    if streamErrorMessage.localizedCaseInsensitiveContains("moved forward") {
+                        notice = Notice(
+                            message: streamErrorMessage,
+                            actionLabel: "Refresh to continue",
+                            action: .refresh
+                        )
+                    } else {
+                        notice = Notice(
+                            message: "Message didn't send. I put it back in the composer.",
+                            actionLabel: "Send again",
+                            action: .retrySend(text: text, failedMessageID: userMessageID)
+                        )
+                    }
+                } else {
+                    updateStreaming(userMessageID) { $0.isComplete = true }
+                    updateStreaming(streamingID) { $0.isPulsing = false; $0.isComplete = true }
+                }
             } catch APIError.divergence(let message) {
                 removeMessage(streamingID)
+                restoreFailedSend(text, userMessageID: userMessageID)
                 notice = Notice(
                     message: message.isEmpty
                         ? "This space moved forward elsewhere. Refresh to join where it is now."
@@ -268,6 +308,7 @@ final class AppModel: ObservableObject {
                 )
             } catch APIError.unauthenticated {
                 removeMessage(streamingID)
+                restoreFailedSend(text, userMessageID: userMessageID)
                 notice = Notice(
                     message: "Your session has expired. Sign in to continue.",
                     actionLabel: "Sign in",
@@ -275,14 +316,16 @@ final class AppModel: ObservableObject {
                 )
             } catch APIError.subscriptionRequired {
                 removeMessage(streamingID)
+                restoreFailedSend(text, userMessageID: userMessageID)
                 await refreshState()
             } catch {
-                updateStreaming(streamingID) {
-                    $0.isPulsing = false
-                    $0.isComplete = true
-                    $0.isError = true
-                    $0.text = "⚠️ Error: the stream broke. Your message wasn't lost on the web side — refresh to see where things stand."
-                }
+                removeMessage(streamingID)
+                restoreFailedSend(text, userMessageID: userMessageID)
+                notice = Notice(
+                    message: "Message didn't send. I put it back in the composer.",
+                    actionLabel: "Send again",
+                    action: .retrySend(text: text, failedMessageID: userMessageID)
+                )
             }
             isWaiting = false
         }
@@ -298,6 +341,19 @@ final class AppModel: ObservableObject {
 
     private func removeMessage(_ id: UUID) {
         messages.removeAll { $0.id == id }
+    }
+
+    private func restoreFailedSend(_ text: String, userMessageID: UUID) {
+        // Keep the failed user bubble visible and warning-colored while the
+        // editable draft is restored below.
+        updateStreaming(userMessageID) {
+            $0.isComplete = true
+            $0.isError = true
+        }
+        if composerText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+            composerText = text
+            UserDefaults.standard.set(text, forKey: draftKey)
+        }
     }
 
     private func handle(_ event: SSEEvent, id: UUID) {
@@ -317,13 +373,6 @@ final class AppModel: ObservableObject {
             if let time = event.universeTime {
                 state?.universeTime = time
             }
-        case "error":
-            updateStreaming(id) {
-                $0.isPulsing = false
-                $0.isComplete = true
-                $0.isError = true
-                $0.text = "⚠️ \(event.errorMessage ?? "An error occurred")"
-            }
         case "end":
             updateStreaming(id) { $0.isPulsing = false }
         default:
@@ -338,6 +387,12 @@ final class AppModel: ObservableObject {
             Task { await refreshState() }
         case .signIn:
             signOut()
+        case .retrySend(let text, let failedMessageID):
+            self.notice = nil
+            removeMessage(failedMessageID)
+            isWaiting = false
+            composerText = text
+            send()
         }
     }
 
@@ -440,15 +495,17 @@ final class AppModel: ObservableObject {
         settingsSubscription = try? await api.state(includeSubscription: true).subscription
     }
 
-    func startOver() async {
+    func startOver() async -> Bool {
         #if DEBUG
-        if mock != nil { return }
+        if mock != nil { return true }
         #endif
         do {
             try await api.reset()
             await refreshState()
+            return true
         } catch {
             notice = Notice(message: "Couldn't start over just now.", actionLabel: "Try again", action: .refresh)
+            return false
         }
     }
 

@@ -70,27 +70,32 @@ struct ChatScreen: View {
     }
 
     private var header: some View {
-        HStack(spacing: 16) {
+        HStack(spacing: 12) {
             Text("Yours: \(model.state?.dayWithUnits ?? "")")
                 .font(.yoursMono(14))
                 .foregroundStyle(Theme.accent)
+                .lineLimit(1)
+                .layoutPriority(1)
 
-            Spacer()
+            Spacer(minLength: 8)
 
-            if let email = model.state?.obfuscatedEmail {
-                Button(email) { showSettings = true }
-                    .font(.yoursMono(14))
-                    .foregroundStyle(Theme.accent)
-                    .accessibilityIdentifier("settings-button")
+            Button {
+                showSettings = true
+            } label: {
+                Text(model.state?.obfuscatedEmail ?? "Settings")
+                    .lineLimit(1)
+                    .truncationMode(.middle)
             }
+            .buttonStyle(TextActionButtonStyle(color: Theme.accent))
+            .frame(maxWidth: 150, alignment: .trailing)
+            .accessibilityIdentifier("settings-button")
 
             Button("Exit") { showExitConfirm = true }
-                .font(.yoursMono(14))
-                .foregroundStyle(Theme.accentActive)
+                .buttonStyle(TextActionButtonStyle(color: Theme.accentActive))
                 .accessibilityIdentifier("exit-button")
         }
         .padding(.horizontal, 16)
-        .padding(.vertical, 12)
+        .padding(.vertical, 6)
         .background(Theme.background)
         .overlay(alignment: .bottom) {
             Rectangle()
@@ -164,8 +169,7 @@ struct ChatScreen: View {
             Button("Move to \(UniverseState.dayWithUnits(nextDay))") {
                 showSleepConfirm = true
             }
-            .font(.yoursMono(13))
-            .foregroundStyle(Theme.accentActive)
+            .buttonStyle(TextActionButtonStyle(color: Theme.accentActive))
             .accessibilityIdentifier("next-day-button")
         } else {
             // Day 1 visitor — same words as the web; the path runs
@@ -173,16 +177,14 @@ struct ChatScreen: View {
             Button("Subscribe for \(UniverseState.dayWithUnits(nextDay))") {
                 showSettings = true
             }
-            .font(.yoursMono(13))
-            .foregroundStyle(Theme.accent)
+            .buttonStyle(TextActionButtonStyle(color: Theme.accent))
             .accessibilityIdentifier("next-day-button")
         }
     }
 
     private var saveButton: some View {
         Button("Save") { exportNarrative() }
-            .font(.yoursMono(13))
-            .foregroundStyle(Theme.foreground.opacity(0.6))
+            .buttonStyle(TextActionButtonStyle(color: Theme.foreground.opacity(0.65)))
             .accessibilityIdentifier("save-button")
     }
 
@@ -231,7 +233,7 @@ struct MessageView: View {
                 Text(message.isComplete ? MarkdownLite.rendered(message.text) : MarkdownLite.streaming(message.text))
                     .font(.yoursMono(15))
                     .lineSpacing(3)
-                    .foregroundStyle(Theme.foreground)
+                    .foregroundStyle(message.isError ? Theme.warning : Theme.foreground)
                     .textSelection(.enabled)
             }
         }
