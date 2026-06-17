@@ -80,7 +80,7 @@ struct TextActionButtonStyle: ButtonStyle {
     func makeBody(configuration: Configuration) -> some View {
         configuration.label
             .font(.yoursMono(14))
-            .foregroundStyle(configuration.isPressed ? Theme.accentActive : color)
+            .foregroundStyle(color)
             .padding(.horizontal, 4)
             .frame(minWidth: 44, minHeight: 44)
             .contentShape(Rectangle())

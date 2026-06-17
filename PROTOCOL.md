@@ -118,6 +118,17 @@ Cancellation has no native path: the OS owns subscription management
 and describe where to manage it, the same way the web app owns Stripe's
 cancel flow.
 
+Native settings must expose Terms of Use and Privacy Policy links for signed-in
+users, even when they are not looking at the purchase wall. The purchase wall
+also keeps those links adjacent to the StoreKit / Play Billing controls.
+
+Restore purchase is an entitlement re-sync, not a new checkout: ask the
+storefront to refresh receipts, walk current entitlements, and POST any
+matching transaction back through `POST /native/subscription`. If a matching
+entitlement exists but the server cannot verify it, show that verification
+failure. Only show "no active subscription found" when no matching current
+entitlement is present.
+
 ## Continuity (cross-device safety)
 
 Send `Assert-Yours-Universe-Time: <day>:<message count>` with `POST /stream`
@@ -149,9 +160,22 @@ as `event: <name>\ndata: <json>\n\n`:
 - `message_stop` — message complete; apply full markdown treatment
 - `universe_time` — `{ universe_time }`: the server saved the narrative;
   adopt this value
-- `error` — `{ error: { message } }`: display it
+- `error` — `{ error: { message } }`: terminal for that exchange. Stop
+  applying subsequent stream events, remove the assistant placeholder, keep
+  the failed user bubble marked, restore the text to the composer, and offer
+  retry. If the message says the space moved forward elsewhere, offer refresh
+  instead.
 - `end` — always last; **arrives with no data line and no trailing blank
   line**, so flush your parser at EOF
+
+## Sleep integration
+
+`POST /sleep` returns `starting_universe_time`; native clients poll
+`/native/state` once per second until the returned `universe_time` differs.
+Match the web's minimum five-second display before showing Continue. Timeout
+after 300 seconds, with an affordance to check again. Do not reopen chat from
+the pre-sleep local state; only `GET /native/state` can move the app out of
+the sleep phase after integration begins.
 
 ## Rendering rules shared by all clients
 
@@ -174,3 +198,7 @@ The composer draft saves locally on every keystroke (web: localStorage;
 iOS: UserDefaults, key `yours-input-<universe_time>`) and to the server
 (`PUT /textarea`) after 1.5s of stillness. On load, prefer whichever of
 server/local is longer. Clear both when a message sends.
+
+If a send fails before settlement, restore the attempted text into the
+composer and persist it under the current draft key. Keep the failed user
+message visible as a warning marker until the person refreshes or retries.

@@ -272,7 +272,7 @@ final class AppModel: ObservableObject {
                 for try await event in events {
                     if event.name == "error" {
                         streamErrorMessage = event.errorMessage ?? "An error occurred"
-                        continue
+                        break
                     }
                     handle(event, id: streamingID)
                 }
@@ -344,6 +344,8 @@ final class AppModel: ObservableObject {
     }
 
     private func restoreFailedSend(_ text: String, userMessageID: UUID) {
+        // Keep the failed user bubble visible and warning-colored while the
+        // editable draft is restored below.
         updateStreaming(userMessageID) {
             $0.isComplete = true
             $0.isError = true
@@ -371,13 +373,6 @@ final class AppModel: ObservableObject {
             if let time = event.universeTime {
                 state?.universeTime = time
             }
-        case "error":
-            updateStreaming(id) {
-                $0.isPulsing = false
-                $0.isComplete = true
-                $0.isError = true
-                $0.text = "⚠️ \(event.errorMessage ?? "An error occurred")"
-            }
         case "end":
             updateStreaming(id) { $0.isPulsing = false }
         default:
@@ -395,6 +390,7 @@ final class AppModel: ObservableObject {
         case .retrySend(let text, let failedMessageID):
             self.notice = nil
             removeMessage(failedMessageID)
+            isWaiting = false
             composerText = text
             send()
         }

@@ -81,6 +81,11 @@ final class Store: ObservableObject {
         } catch APIError.unauthenticated {
             purchaseError = "Sign in again before purchasing."
             return nil
+        } catch APIError.subscriptionRequired(let message) {
+            purchaseError = message.isEmpty
+                ? "That App Store purchase belongs to a different Yours account."
+                : message
+            return nil
         } catch APIError.divergence {
             purchaseError = "That App Store subscription is already linked to another Yours account."
             return nil
@@ -131,6 +136,13 @@ final class Store: ObservableObject {
                     purchaseError = "That App Store subscription is already linked to another Yours account."
                 }
                 return nil
+            } catch APIError.subscriptionRequired(let message) {
+                if reportErrors {
+                    purchaseError = message.isEmpty
+                        ? "That App Store purchase belongs to a different Yours account."
+                        : message
+                    return nil
+                }
             } catch APIError.unauthenticated {
                 if reportErrors {
                     purchaseError = "Sign in again before restoring purchases."
@@ -150,7 +162,7 @@ final class Store: ObservableObject {
 
     // Hand the JWS representation to the server, which is the authority on
     // whether it's genuine. We finish the transaction once the server has it.
-    private func submit(_ verification: VerificationResult<Transaction>, api: YoursAPI) async throws -> UniverseState? {
+    private func submit(_ verification: VerificationResult<Transaction>, api: YoursAPI) async throws -> UniverseState {
         let signed = verification.jwsRepresentation
         let state = try await api.verifySubscription(platform: "apple", signedTransaction: signed)
         if case .verified(let transaction) = verification {
@@ -169,9 +181,8 @@ final class Store: ObservableObject {
         else { return }
 
         do {
-            if let state = try await submit(verification, api: api) {
-                onSyncedState(state)
-            }
+            let state = try await submit(verification, api: api)
+            onSyncedState(state)
             purchaseError = nil
         } catch APIError.http(422) {
             // StoreKit verified the transaction, but the server found no

@@ -114,7 +114,7 @@ struct SettingsView: View {
                     .font(.yoursBody(15))
                     .foregroundStyle(Theme.foreground.opacity(0.6))
                     .padding(.top, 6)
-                Button("Manage Stripe on web") {
+                Button("Manage subscription on web") {
                     if let url = URL(string: "https://yours.fyi/settings") {
                         openURL(url)
                     }
@@ -145,9 +145,9 @@ struct SettingsView: View {
     private var legalBody: some View {
         VStack(alignment: .leading, spacing: 8) {
             Link("Terms of Use", destination: URL(string: "https://yours.fyi/terms")!)
-                .frame(minHeight: 44, alignment: .leading)
+                .frame(maxWidth: .infinity, minHeight: 44, alignment: .leading)
             Link("Privacy Policy", destination: URL(string: "https://yours.fyi/privacy")!)
-                .frame(minHeight: 44, alignment: .leading)
+                .frame(maxWidth: .infinity, minHeight: 44, alignment: .leading)
         }
         .font(.yoursMono(14))
         .foregroundStyle(Theme.accent)
