@@ -78,6 +78,15 @@ final class Store: ObservableObject {
             @unknown default:
                 return nil
             }
+        } catch APIError.unauthenticated {
+            purchaseError = "Sign in again before purchasing."
+            return nil
+        } catch APIError.divergence {
+            purchaseError = "That App Store subscription is already linked to another Yours account."
+            return nil
+        } catch APIError.http(502) {
+            purchaseError = "The App Store purchase couldn't be verified just now. Tap Restore purchase to retry."
+            return nil
         } catch {
             purchaseError = "Purchase didn't complete. Try again?"
             return nil
@@ -90,8 +99,14 @@ final class Store: ObservableObject {
         purchaseError = nil
         defer { purchasing = false }
 
-        if let state = await syncExistingEntitlement(api: api) {
+        try? await AppStore.sync()
+
+        if let state = await syncExistingEntitlement(api: api, reportErrors: true) {
             return state
+        }
+
+        if purchaseError != nil {
+            return nil
         }
 
         purchaseError = "No active subscription found to restore."
@@ -102,14 +117,31 @@ final class Store: ObservableObject {
     // purchase prompt. Unlike the explicit restore button, this does not set
     // loading/error UI: if nothing verifies, the normal subscription choices
     // are shown.
-    func syncExistingEntitlement(api: YoursAPI) async -> UniverseState? {
+    func syncExistingEntitlement(api: YoursAPI, reportErrors: Bool = false) async -> UniverseState? {
         for await result in Transaction.currentEntitlements {
             guard case .verified(let transaction) = result,
                   Self.productIDs.contains(transaction.productID)
             else { continue }
 
-            if let state = try? await submit(result, api: api) {
+            do {
+                let state = try await submit(result, api: api)
                 return state
+            } catch APIError.divergence {
+                if reportErrors {
+                    purchaseError = "That App Store subscription is already linked to another Yours account."
+                }
+                return nil
+            } catch APIError.unauthenticated {
+                if reportErrors {
+                    purchaseError = "Sign in again before restoring purchases."
+                    return nil
+                }
+            } catch {
+                if reportErrors {
+                    purchaseError = "Couldn't verify the App Store purchase just now. Try Restore purchase again in a minute."
+                    return nil
+                }
+                continue
             }
         }
 

@@ -28,11 +28,12 @@ struct LandingView: View {
                 .multilineTextAlignment(.center)
                 .padding(.bottom, 48)
 
-            Button("Enter via Google") {
+            Button(model.isSigningIn ? "Opening Google..." : "Enter via Google") {
                 Task { await model.signIn() }
             }
             .buttonStyle(WebButtonStyle())
             .accessibilityIdentifier("landing-google-button")
+            .disabled(model.isSigningIn)
 
             if let error = model.landingError {
                 Text(error)
@@ -61,6 +62,7 @@ struct WebButtonStyle: ButtonStyle {
             .foregroundStyle(configuration.isPressed ? Theme.background : color)
             .padding(.vertical, 8)
             .padding(.horizontal, 16)
+            .frame(minHeight: 44)
             .background(configuration.isPressed ? color : Theme.borderLight)
             .overlay(alignment: .leading) {
                 Rectangle()
@@ -69,5 +71,20 @@ struct WebButtonStyle: ButtonStyle {
             }
             .clipShape(RoundedRectangle(cornerRadius: 4))
             .animation(.easeOut(duration: 0.2), value: configuration.isPressed)
+    }
+}
+
+struct TextActionButtonStyle: ButtonStyle {
+    var color: Color = Theme.accent
+
+    func makeBody(configuration: Configuration) -> some View {
+        configuration.label
+            .font(.yoursMono(14))
+            .foregroundStyle(configuration.isPressed ? Theme.accentActive : color)
+            .padding(.horizontal, 4)
+            .frame(minWidth: 44, minHeight: 44)
+            .contentShape(Rectangle())
+            .opacity(configuration.isPressed ? 0.7 : 1)
+            .animation(.easeOut(duration: 0.15), value: configuration.isPressed)
     }
 }

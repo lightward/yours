@@ -15,6 +15,10 @@ struct SubscribeOptions: View {
                 .font(.yoursBody(16))
                 .foregroundStyle(Theme.foreground)
 
+            Text("Each monthly tier unlocks the same ongoing access. Choose what fits.")
+                .font(.yoursBody(14))
+                .foregroundStyle(Theme.foreground.opacity(0.7))
+
             if store.sortedProducts.isEmpty {
                 Text("Loading subscription options…")
                     .font(.yoursMono(13))
@@ -41,8 +45,7 @@ struct SubscribeOptions: View {
             Button("Restore purchase") {
                 Task { await model.restorePurchases() }
             }
-            .font(.yoursMono(13))
-            .foregroundStyle(Theme.accent)
+            .buttonStyle(TextActionButtonStyle(color: Theme.accent))
             .disabled(store.purchasing)
 
             if let error = store.purchaseError {

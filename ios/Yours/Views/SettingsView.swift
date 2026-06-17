@@ -21,8 +21,7 @@ struct SettingsView: View {
                             .accessibilityIdentifier("settings-title")
                         Spacer()
                         Button("Done") { dismiss() }
-                            .font(.yoursMono(14))
-                            .foregroundStyle(Theme.accent)
+                            .buttonStyle(TextActionButtonStyle(color: Theme.accent))
                             .accessibilityIdentifier("settings-done-button")
                     }
 
@@ -35,12 +34,17 @@ struct SettingsView: View {
                                 .buttonStyle(WebButtonStyle(
                                     color: model.themePreference == preference ? Theme.accentActive : Theme.accent
                                 ))
+                                .accessibilityValue(model.themePreference == preference ? "Selected" : "")
                             }
                         }
                     }
 
                     section("Subscription") {
                         subscriptionBody
+                    }
+
+                    section("Legal") {
+                        legalBody
                     }
 
                     section("Start over") {
@@ -58,8 +62,9 @@ struct SettingsView: View {
         .confirmationDialog("Start over?", isPresented: $showStartOverConfirm, titleVisibility: .visible) {
             Button("Start over", role: .destructive) {
                 Task {
-                    await model.startOver()
-                    dismiss()
+                    if await model.startOver() {
+                        dismiss()
+                    }
                 }
             }
         } message: {
@@ -68,8 +73,9 @@ struct SettingsView: View {
         .confirmationDialog("Delete your account?", isPresented: $showDeleteConfirm, titleVisibility: .visible) {
             Button("Delete everything", role: .destructive) {
                 Task {
-                    await model.deleteAccount()
-                    dismiss()
+                    if await model.deleteAccount() {
+                        dismiss()
+                    }
                 }
             }
         } message: {
@@ -84,8 +90,7 @@ struct SettingsView: View {
                 .font(.yoursBody(16))
                 .foregroundStyle(Theme.foreground)
             Button("Delete account") { showDeleteConfirm = true }
-                .font(.yoursMono(14))
-                .foregroundStyle(Theme.error)
+                .buttonStyle(TextActionButtonStyle(color: Theme.error))
             Text("There is no undo.")
                 .font(.yoursBody(14))
                 .foregroundStyle(Theme.warning)
@@ -109,7 +114,7 @@ struct SettingsView: View {
                     .font(.yoursBody(15))
                     .foregroundStyle(Theme.foreground.opacity(0.6))
                     .padding(.top, 6)
-                Button("Manage on web") {
+                Button("Manage Stripe on web") {
                     if let url = URL(string: "https://yours.fyi/settings") {
                         openURL(url)
                     }
@@ -137,6 +142,18 @@ struct SettingsView: View {
     }
 
     @ViewBuilder
+    private var legalBody: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Link("Terms of Use", destination: URL(string: "https://yours.fyi/terms")!)
+                .frame(minHeight: 44, alignment: .leading)
+            Link("Privacy Policy", destination: URL(string: "https://yours.fyi/privacy")!)
+                .frame(minHeight: 44, alignment: .leading)
+        }
+        .font(.yoursMono(14))
+        .foregroundStyle(Theme.accent)
+    }
+
+    @ViewBuilder
     private var startOverBody: some View {
         VStack(alignment: .leading, spacing: 10) {
             Text("Begin at the beginning, at the dawn of \(UniverseState.dayWithUnits(1)), with no trace of what was.")
@@ -145,8 +162,7 @@ struct SettingsView: View {
 
             if model.state?.subscriptionActive == true {
                 Button("Start over") { showStartOverConfirm = true }
-                    .font(.yoursMono(14))
-                    .foregroundStyle(Theme.accentActive)
+                    .buttonStyle(TextActionButtonStyle(color: Theme.accentActive))
                 Text("There is no undo.")
                     .font(.yoursBody(14))
                     .foregroundStyle(Theme.warning)

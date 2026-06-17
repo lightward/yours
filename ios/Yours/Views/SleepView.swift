@@ -8,7 +8,9 @@ struct SleepView: View {
     @EnvironmentObject private var model: AppModel
     @State private var dots = ""
     @State private var finished = false
+    @State private var timedOut = false
     @State private var auraVisible = true
+    @State private var integrationTaskID = UUID()
 
     var body: some View {
         ZStack {
@@ -21,11 +23,32 @@ struct SleepView: View {
 
             if finished {
                 Button("Continue") {
-                    Task { await model.refreshState() }
+                    Task {
+                        await model.refreshState()
+                    }
                 }
-                .font(.yoursMono(14))
-                .foregroundStyle(Theme.accent)
+                .buttonStyle(WebButtonStyle())
                 .accessibilityIdentifier("sleep-continue-button")
+            } else if timedOut {
+                VStack(spacing: 16) {
+                    Text("Still integrating \(model.state.map(\.dayWithUnits) ?? "the day").")
+                        .font(.yoursMono(14))
+                        .foregroundStyle(Theme.accentActive)
+                        .multilineTextAlignment(.center)
+
+                    Button("Check again") {
+                        timedOut = false
+                        auraVisible = true
+                        integrationTaskID = UUID()
+                    }
+                    .buttonStyle(WebButtonStyle())
+
+                    Button("Exit") {
+                        model.signOut()
+                    }
+                    .buttonStyle(TextActionButtonStyle(color: Theme.accent))
+                }
+                .padding(24)
             } else {
                 Text("Integrating \(model.state.map(\.dayWithUnits) ?? "the day")\(dots)")
                     .font(.yoursMono(14))
@@ -33,14 +56,14 @@ struct SleepView: View {
                     .accessibilityIdentifier("sleep-integrating-label")
             }
         }
-        .task { await animateEllipsis() }
-        .task { await awaitIntegration() }
+        .task(id: integrationTaskID) { await animateEllipsis() }
+        .task(id: integrationTaskID) { await awaitIntegration() }
     }
 
     private func animateEllipsis() async {
         let states = ["", ".", "..", "..."]
         var index = 0
-        while !Task.isCancelled && !finished {
+        while !Task.isCancelled && !finished && !timedOut {
             dots = states[index]
             index = (index + 1) % states.count
             try? await Task.sleep(for: .milliseconds(500))
@@ -49,11 +72,22 @@ struct SleepView: View {
 
     private func awaitIntegration() async {
         let start = Date()
+        let timeout: TimeInterval = 300
         while !Task.isCancelled {
-            if await model.sleepIntegrationFinished() { break }
+            if await model.sleepIntegrationFinished() {
+                await finishIntegration(startedAt: start)
+                return
+            }
+            if Date().timeIntervalSince(start) >= timeout {
+                auraVisible = false
+                timedOut = true
+                return
+            }
             try? await Task.sleep(for: .seconds(1))
         }
+    }
 
+    private func finishIntegration(startedAt start: Date) async {
         // Match the web's minimum display: the night deserves its moment
         let minimum: TimeInterval = 5
         let elapsed = Date().timeIntervalSince(start)

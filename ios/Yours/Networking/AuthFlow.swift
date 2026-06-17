@@ -12,8 +12,11 @@ final class AuthFlow: NSObject, ASWebAuthenticationPresentationContextProviding 
     private var callbackContinuation: CheckedContinuation<URL, Error>?
 
     struct Cancelled: Error {}
+    struct AlreadyActive: Error {}
 
     func signIn(api: YoursAPI) async throws -> (token: String, obfuscatedEmail: String?) {
+        guard activeSession == nil else { throw AlreadyActive() }
+
         let verifier = Self.randomVerifier()
         let challenge = Self.challenge(for: verifier)
 
@@ -49,7 +52,11 @@ final class AuthFlow: NSObject, ASWebAuthenticationPresentationContextProviding 
             // behind an explicit confirmation tap; this is the matching half.)
             session.prefersEphemeralWebBrowserSession = true
             activeSession = session
-            session.start()
+            if !session.start() {
+                activeSession = nil
+                callbackContinuation = nil
+                continuation.resume(throwing: Cancelled())
+            }
         }
 
         guard let code = URLComponents(url: callbackURL, resolvingAgainstBaseURL: false)?
