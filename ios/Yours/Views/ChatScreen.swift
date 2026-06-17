@@ -39,6 +39,15 @@ struct ChatScreen: View {
                 .onChange(of: model.messages.last?.text) {
                     proxy.scrollTo("bottom", anchor: .bottom)
                 }
+                .onChange(of: composerFocused) {
+                    guard composerFocused else { return }
+                    Task {
+                        try? await Task.sleep(for: .milliseconds(250))
+                        withAnimation(.easeOut(duration: 0.25)) {
+                            proxy.scrollTo("bottom", anchor: .bottom)
+                        }
+                    }
+                }
             }
 
             composer
@@ -70,7 +79,7 @@ struct ChatScreen: View {
     }
 
     private var header: some View {
-        HStack(spacing: 12) {
+        HStack(spacing: 8) {
             Text("Yours: \(model.state?.dayWithUnits ?? "")")
                 .font(.yoursMono(14))
                 .foregroundStyle(Theme.accent)
@@ -87,8 +96,10 @@ struct ChatScreen: View {
                     .truncationMode(.middle)
             }
             .buttonStyle(TextActionButtonStyle(color: Theme.accent))
-            .frame(maxWidth: 150, alignment: .trailing)
+            .frame(maxWidth: 100, alignment: .trailing)
             .accessibilityIdentifier("settings-button")
+
+            exportButton
 
             Button("Exit") { showExitConfirm = true }
                 .buttonStyle(TextActionButtonStyle(color: Theme.accentActive))
@@ -138,26 +149,27 @@ struct ChatScreen: View {
 
     private var composerActions: some View {
         ViewThatFits(in: .horizontal) {
-            HStack(spacing: 16) {
-                sendButton
+            HStack(spacing: 12) {
                 nextDayButton
-                Spacer()
-                saveButton
+                Spacer(minLength: 8)
+                sendButton
             }
 
             VStack(alignment: .leading, spacing: 12) {
-                HStack {
-                    sendButton
-                    Spacer()
-                    saveButton
-                }
                 nextDayButton
+                HStack(spacing: 12) {
+                    Spacer()
+                    sendButton
+                }
             }
         }
     }
 
     private var sendButton: some View {
-        Button("Send") { model.send() }
+        Button("Send") {
+            composerFocused = false
+            model.send()
+        }
             .buttonStyle(WebButtonStyle())
             .accessibilityIdentifier("send-button")
             .disabled(model.composerText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
@@ -182,9 +194,17 @@ struct ChatScreen: View {
         }
     }
 
-    private var saveButton: some View {
-        Button("Save") { exportNarrative() }
-            .buttonStyle(TextActionButtonStyle(color: Theme.foreground.opacity(0.65)))
+    private var exportButton: some View {
+        Button {
+            exportNarrative()
+        } label: {
+            Image(systemName: "square.and.arrow.up")
+                .font(.system(size: 17, weight: .regular))
+                .frame(width: 44, height: 44)
+        }
+            .foregroundStyle(Theme.foreground.opacity(0.65))
+            .contentShape(Rectangle())
+            .accessibilityLabel("Export narrative")
             .accessibilityIdentifier("save-button")
     }
 
