@@ -33,7 +33,7 @@ Rails.application.configure do
     policy.frame_src   "https://status.yours.fyi", "https://*.statuspage.io"
     policy.object_src  :none
     policy.frame_ancestors :none
-    policy.base_uri    :self
+    policy.base_uri :self
     # forms post to self and the canonical host; Chrome enforces form-action
     # through redirect chains, so the two off-site handoffs are named. HOST is
     # absent during boot-only contexts (asset precompilation, db tasks), so the
