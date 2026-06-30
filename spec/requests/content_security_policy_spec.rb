@@ -28,8 +28,15 @@ RSpec.describe "Content Security Policy", type: :request do
     expect(csp).to include("frame-ancestors 'none'")
   end
 
-  it "constrains form targets to self plus the two named off-site handoffs" do
-    expect(csp).to match(/form-action 'self' https:\/\/accounts\.google\.com https:\/\/checkout\.stripe\.com/)
+  it "constrains form targets to self, canonical host, and the named off-site handoffs" do
+    expect(csp).to include("form-action 'self'")
+    expect(csp).to include("https://#{ENV.fetch("HOST")}")
+    expect(csp).to include("https://accounts.google.com")
+    expect(csp).to include("https://checkout.stripe.com")
+  end
+
+  it "allows the status embed frame hosts" do
+    expect(csp).to include("frame-src https://status.yours.fyi https://*.statuspage.io")
   end
 
   it "pins script execution to self plus named hosts" do
