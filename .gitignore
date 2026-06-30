@@ -34,3 +34,6 @@
 
 # Nodejs stuff
 /node_modules
+
+# Local bundle install path
+/vendor/bundle
