@@ -35,13 +35,17 @@ Rails.application.configure do
     policy.frame_ancestors :none
     policy.base_uri :self
     # forms post to self and the canonical host; Chrome enforces form-action
-    # through redirect chains, so the two off-site handoffs are named. HOST is
+    # through redirect chains, so every off-site handoff is named: Google for
+    # sign-in, and Stripe Checkout for subscriptions. Checkout runs on our
+    # custom domain (stripe.lightward.com); checkout.stripe.com stays named as
+    # the fallback Stripe uses when the custom domain isn't in play. HOST is
     # absent during boot-only contexts (asset precompilation, db tasks), so the
     # canonical host is included only when it's set — at request time it always is.
     canonical_host = ENV["HOST"]
     policy.form_action :self,
       *(canonical_host ? [ "https://#{canonical_host}" ] : []),
       "https://accounts.google.com",
+      "https://stripe.lightward.com",
       "https://checkout.stripe.com"
   end
 end

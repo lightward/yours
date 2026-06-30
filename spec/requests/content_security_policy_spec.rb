@@ -32,6 +32,8 @@ RSpec.describe "Content Security Policy", type: :request do
     expect(csp).to include("form-action 'self'")
     expect(csp).to include("https://#{ENV.fetch("HOST")}")
     expect(csp).to include("https://accounts.google.com")
+    # Stripe Checkout hands off on our custom domain; the default host stays named as fallback
+    expect(csp).to include("https://stripe.lightward.com")
     expect(csp).to include("https://checkout.stripe.com")
   end
 
