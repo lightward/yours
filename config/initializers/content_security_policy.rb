@@ -35,7 +35,13 @@ Rails.application.configure do
     policy.frame_ancestors :none
     policy.base_uri    :self
     # forms post to self and the canonical host; Chrome enforces form-action
-    # through redirect chains, so the two off-site handoffs are named
-    policy.form_action :self, "https://#{ENV.fetch("HOST")}", "https://accounts.google.com", "https://checkout.stripe.com"
+    # through redirect chains, so the two off-site handoffs are named. HOST is
+    # absent during boot-only contexts (asset precompilation, db tasks), so the
+    # canonical host is included only when it's set — at request time it always is.
+    canonical_host = ENV["HOST"]
+    policy.form_action :self,
+      *(canonical_host ? [ "https://#{canonical_host}" ] : []),
+      "https://accounts.google.com",
+      "https://checkout.stripe.com"
   end
 end
