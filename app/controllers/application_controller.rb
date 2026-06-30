@@ -466,7 +466,7 @@ class ApplicationController < ActionController::Base
       cancel_url: settings_url
     )
 
-    redirect_to session.url, allow_other_host: true
+    redirect_to session.url, allow_other_host: true, status: :see_other
   rescue ArgumentError => e
     redirect_to settings_path, alert: e.message
   end

@@ -832,6 +832,7 @@ RSpec.describe ApplicationController, type: :request do
 
         post subscription_path, params: { tier: tier }
 
+        expect(response).to have_http_status(:see_other)
         expect(response).to redirect_to(checkout_session.url)
       end
 
