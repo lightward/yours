@@ -1,3 +1,4 @@
+import AuthenticationServices
 import StoreKit
 import SwiftUI
 
@@ -214,6 +215,38 @@ final class AppModel: ObservableObject {
         } catch is AuthFlow.Cancelled {
             // The human closed the sheet; nothing to say
         } catch {
+            landingError = "Sign-in didn't complete. Try again?"
+        }
+    }
+
+    // Sign in with Apple — a separate identity provider from Google. Called
+    // from the SignInWithAppleButton completion; `rawNonce` is the un-hashed
+    // nonce the button's request used (its hash is what Apple signed). The
+    // resulting universe is keyed to the Apple account, independent of Google.
+    func completeAppleSignIn(_ result: Result<ASAuthorization, Error>, rawNonce: String) async {
+        guard !isSigningIn else { return }
+        isSigningIn = true
+        landingError = nil
+        defer { isSigningIn = false }
+
+        switch result {
+        case .success(let authorization):
+            guard let identityToken = AppleSignIn.identityToken(from: authorization) else {
+                landingError = "Sign-in didn't complete. Try again?"
+                return
+            }
+            do {
+                let auth = try await api.appleAuth(identityToken: identityToken, nonce: rawNonce)
+                Keychain.token = auth.token
+                api.token = auth.token
+                landingError = nil
+                await refreshState()
+            } catch {
+                landingError = "Sign-in didn't complete. Try again?"
+            }
+        case .failure(let error):
+            // Cancellation is silent; anything else is a gentle retry prompt.
+            if let authError = error as? ASAuthorizationError, authError.code == .canceled { return }
             landingError = "Sign-in didn't complete. Try again?"
         }
     }
