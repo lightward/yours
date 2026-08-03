@@ -18,30 +18,51 @@ class Resonance < ApplicationRecord
 
   validates :encrypted_google_id_hash, presence: true, uniqueness: true
 
-  # Encryption keyed to Google ID - without the Google ID, data is structurally inaccessible
-  attr_accessor :google_id
+  # Encryption is keyed to the identity_key — without it, the data is
+  # structurally inaccessible. The identity_key is the raw provider subject:
+  # for Google sign-in it's the Google `sub`; for Sign in with Apple it's
+  # "apple:<sub>". Two providers, two independent key spaces, no linking.
+  #
+  # The primary-key column is still named `encrypted_google_id_hash` for
+  # historical reasons; it holds SHA256(identity_key), which for existing
+  # Google resonances is byte-for-byte what it always was, so no data migrates.
+  attr_accessor :identity_key
 
-  # Accessor for google_id_hash (read-only, computed from encrypted field)
-  def google_id_hash
+  # Backward-compatible alias: existing callers set/read `.google_id`. For a
+  # Google resonance the identity_key *is* the Google sub, so this is a no-op
+  # rename that keeps all the old plumbing (controllers, sleep thread) working.
+  alias_method :google_id, :identity_key
+  alias_method :google_id=, :identity_key=
+
+  # Read-only hash of the identity (the stored primary key).
+  def identity_hash
     encrypted_google_id_hash
   end
+  alias_method :google_id_hash, :identity_hash
 
-  # Find or create by Google ID, setting up encryption context
-  def self.find_or_create_by_google_id(google_id)
-    google_id_hash = Digest::SHA256.hexdigest(google_id)
+  # Find or create by identity_key, setting up the encryption context.
+  def self.find_or_create_by_identity(identity_key)
+    hash = Digest::SHA256.hexdigest(identity_key)
 
-    resonance = find_or_initialize_by(encrypted_google_id_hash: google_id_hash)
-    resonance.google_id = google_id
+    resonance = find_or_initialize_by(encrypted_google_id_hash: hash)
+    resonance.identity_key = identity_key
     resonance.save! if resonance.new_record?
     resonance
   end
 
-  # Find by Google ID and decrypt
-  def self.find_by_google_id(google_id)
-    google_id_hash = Digest::SHA256.hexdigest(google_id)
-    resonance = find_by(encrypted_google_id_hash: google_id_hash)
-    resonance.google_id = google_id if resonance
+  def self.find_by_identity(identity_key)
+    resonance = find_by(encrypted_google_id_hash: Digest::SHA256.hexdigest(identity_key))
+    resonance.identity_key = identity_key if resonance
     resonance
+  end
+
+  # Google-named wrappers, kept for existing callers and specs.
+  def self.find_or_create_by_google_id(google_id)
+    find_or_create_by_identity(google_id)
+  end
+
+  def self.find_by_google_id(google_id)
+    find_by_identity(google_id)
   end
 
   # Encrypt data using Google ID as key
@@ -66,9 +87,9 @@ class Resonance < ApplicationRecord
   def decrypt_field(encrypted_value)
     return nil if encrypted_value.nil? || encrypted_value.blank?
 
-    # A missing google_id is an auth-flow bug, not bad data — surface it loudly.
-    unless google_id
-      raise MissingEncryptionKeyError, "Cannot decrypt field: google_id not set. This indicates an authentication flow error."
+    # A missing identity_key is an auth-flow bug, not bad data — surface it loudly.
+    unless identity_key
+      raise MissingEncryptionKeyError, "Cannot decrypt field: identity_key not set. This indicates an authentication flow error."
     end
 
     raw = Base64.strict_decode64(encrypted_value.to_s)
@@ -169,9 +190,11 @@ class Resonance < ApplicationRecord
     end
   end
 
-  # Derive encryption key from Google ID
+  # Derive the encryption key from the identity_key. The salt is unchanged, so
+  # for Google resonances (identity_key == the Google sub) this yields exactly
+  # the same key as before — existing ciphertext decrypts identically.
   def encryption_key
-    raise "Cannot encrypt/decrypt without google_id" unless google_id
-    OpenSSL::PKCS5.pbkdf2_hmac(google_id, "yours-resonance-salt", 100_000, 32, "sha256")
+    raise "Cannot encrypt/decrypt without identity_key" unless identity_key
+    OpenSSL::PKCS5.pbkdf2_hmac(identity_key, "yours-resonance-salt", 100_000, 32, "sha256")
   end
 end

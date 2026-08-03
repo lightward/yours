@@ -1,7 +1,12 @@
+import AuthenticationServices
 import SwiftUI
 
 struct LandingView: View {
     @EnvironmentObject private var model: AppModel
+    @Environment(\.colorScheme) private var colorScheme
+    // Held between the button's request (which sets the hashed nonce) and its
+    // completion (which sends the raw nonce to the server).
+    @State private var appleRawNonce = ""
 
     var body: some View {
         VStack(spacing: 0) {
@@ -34,6 +39,26 @@ struct LandingView: View {
             .buttonStyle(WebButtonStyle())
             .accessibilityIdentifier("landing-google-button")
             .disabled(model.isSigningIn)
+
+            // Sign in with Apple — a second, independent identity provider,
+            // offered because a social login (Google) is (App Store guideline
+            // 4.8). Apple's own button; we set the hashed nonce on the request
+            // and hand the completion to the model, which posts the token +
+            // raw nonce to /native/apple_auth.
+            SignInWithAppleButton(.signIn) { request in
+                appleRawNonce = AppleSignIn.randomNonce()
+                request.requestedScopes = [ .fullName, .email ]
+                request.nonce = AppleSignIn.sha256(appleRawNonce)
+            } onCompletion: { result in
+                Task { await model.completeAppleSignIn(result, rawNonce: appleRawNonce) }
+            }
+            .signInWithAppleButtonStyle(colorScheme == .dark ? .white : .black)
+            .frame(maxWidth: 280)
+            .frame(height: 48)
+            .clipShape(RoundedRectangle(cornerRadius: 4))
+            .accessibilityIdentifier("landing-apple-button")
+            .disabled(model.isSigningIn)
+            .padding(.top, 16)
 
             if let error = model.landingError {
                 Text(error)
