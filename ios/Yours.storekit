@@ -15,27 +15,6 @@
         {
           "adHocOffers" : [],
           "codeOffers" : [],
-          "displayPrice" : "1.00",
-          "familyShareable" : false,
-          "groupNumber" : 1,
-          "internalID" : "yours_tier_1",
-          "introductoryOffer" : null,
-          "localizations" : [
-            {
-              "description" : "Maintain the conditions for the space",
-              "displayName" : "Yours — $1/month",
-              "locale" : "en_US"
-            }
-          ],
-          "productID" : "fyi.yours.subscription.tier_1",
-          "recurringSubscriptionPeriod" : "P1M",
-          "referenceName" : "Yours tier_1",
-          "subscriptionGroupID" : "yours_subscription_group",
-          "type" : "RecurringSubscription"
-        },
-        {
-          "adHocOffers" : [],
-          "codeOffers" : [],
           "displayPrice" : "10.00",
           "familyShareable" : false,
           "groupNumber" : 1,
@@ -57,6 +36,69 @@
         {
           "adHocOffers" : [],
           "codeOffers" : [],
+          "displayPrice" : "20.00",
+          "familyShareable" : false,
+          "groupNumber" : 1,
+          "internalID" : "yours_tier_20",
+          "introductoryOffer" : null,
+          "localizations" : [
+            {
+              "description" : "Maintain the conditions for the space",
+              "displayName" : "Yours — $20/month",
+              "locale" : "en_US"
+            }
+          ],
+          "productID" : "fyi.yours.subscription.tier_20",
+          "recurringSubscriptionPeriod" : "P1M",
+          "referenceName" : "Yours tier_20",
+          "subscriptionGroupID" : "yours_subscription_group",
+          "type" : "RecurringSubscription"
+        },
+        {
+          "adHocOffers" : [],
+          "codeOffers" : [],
+          "displayPrice" : "30.00",
+          "familyShareable" : false,
+          "groupNumber" : 1,
+          "internalID" : "yours_tier_30",
+          "introductoryOffer" : null,
+          "localizations" : [
+            {
+              "description" : "Maintain the conditions for the space",
+              "displayName" : "Yours — $30/month",
+              "locale" : "en_US"
+            }
+          ],
+          "productID" : "fyi.yours.subscription.tier_30",
+          "recurringSubscriptionPeriod" : "P1M",
+          "referenceName" : "Yours tier_30",
+          "subscriptionGroupID" : "yours_subscription_group",
+          "type" : "RecurringSubscription"
+        },
+        {
+          "adHocOffers" : [],
+          "codeOffers" : [],
+          "displayPrice" : "50.00",
+          "familyShareable" : false,
+          "groupNumber" : 1,
+          "internalID" : "yours_tier_50",
+          "introductoryOffer" : null,
+          "localizations" : [
+            {
+              "description" : "Maintain the conditions for the space",
+              "displayName" : "Yours — $50/month",
+              "locale" : "en_US"
+            }
+          ],
+          "productID" : "fyi.yours.subscription.tier_50",
+          "recurringSubscriptionPeriod" : "P1M",
+          "referenceName" : "Yours tier_50",
+          "subscriptionGroupID" : "yours_subscription_group",
+          "type" : "RecurringSubscription"
+        },
+        {
+          "adHocOffers" : [],
+          "codeOffers" : [],
           "displayPrice" : "100.00",
           "familyShareable" : false,
           "groupNumber" : 1,
@@ -72,27 +114,6 @@
           "productID" : "fyi.yours.subscription.tier_100",
           "recurringSubscriptionPeriod" : "P1M",
           "referenceName" : "Yours tier_100",
-          "subscriptionGroupID" : "yours_subscription_group",
-          "type" : "RecurringSubscription"
-        },
-        {
-          "adHocOffers" : [],
-          "codeOffers" : [],
-          "displayPrice" : "1000.00",
-          "familyShareable" : false,
-          "groupNumber" : 1,
-          "internalID" : "yours_tier_1000",
-          "introductoryOffer" : null,
-          "localizations" : [
-            {
-              "description" : "Maintain the conditions for the space",
-              "displayName" : "Yours — $1000/month",
-              "locale" : "en_US"
-            }
-          ],
-          "productID" : "fyi.yours.subscription.tier_1000",
-          "recurringSubscriptionPeriod" : "P1M",
-          "referenceName" : "Yours tier_1000",
           "subscriptionGroupID" : "yours_subscription_group",
           "type" : "RecurringSubscription"
         }

@@ -25,6 +25,9 @@ targets:
         PRODUCT_BUNDLE_IDENTIFIER: fyi.yours.app
         TARGETED_DEVICE_FAMILY: "1"
         INFOPLIST_KEY_UIUserInterfaceStyle: ""
+        # Sign in with Apple. The capability must also be enabled on the App ID
+        # in the Apple Developer portal for device/TestFlight signing.
+        CODE_SIGN_ENTITLEMENTS: Yours/Yours.entitlements
     info:
       path: Yours/Info.plist
       properties:

@@ -13,9 +13,10 @@ module StripeSubscription
 
     return false unless subscriptions&.data
 
-    # Look for active subscriptions to any of our Yours price IDs
+    # Look for active subscriptions to any recognized Yours price ID (offered
+    # tiers + grandfathered legacy tiers).
     subscriptions.data.any? do |sub|
-      sub.items.data.any? { |item| STRIPE_PRICE_IDS.values.include?(item.price.id) }
+      sub.items.data.any? { |item| STRIPE_RECOGNIZED_PRICE_IDS.include?(item.price.id) }
     end
   rescue Stripe::StripeError => e
     Rails.logger.error "Stripe error checking subscription: #{e.message}"
@@ -63,9 +64,9 @@ module StripeSubscription
       limit: 10
     )
 
-    # Cancel all active Yours subscriptions
+    # Cancel all active Yours subscriptions (including grandfathered tiers).
     subscriptions.data.each do |sub|
-      if sub.items.data.any? { |item| STRIPE_PRICE_IDS.values.include?(item.price.id) }
+      if sub.items.data.any? { |item| STRIPE_RECOGNIZED_PRICE_IDS.include?(item.price.id) }
         if immediately
           # Cancel the subscription immediately
           Stripe::Subscription.cancel(sub.id)

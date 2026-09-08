@@ -84,6 +84,23 @@ final class YoursAPI: @unchecked Sendable {
         return (token, object["obfuscated_email"] as? String)
     }
 
+    // Sign in with Apple: hand the server Apple's identity token plus the raw
+    // nonce the app used. The server verifies it against Apple's keys and mints
+    // a bearer token for the "apple:<sub>" identity. See PROTOCOL.md.
+    func appleAuth(identityToken: String, nonce: String) async throws -> (token: String, obfuscatedEmail: String?) {
+        var request = makeRequest("native/apple_auth", method: "POST")
+        request.httpBody = try JSONSerialization.data(withJSONObject: [
+            "identity_token": identityToken,
+            "nonce": nonce
+        ])
+        let (data, response) = try await session.data(for: request)
+        try Self.check(response, data: data)
+        guard let object = try JSONSerialization.jsonObject(with: data) as? [String: Any],
+              let token = object["token"] as? String
+        else { throw APIError.badResponse }
+        return (token, object["obfuscated_email"] as? String)
+    }
+
     func state(includeSubscription: Bool = false) async throws -> UniverseState {
         // Query items must go through URLComponents — URL.appending(path:)
         // would percent-encode the "?" into the path and miss the route.

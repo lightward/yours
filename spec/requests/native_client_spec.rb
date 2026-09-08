@@ -227,6 +227,49 @@ RSpec.describe "Native client protocol", type: :request do
     end
   end
 
+  describe "POST /native/apple_auth (Sign in with Apple)" do
+    let(:apple_result) { AppleIdentity::Result.new(sub: "000123.apple.sub", email: "u@privaterelay.appleid.com") }
+
+    it "mints a bearer token for a verified Apple identity, keyed to apple:<sub>" do
+      allow_any_instance_of(AppleIdentity).to receive(:verify).and_return(apple_result)
+
+      post "/native/apple_auth", params: { identity_token: "signed.apple.jwt", nonce: "raw-nonce" }
+
+      expect(response).to have_http_status(:success)
+      token = JSON.parse(response.body).fetch("token")
+
+      # The token authenticates as the Apple identity — its own key space.
+      get "/native/state", headers: { "Authorization" => "Bearer #{token}" }
+      expect(response).to have_http_status(:success)
+
+      # A resonance exists under apple:<sub>, and NOT under the bare sub.
+      expect(Resonance.find_by_identity("apple:000123.apple.sub")).to be_present
+      expect(Resonance.find_by_identity("000123.apple.sub")).to be_nil
+    end
+
+    it "does not collide with a Google resonance that shares the raw sub string" do
+      # A Google user whose google_id happens to equal the Apple sub string
+      Resonance.find_or_create_by_google_id("000123.apple.sub")
+      allow_any_instance_of(AppleIdentity).to receive(:verify).and_return(apple_result)
+
+      expect {
+        post "/native/apple_auth", params: { identity_token: "signed.apple.jwt", nonce: "raw-nonce" }
+      }.to change(Resonance, :count).by(1) # a distinct apple:<sub> resonance
+
+      expect(response).to have_http_status(:success)
+    end
+
+    it "rejects an unverifiable Apple token with 401" do
+      allow_any_instance_of(AppleIdentity).to receive(:verify)
+        .and_raise(AppleIdentity::VerificationError, "bad signature")
+
+      post "/native/apple_auth", params: { identity_token: "forged", nonce: "raw-nonce" }
+
+      expect(response).to have_http_status(:unauthorized)
+      expect(JSON.parse(response.body)["error"]).to eq("apple_verification_failed")
+    end
+  end
+
   describe "structural opacity of transit artifacts" do
     # The topological encryption invariant extends to the native protocol:
     # nothing that travels through the handshake may expose the google_id,

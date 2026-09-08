@@ -19,13 +19,14 @@ RSpec.describe StripeSubscription do
         resonance.stripe_customer_id = customer_id
         resonance.save!
 
-        # Stub Stripe constants
+        # Stub Stripe constants (offered + recognized)
         stub_const("STRIPE_PRICE_IDS", {
-          tier_1: price_id,
           tier_10: "price_test_tier_10",
-          tier_100: "price_test_tier_100",
-          tier_1000: "price_test_tier_1000"
+          tier_100: "price_test_tier_100"
         })
+        stub_const("STRIPE_RECOGNIZED_PRICE_IDS", [
+          price_id, "price_test_tier_10", "price_test_tier_100", "price_test_tier_1000"
+        ])
       end
 
       it "returns true when customer has active subscription to our price" do
@@ -77,22 +78,49 @@ RSpec.describe StripeSubscription do
         expect(resonance.active_subscription?).to be false
       end
     end
+
+    # Grandfathering regression: a subscriber on a RETIRED tier (recognized but
+    # no longer offered) must stay active — Stripe keeps billing them, so we
+    # must keep honoring it.
+    context "with a grandfathered legacy tier" do
+      let(:customer_id) { "cus_legacy" }
+      let(:legacy_price) { "price_test_tier_1" } # $1, retired from offers
+
+      before do
+        resonance.stripe_customer_id = customer_id
+        resonance.save!
+        # Offered set does NOT include the legacy price; recognized set does.
+        stub_const("STRIPE_PRICE_IDS", { tier_10: "price_test_tier_10" })
+        stub_const("STRIPE_RECOGNIZED_PRICE_IDS", [ "price_test_tier_10", legacy_price ])
+
+        subscriptions = double("Stripe::ListObject", data: [
+          double(items: double(data: [ double(price: double(id: legacy_price)) ]))
+        ])
+        allow(Stripe::Subscription).to receive(:list).and_return(subscriptions)
+      end
+
+      it "still counts as an active subscription" do
+        expect(resonance.active_subscription?).to be true
+      end
+    end
   end
 
   describe "#create_checkout_session" do
-    let(:tier) { "tier_1" }
+    let(:tier) { "tier_10" }
     let(:success_url) { "https://example.com/success" }
     let(:cancel_url) { "https://example.com/cancel" }
-    let(:price_id) { "price_test_tier_1" }
+    let(:price_id) { "price_test_tier_10" }
     let(:customer_id) { "cus_test123" }
 
     before do
       stub_const("STRIPE_PRICE_IDS", {
-        tier_1: price_id,
-        tier_10: "price_test_tier_10",
-        tier_100: "price_test_tier_100",
-        tier_1000: "price_test_tier_1000"
+        tier_10: price_id,
+        tier_20: "price_test_tier_20",
+        tier_100: "price_test_tier_100"
       })
+      stub_const("STRIPE_RECOGNIZED_PRICE_IDS", [
+        price_id, "price_test_tier_20", "price_test_tier_100"
+      ])
     end
 
     it "creates a checkout session with correct parameters" do
@@ -257,7 +285,7 @@ RSpec.describe StripeSubscription do
 
   describe "#cancel_subscription" do
     let(:customer_id) { "cus_test123" }
-    let(:price_id) { "price_test_tier_1" }
+    let(:price_id) { "price_test_tier_10" }
     let(:subscription_id) { "sub_test123" }
 
     before do
@@ -265,11 +293,10 @@ RSpec.describe StripeSubscription do
       resonance.save!
 
       stub_const("STRIPE_PRICE_IDS", {
-        tier_1: price_id,
-        tier_10: "price_test_tier_10",
-        tier_100: "price_test_tier_100",
-        tier_1000: "price_test_tier_1000"
+        tier_10: price_id,
+        tier_100: "price_test_tier_100"
       })
+      stub_const("STRIPE_RECOGNIZED_PRICE_IDS", [ price_id, "price_test_tier_100" ])
     end
 
     it "cancels active subscription at period end" do

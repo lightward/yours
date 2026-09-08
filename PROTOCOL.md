@@ -13,16 +13,29 @@ contract.
 ## Identity model (read this first)
 
 All data lives server-side, encrypted with a key derived from the person's
-Google ID (see `app/models/resonance.rb`). The server never stores that ID —
-it arrives with each request and is forgotten after:
+**identity_key** (see `app/models/resonance.rb`). The server never stores that
+key — it arrives with each request and is forgotten after:
 
 - **Web**: inside the encrypted Rails session cookie
 - **Native**: inside an encrypted bearer token (`Authorization: Bearer ...`),
   minted at sign-in, held in the device keychain
 
+The identity_key is the raw provider subject:
+
+- **Google sign-in** (web + native): the Google `sub`. (For historical
+  reasons the stored primary-key column is `encrypted_google_id_hash`; it now
+  holds `SHA256(identity_key)`, byte-identical to before for Google users.)
+- **Sign in with Apple** (native, iOS): `apple:<sub>`.
+
+The two providers are **parallel, never linked**: each derives its own
+encryption key from its own identity_key, so they're independent key spaces.
+A person who signs in with Google and (separately) with Apple has two distinct
+universes — there is no email-based or any other bridge between them. Bearer
+tokens minted before this change carried the key under `google_id`; the server
+still reads those, normalizing to `identity_key`.
+
 Both envelopes are sealed with server-side keys derived from
-`secret_key_base`. Neither is stored server-side. Two doors, one universe:
-the same Google account sees the same narrative everywhere.
+`secret_key_base`. Neither is stored server-side.
 
 ## Native sign-in handshake
 
@@ -47,11 +60,32 @@ browser sheet (PKCE-style):
 Tokens expire after a year; any 401 means sign in again. Bearer requests are
 exempt from CSRF (no cookies involved); cookie requests remain protected.
 
+## Sign in with Apple (native, iOS)
+
+A second, independent provider — offered alongside Google on the iOS landing
+screen (App Store guideline 4.8). It does **not** ride the web flow; it's a
+native credential exchange, and needs no consent gate because the token is
+already cryptographically bound to the app.
+
+1. The app runs `ASAuthorizationController`, generating a random `nonce` and
+   setting `request.nonce = sha256(nonce)`. Apple returns an `identityToken`
+   (a JWS).
+2. App `POST`s to `/native/apple_auth`: `{ identity_token, nonce }` (the raw
+   nonce).
+3. The server verifies the token against **Apple's public keys** (signature,
+   `iss = https://appleid.apple.com`, `aud =` our bundle id, not expired,
+   `nonce` claim `= sha256(nonce)`), extracts `sub`, and mints a bearer token
+   for `identity_key = "apple:<sub>"`. Returns `{ token, obfuscated_email }`
+   (email present only on the first sign-in). Verification failure → **401**
+   `apple_verification_failed`.
+
 ## Endpoints clients use
 
 | Endpoint | Auth | Returns |
 |---|---|---|
-| `GET /native/state` | bearer | `{ universe_day, universe_time, narrative, textarea, obfuscated_email, subscription_active }`; add `?include=subscription` for `subscription` details |
+| `POST /native/token` | PKCE code | Google sign-in: exchange code + verifier → `{ token, obfuscated_email }` |
+| `POST /native/apple_auth` | Apple JWT | Sign in with Apple: `{ identity_token, nonce }` → `{ token, obfuscated_email }` |
+| `GET /native/state` | bearer | `{ universe_day, universe_time, narrative, textarea, obfuscated_email, subscription_active, iap_account_token }`; add `?include=subscription` for `subscription` details |
 | `POST /stream` | either | SSE stream (below). Body: `{ message: { role, content: [{ type: "text", text }] } }` |
 | `PUT /textarea` | either | `{ status: "saved", universe_time }`. Body: `{ textarea }` |
 | `POST /sleep` | either | web: redirect; bearer: `{ status: "integrating", starting_universe_time }` — then poll `/native/state` until `universe_time` moves |
@@ -70,6 +104,15 @@ starting another subscription while any storefront is active. Each storefront
 still manages its own billing and cancellation; we record the identities
 needed to ask each storefront for current entitlement, but we don't reconcile
 or cancel across storefronts.
+
+**Pricing tiers.** The offered tiers are $10 / $20 / $30 / $50 / $100 per
+month, on both web and iOS. There are two lists per storefront: what we
+**offer** (`STRIPE_PRICE_IDS` / `APPLE_PRODUCT_IDS`) and what we **recognize
+as active** (`STRIPE_RECOGNIZED_PRICE_IDS` / `APPLE_RECOGNIZED_PRODUCT_IDS` =
+offered + grandfathered legacy `$1`/`$1000`). New checkouts only use the
+offered list; entitlement checks use the recognized list, so anyone still on a
+retired tier keeps access (their subscription lives at the storefront, which
+keeps billing regardless of what we offer).
 
 > **Google Play (Android) is implemented server-side but gated off** until
 > the Android client has a billing flow. `POST /native/subscription` with
