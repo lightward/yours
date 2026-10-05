@@ -29,7 +29,10 @@ class AppleAppStore
 
   class VerificationError < StandardError; end
 
-  def initialize(config: APPLE_IAP_CONFIG, product_ids: APPLE_PRODUCT_IDS)
+  # Verifies against the RECOGNIZED set (offered + grandfathered legacy), so a
+  # purchase made before the pricing change still validates. The client only
+  # *offers* the new tiers.
+  def initialize(config: APPLE_IAP_CONFIG, product_ids: APPLE_RECOGNIZED_PRODUCT_IDS)
     @config = config
     @product_ids = product_ids
   end

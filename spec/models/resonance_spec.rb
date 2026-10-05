@@ -87,7 +87,7 @@ RSpec.describe Resonance, type: :model do
       reloaded = Resonance.find_by(encrypted_google_id_hash: resonance.encrypted_google_id_hash)
       expect {
         reloaded.stripe_customer_id
-      }.to raise_error(Resonance::MissingEncryptionKeyError, /google_id not set/)
+      }.to raise_error(Resonance::MissingEncryptionKeyError, /identity_key not set/)
     end
 
     it "can encrypt and decrypt empty strings" do
@@ -179,7 +179,7 @@ RSpec.describe Resonance, type: :model do
 
       expect {
         resonance_without_key.decrypt_field(encrypted)
-      }.to raise_error(Resonance::MissingEncryptionKeyError, /google_id not set/)
+      }.to raise_error(Resonance::MissingEncryptionKeyError, /identity_key not set/)
     end
   end
 

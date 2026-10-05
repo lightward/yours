@@ -26,6 +26,7 @@ Rails.application.routes.draw do
   post "native/auth/confirm", to: "application#native_auth_confirm"
   get "native/auth/return", to: "application#native_auth_return", as: :native_auth_return
   post "native/token", to: "application#native_token"
+  post "native/apple_auth", to: "application#native_apple_auth"
   get "native/state", to: "application#native_state"
   post "native/subscription", to: "application#native_subscription"
   delete "native/account", to: "application#destroy_account"

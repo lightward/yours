@@ -24,7 +24,8 @@ class GooglePlayStore
 
   class VerificationError < StandardError; end
 
-  def initialize(config: GOOGLE_PLAY_CONFIG, product_ids: GOOGLE_PRODUCT_IDS)
+  # Recognized set (offered + grandfathered), same reasoning as Apple.
+  def initialize(config: GOOGLE_PLAY_CONFIG, product_ids: GOOGLE_RECOGNIZED_PRODUCT_IDS)
     @config = config
     @product_ids = product_ids
   end
