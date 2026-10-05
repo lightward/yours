@@ -29,20 +29,29 @@ RSpec.describe ApplicationController, type: :request do
   end
 
   describe "GET /terms and /privacy" do
-    it "serves public terms of use" do
+    # Test the load-bearing facts these pages must carry (the operator, a
+    # contact, the subscription reality), not the exact prose — so the pages
+    # can be edited without breaking the suite, while App Store / legal
+    # essentials stay present.
+    it "serves public terms of use naming the operator and subscription terms" do
       get terms_path
 
       expect(response).to have_http_status(:success)
       expect(response.body).to include("Terms of Use")
-      expect(response.body).to include("temporary terms placeholder")
+      expect(response.body).to include("Lightward Inc")
+      expect(response.body).to include("hello@lightward.com")
+      expect(response.body).to match(/auto-renew/i)
     end
 
-    it "serves a public privacy policy" do
+    it "serves a public privacy policy naming the operator and a contact" do
       get privacy_path
 
       expect(response).to have_http_status(:success)
       expect(response.body).to include("Privacy Policy")
-      expect(response.body).to include("temporary privacy placeholder")
+      expect(response.body).to include("Lightward Inc")
+      expect(response.body).to include("hello@lightward.com")
+      # The core promise: conversations are encrypted / not sold.
+      expect(response.body).to match(/encrypt/i)
     end
   end
 
