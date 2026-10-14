@@ -8,7 +8,7 @@ class ApplicationController < ActionController::Base
   allow_browser versions: :modern, except: [
     :index, :terms, :privacy, :llms_txt,
     :native_auth_start, :native_auth_confirm_start, :native_auth_confirm, :native_auth_return,
-    :native_token, :native_state, :native_subscription,
+    :native_token, :native_apple_auth, :native_state, :native_subscription,
     :apple_notifications, :google_notifications
   ]
 
@@ -139,9 +139,33 @@ class ApplicationController < ActionController::Base
     return render json: { error: "invalid_code" }, status: :unauthorized unless payload
 
     render json: {
-      token: NativeToken.issue(google_id: payload["google_id"], obfuscated_email: payload["obfuscated_email"]),
+      token: NativeToken.issue(identity_key: payload["identity_key"], obfuscated_email: payload["obfuscated_email"]),
       obfuscated_email: payload["obfuscated_email"]
     }
+  end
+
+  # POST /native/apple_auth
+  # Sign in with Apple. The app runs the native flow and posts Apple's identity
+  # token plus the raw nonce it used. We verify the token with Apple's own keys
+  # (bound to our bundle id + the nonce) and mint a bearer token for the
+  # identity "apple:<sub>" — its own encryption key space, never linked to any
+  # Google resonance. No consent gate: the token is app-bound, so there's no
+  # confused-deputy risk the Google web flow has. See PROTOCOL.md.
+  def native_apple_auth
+    result = AppleIdentity.new.verify(
+      params[:identity_token].to_s,
+      raw_nonce: params[:nonce].to_s
+    )
+
+    resonance = Resonance.find_or_create_by_identity(result.identity_key)
+    obfuscated = obfuscate_email(result.email) # nil after first sign-in; that's fine
+
+    render json: {
+      token: NativeToken.issue(identity_key: resonance.identity_key, obfuscated_email: obfuscated),
+      obfuscated_email: obfuscated
+    }
+  rescue AppleIdentity::VerificationError => e
+    render json: { error: "apple_verification_failed", message: e.message }, status: :unauthorized
   end
 
   # GET /native/state
@@ -706,21 +730,18 @@ class ApplicationController < ActionController::Base
     # When a bearer token is present, it wins — a request carrying an
     # Authorization header is a device API call, and an ambient browser cookie
     # must not override (or stand in for) its identity. Otherwise fall back to
-    # the session cookie (the web path).
-    google_id =
+    # the session cookie (the web path). The identity_key is the Google sub for
+    # Google users, "apple:<sub>" for Apple; native_token_payload normalizes
+    # legacy tokens so ["identity_key"] is populated either way.
+    identity_key =
       if bearer_token_present?
-        native_token_payload&.[]("google_id")
+        native_token_payload&.[]("identity_key")
       else
         session[:google_id]
       end
-    return nil unless google_id
+    return nil unless identity_key
 
-    @current_resonance ||= begin
-      google_id_hash = Digest::SHA256.hexdigest(google_id)
-      resonance = Resonance.find_by(encrypted_google_id_hash: google_id_hash)
-      resonance.google_id = google_id if resonance
-      resonance
-    end
+    @current_resonance ||= Resonance.find_by_identity(identity_key)
   end
   helper_method :current_resonance
 
@@ -787,7 +808,7 @@ class ApplicationController < ActionController::Base
     return nil if session[:native_code_challenge].blank?
 
     code = NativeToken.issue_code(
-      google_id: session[:google_id],
+      identity_key: session[:google_id],
       obfuscated_email: session[:obfuscated_user_email],
       code_challenge: session.delete(:native_code_challenge)
     )

@@ -275,13 +275,18 @@ RSpec.describe ApplicationController, type: :request do
         sign_in_as(google_id)
         resonance.universe_day = 1
         resonance.save!
+        # The view renders one button per offered tier; give it prices to show.
+        stub_const("STRIPE_PRICE_IDS", {
+          tier_10: "p10", tier_20: "p20", tier_30: "p30", tier_50: "p50", tier_100: "p100"
+        })
       end
 
       it "shows settings page with subscription options" do
         get settings_path
         expect(response).to have_http_status(:success)
         expect(response.body).to include('How much does "new" cost for you?')
-        expect(response.body).to include("$1/month")
+        expect(response.body).to include("$10/month")
+        expect(response.body).to include("$100/month")
       end
     end
 
@@ -394,6 +399,9 @@ RSpec.describe ApplicationController, type: :request do
       context "when authenticated but no active subscription" do
         before do
           allow_any_instance_of(Resonance).to receive(:active_subscription?).and_return(false)
+          stub_const("STRIPE_PRICE_IDS", {
+            tier_10: "p10", tier_20: "p20", tier_30: "p30", tier_50: "p50", tier_100: "p100"
+          })
         end
 
         it "shows settings page with subscription buttons" do
@@ -401,8 +409,13 @@ RSpec.describe ApplicationController, type: :request do
 
           expect(response).to have_http_status(:success)
           expect(response.body).to include('How much does "new" cost for you?')
-          expect(response.body).to include("$1/month")
           expect(response.body).to include("$10/month")
+          expect(response.body).to include("$20/month")
+          expect(response.body).to include("$50/month")
+          expect(response.body).to include("$100/month")
+          # Retired tiers are no longer offered
+          expect(response.body).not_to include("$1/month")
+          expect(response.body).not_to include("$1000/month")
         end
 
         it "shows disabled 'start over' button with explanatory text" do
@@ -800,16 +813,18 @@ RSpec.describe ApplicationController, type: :request do
   end
 
   describe "POST /subscription" do
-    let(:tier) { "tier_1" }
+    let(:tier) { "tier_20" }
     let(:checkout_session) { double("Stripe::Checkout::Session", url: "https://checkout.stripe.com/test") }
 
     before do
       stub_const("STRIPE_PRICE_IDS", {
-        tier_1: "price_test_tier_1",
         tier_10: "price_test_tier_10",
-        tier_100: "price_test_tier_100",
-        tier_1000: "price_test_tier_1000"
+        tier_20: "price_test_tier_20",
+        tier_100: "price_test_tier_100"
       })
+      stub_const("STRIPE_RECOGNIZED_PRICE_IDS", [
+        "price_test_tier_10", "price_test_tier_20", "price_test_tier_100"
+      ])
     end
 
     context "when not authenticated" do

@@ -12,11 +12,14 @@ final class Store: ObservableObject {
     // One store for the app; AppModel drives it, views observe it directly.
     static let shared = Store()
 
+    // Offered tiers: $10 / $20 / $30 / $50 / $100. Must match the App Store
+    // Connect product ids and config/initializers/native_iap.rb (offered set).
     static let productIDs = [
-        "fyi.yours.subscription.tier_1",
         "fyi.yours.subscription.tier_10",
-        "fyi.yours.subscription.tier_100",
-        "fyi.yours.subscription.tier_1000"
+        "fyi.yours.subscription.tier_20",
+        "fyi.yours.subscription.tier_30",
+        "fyi.yours.subscription.tier_50",
+        "fyi.yours.subscription.tier_100"
     ]
 
     @Published var products: [Product] = []
@@ -25,7 +28,7 @@ final class Store: ObservableObject {
 
     private var updatesTask: Task<Void, Never>?
 
-    // The price tiers, ordered low to high — mirrors the web's $1/$10/$100/$1000
+    // The price tiers, ordered low to high ($10 → $100).
     var sortedProducts: [Product] {
         products.sorted { $0.price < $1.price }
     }

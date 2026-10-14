@@ -69,24 +69,14 @@
       <p>How much does "new" cost for you?</p>
 
       <div class="flex-row gap-md">
-        <%= form_with url: subscription_path, method: :post, data: { turbo: false } do |f| %>
-          <%= f.hidden_field :tier, value: "tier_1" %>
-          <%= f.submit "$1/month", name: nil %>
-        <% end %>
-
-        <%= form_with url: subscription_path, method: :post, data: { turbo: false } do |f| %>
-          <%= f.hidden_field :tier, value: "tier_10" %>
-          <%= f.submit "$10/month", name: nil %>
-        <% end %>
-
-        <%= form_with url: subscription_path, method: :post, data: { turbo: false } do |f| %>
-          <%= f.hidden_field :tier, value: "tier_100" %>
-          <%= f.submit "$100/month", name: nil %>
-        <% end %>
-
-        <%= form_with url: subscription_path, method: :post, data: { turbo: false } do |f| %>
-          <%= f.hidden_field :tier, value: "tier_1000" %>
-          <%= f.submit "$1000/month", name: nil %>
+        <%# Rendered from the offered tiers (config/initializers/stripe.rb); the %>
+        <%# dollar label is derived from the tier name, e.g. tier_10 -> $10. %>
+        <% STRIPE_PRICE_IDS.each_key do |tier| %>
+          <% dollars = tier.to_s.split("_").last %>
+          <%= form_with url: subscription_path, method: :post, data: { turbo: false } do |f| %>
+            <%= f.hidden_field :tier, value: tier %>
+            <%= f.submit "$#{dollars}/month", name: nil %>
+          <% end %>
         <% end %>
       </div>
 
