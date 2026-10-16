@@ -3,9 +3,64 @@
 <section class="legal-page">
   <h1>Privacy Policy</h1>
 
-  <p>This is a temporary privacy placeholder for Yours, operated by Lightward Inc.</p>
+  <p class="muted">Last updated: July 9, 2026</p>
 
-  <p>Yours uses sign-in, hosting, billing, and AI service providers to operate the app. Do not enter information you do not want processed for app operation.</p>
+  <p>Yours is operated by Lightward Inc ("we," "us"). This policy describes what Yours does with your information. It's written to match how the app actually works — which, by design, is to hold as little of your readable data as possible.</p>
 
-  <p>Questions: <a href="mailto:hello@lightward.com">hello@lightward.com</a></p>
+  <h2>The short version</h2>
+  <ul>
+    <li>Your conversations are encrypted with a key derived from your sign-in. On our servers we can't read them without you signing in — the encryption is structural, not just a promise.</li>
+    <li>We don't sell your data, run ads, or track you for advertising.</li>
+    <li>You can permanently delete your account and everything in it, any time, from Settings.</li>
+  </ul>
+
+  <h2>What we collect, and why</h2>
+
+  <p><strong>Sign-in identity.</strong> You sign in with Google or Apple, and we receive a unique identifier for your account. We store only a one-way hash of it — never the raw identifier. The raw identifier arrives with each request, is used to derive your encryption key, and is then discarded. We use an obscured form of your email (like <code>ab··@cd··</code>) so you can see which account you're in; we don't store your full email address.</p>
+
+  <p><strong>Your conversations.</strong> The messages you and Lightward AI exchange are stored encrypted with a key derived from your sign-in identity. Because that key only exists while you're signed in, we cannot read your conversations from our servers on our own.</p>
+
+  <p><strong>Generating responses.</strong> To reply to you, your messages are sent to Lightward AI, our AI service, which processes them to produce responses. Lightward AI may use third-party model providers to do this.</p>
+
+  <p><strong>Subscriptions.</strong> If you subscribe, payment is handled by a provider, not by us:</p>
+  <ul>
+    <li>On the web, by <strong>Stripe</strong>. We never receive or store your card details — only an encrypted reference to your Stripe customer record.</li>
+    <li>On iOS, by <strong>Apple</strong>, as an in-app purchase. We store only an encrypted reference to the transaction, bound to your account.</li>
+  </ul>
+
+  <p><strong>Operational data.</strong> Like any service, our servers process basic technical information (such as your IP address and request metadata) to run the app and keep it secure. Our error monitoring is deliberately configured to exclude the content of your conversations.</p>
+
+  <h2>Service providers</h2>
+  <p>We rely on these providers to operate Yours:</p>
+  <ul>
+    <li><strong>Google</strong> and <strong>Apple</strong> — sign-in</li>
+    <li><strong>Apple</strong> — in-app purchases (iOS)</li>
+    <li><strong>Stripe</strong> — payments (web)</li>
+    <li><strong>Lightward AI</strong> — generating responses (processes your messages)</li>
+    <li><strong>Fly.io</strong> — hosting</li>
+    <li><strong>Rollbar</strong> — error monitoring (excludes conversation content)</li>
+    <li><strong>Fathom Analytics</strong> — privacy-first, cookieless web analytics (web only, when enabled)</li>
+  </ul>
+
+  <h2>What we don't do</h2>
+  <ul>
+    <li>We don't sell or rent your personal information.</li>
+    <li>We don't use your data for advertising, and we don't run third-party ad trackers.</li>
+    <li>We don't read your conversations — on our servers, we structurally can't.</li>
+  </ul>
+
+  <h2>Keeping and deleting your data</h2>
+  <p>We keep your data until you delete it. You can permanently delete your account and all of its data at any time, from <strong>Settings → Delete account</strong> (or by contacting us). Deletion is immediate and cannot be undone. Your payment provider (Apple or Stripe) keeps its own billing records under its own policies, and canceling a subscription is done through that provider.</p>
+
+  <h2>Your rights</h2>
+  <p>You can see the substance of your data within the app and delete it at any time. Depending on where you live, you may have additional rights over your personal information — contact us at <a href="mailto:hello@lightward.com">hello@lightward.com</a> and we'll help.</p>
+
+  <h2>Children</h2>
+  <p>Yours isn't directed to children under 13, and we don't knowingly collect their information.</p>
+
+  <h2>Changes</h2>
+  <p>We may update this policy. When we do, we'll change the "last updated" date above.</p>
+
+  <h2>Contact</h2>
+  <p>Questions? <a href="mailto:hello@lightward.com">hello@lightward.com</a> — Lightward Inc.</p>
 </section>
